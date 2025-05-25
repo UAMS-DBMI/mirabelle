@@ -122,52 +122,29 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       setDetails(details);
       setVolumetric(volumetric); // still update state
 
-      if (volumetric) {
-        await initializeVolume();
-      } else {
-        await initializeStack();
-      }
-    };
-
-    const initializeVolume = async () => {
       setIsErrored(false);
-      let volumeId = `vol-review-${iec}`;
+      let volumeId = `${iec}-${Date.now()}`;
+      //let segmentationId = `${iec}-seg-${Date.now()}`;
 
-      const { volumetric, frames } = await getIECInfo(iec, true); 
+      const { frames } = await getIECInfo(iec, true);
       const volume = await cornerstone.volumeLoader.createAndCacheVolume(volumeId, {
         imageIds: frames,
       });
-
       volume.load();
 
+      setImageIds(frames);
       setIsInitialized(true);
       setVolumeId(volumeId);
 
-      dispatch(setTitle("Mask Review Volume"));
-      dispatch(setVolumeConfig());
-
-      dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-      dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
-      dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
-
-      dispatch(setLoading(false));
-    };
-
-    const initializeStack = async () => {
-      const imageIds = await createImageIdsAndCacheMetaData({
-        StudyInstanceUID:
-          `iec:${iec}`,
-        SeriesInstanceUID:
-          "any",
-        wadoRsRoot: "/papi/v1/wadors",
-      })
-      setImageIds(imageIds);
-      setIsInitialized(true);
-
-      dispatch(setTitle("Mask Review Stack"));
-      dispatch(setStackConfig());
-
-      dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+      if (volumetric) {
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+        dispatch(setTitle("Mask Volume Review"));
+        dispatch(setVolumeConfig());
+      } else {
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+        dispatch(setTitle("Mask Stack Review"));
+        dispatch(setStackConfig());
+      }
       dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
       dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
 

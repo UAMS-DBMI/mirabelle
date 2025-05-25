@@ -135,8 +135,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       setVolumetric(volumetric); // still update state
 
       setIsErrored(false);
-      let volumeId = `stack-${iec}-${Date.now()}`;
-      let segmentationId = `stack-${iec}-seg-${Date.now()}`;
+      let volumeId = `${iec}-${Date.now()}`;
+      let segmentationId = `${iec}-seg-${Date.now()}`;
 
       try {
         const imageIds = await getImageIdsFromIEC(iec);
