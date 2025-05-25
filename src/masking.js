@@ -288,7 +288,11 @@ export async function finalCalc(coords, volumeId, iec, maskForm, maskFunction) {
 
     const targetDirection = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]];  // RAS Axial
 
-    const transformedCoords = convertCoordinates(coords, volume, targetDirection);
+    const isFlat = coords.z.min === coords.z.max;
+
+    const transformedCoords = isFlat
+      ? coords  // skip transformation
+      : convertCoordinates(coords, volume, targetDirection);
 
     // console.log("Transformed coordinates in the target plane:");
     // console.log(transformedCoords);

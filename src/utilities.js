@@ -79,6 +79,52 @@ export function expandSegTo3D(segmentationId) {
 	};
 }
 
+export function getCoordsForStackSeg(segmentationId) {
+  const segmentation = cornerstoneTools.segmentation.state.getSegmentation(segmentationId);
+  const imageIds = segmentation.representationData.Labelmap.imageIds;
+
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+  imageIds.forEach((imageId, z) => {
+    const image = cornerstone.cache.getImage(imageId);
+    const pixelData = image.getPixelData();
+    const { rows, columns } = image;
+
+    let sliceHasData = false;
+
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < columns; x++) {
+        const index = y * columns + x;
+        if (pixelData[index] > 0) {
+          sliceHasData = true;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (sliceHasData) {
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
+    }
+  });
+
+  if (minX === Infinity) {
+    return null; // No segmentation found
+  }
+
+  return {
+    x: { min: minX, max: maxX },
+    y: { min: minY, max: maxY },
+    z: { min: minZ, max: maxZ },
+  };
+}
+
+
+
 /**
  * A generic distance calucaltion between two (3D) points
  */
@@ -258,6 +304,24 @@ export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentation
   ]);
 
   return volume;
+}
+
+export async function getImageIdsFromIEC(iec) {
+	let imageIds;
+	try {
+		imageIds = await createImageIdsAndCacheMetaData({
+			StudyInstanceUID:
+				`iec:${iec}`,
+			SeriesInstanceUID:
+				"any",
+			wadoRsRoot: "/papi/v1/wadors",
+		})
+	} catch (error) {
+		console.log(error);
+		return;
+	}
+
+	return imageIds;
 }
 
 export function toAbsoluteURL(relative_url) {

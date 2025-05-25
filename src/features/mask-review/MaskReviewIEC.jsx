@@ -164,7 +164,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       setImageIds(imageIds);
       setIsInitialized(true);
 
-      dispatch(setTitle("Mask Stack"));
+      dispatch(setTitle("Mask Review Stack"));
       dispatch(setStackConfig());
 
       dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));

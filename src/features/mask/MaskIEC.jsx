@@ -13,11 +13,12 @@ import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import {
   expandSegTo3D,
+  getCoordsForStackSeg,
   isSegFlat,
   loadIECVolumeAndSegmentation,
   loadVolumeAndSegmentation,
   getIECInfo,
-
+  getImageIdsFromIEC,
 } from '@/utilities';
 import { getDicomDetails } from '@/visualreview';
 import { finalCalc } from '@/masking';
@@ -124,7 +125,6 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     };
   }, []);
 
-  // Load the volume into the cache
   useLayoutEffect(() => {
     console.log("MaskIEC useEffect[iec]:", iec);
 
@@ -134,66 +134,42 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       setDetails(details);
       setVolumetric(volumetric); // still update state
 
-      if (volumetric) {
-        await initializeVolume();
-      } else {
-        await initializeStack();
-      }
-    };
-
-    const initializeVolume = async () => {
       setIsErrored(false);
-      let volumeId = `vol-${iec}-${Date.now()}`;
-      let segmentationId = `vol-${iec}-seg-${Date.now()}`;
+      let volumeId = `stack-${iec}-${Date.now()}`;
+      let segmentationId = `stack-${iec}-seg-${Date.now()}`;
 
       try {
-        await loadIECVolumeAndSegmentation(iec, volumeId, segmentationId, vr);
+        const imageIds = await getImageIdsFromIEC(iec);
+        setImageIds(imageIds);
+        await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
       } catch (error) {
         console.log(error);
         // TODO: set an isError status here and display an error message?
         setErrorMessage(error);
         setIsErrored(true);
+        return;
       }
 
       setIsInitialized(true);
       setVolumeId(volumeId);
       setSegmentationId(segmentationId);
 
-      dispatch(setTitle("Mask Volume"));
-      dispatch(setVolumeConfig());
-
-      dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-      dispatch(setOption({ key: "function", value: Enums.FunctionOptions.MASK }));
-      dispatch(setOption({ key: "form", value: Enums.FormOptions.CYLINDER }));
+      if (volumetric) {
+        dispatch(setTitle("Mask Volume"));
+        dispatch(setVolumeConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+        dispatch(setOption({ key: "function", value: Enums.FunctionOptions.MASK }));
+        dispatch(setOption({ key: "form", value: Enums.FormOptions.CYLINDER }));
+      } else {
+        dispatch(setTitle("Mask Stack"));
+        dispatch(setStackConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+        dispatch(setOption({ key: "function", value: Enums.FunctionOptions.BLACKOUT }));
+        dispatch(setOption({ key: "form", value: Enums.FormOptions.CUBOID }));
+      }
       dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.SELECTION }));
       dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
       dispatch(setLoading(false));
-
-      dispatch(setLoading(false));
-    };
-
-    const initializeStack = async () => {
-      const imageIds = await createImageIdsAndCacheMetaData({
-        StudyInstanceUID:
-          `iec:${iec}`,
-        SeriesInstanceUID:
-          "any",
-        wadoRsRoot: "/papi/v1/wadors",
-      })
-      setImageIds(imageIds);
-      setIsInitialized(true);
-
-      dispatch(setTitle("Mask Stack"));
-      dispatch(setStackConfig());
-
-      dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
-      dispatch(setOption({ key: "function", value: Enums.FunctionOptions.BLACKOUT }));
-      dispatch(setOption({ key: "form", value: Enums.FormOptions.CUBOID }));
-      dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.SELECTION }));
-      dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
-
-      dispatch(setLoading(false));
-
     };
 
     initialize();
@@ -265,12 +241,20 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       .triggerSegmentationDataModified(segmentationId);
   }
   async function handleAccept() {
-    if (!expanded) {
-      alert("You Expand Selection first!");
+    if (volumetric && !expanded) {
+      alert("You must Expand Selection first!");
       return;
     }
-    console.log(coords, volumeId, iec);
-    await finalCalc(coords, volumeId, iec, "cuboid", "mask");
+
+    let finalCoords = coords;
+
+    if (!volumetric && !coords) {
+      finalCoords = getCoordsForStackSeg(segmentationId);
+      setCoords(finalCoords);
+    }
+
+    console.log(finalCoords, volumeId, iec);
+    await finalCalc(finalCoords, volumeId, iec, "cuboid", "mask");
     toast.success("Submitted for masking!");
   }
 
@@ -299,7 +283,12 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         toolGroup3d={toolGroup3d}
       />
   } else {
-    viewer = <StackView toolGroup={toolGroup} frames={imageIds} />
+    viewer =
+      <StackView
+        segmentationId={segmentationId}
+        toolGroup={toolGroup}
+        frames={imageIds}
+    />
   }
 
   return (

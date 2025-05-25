@@ -26,18 +26,28 @@ const { segmentation: segmentationUtils } = cstUtils;
 
 const { ViewportType } = Enums;
 
-function StackViewport({ frames, mip, viewportId, renderingEngine, toolGroup }) {
+function StackViewport({
+  frames,
+  mip,
+  viewportId,
+  renderingEngine,
+  toolGroup,
+  segmentationId
+}) {
   console.log("[StackViewport] rendering")
   const elementRef = useRef(null);
 
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    //console.log("[StackViewport] useEffect triggered");
+    //console.log("frames:", frames);
+
     const setup = async () => {
       if (frames === undefined) {
         return;
       }
-      console.log("[VolumeViewport] setup running");
+      console.log("[StackViewport] setup running");
 
       const viewportInput = {
         viewportId,
@@ -53,6 +63,15 @@ function StackViewport({ frames, mip, viewportId, renderingEngine, toolGroup }) 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 
       await viewport.setStack(frames);
+
+      await segmentation.addLabelmapRepresentationToViewportMap({
+        [viewportId]: [
+          {
+            segmentationId,
+            type: csToolsEnums.SegmentationRepresentations.Labelmap,
+          }
+        ],
+      });
 
       // Render the image
       viewport.render()

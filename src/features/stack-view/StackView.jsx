@@ -24,7 +24,7 @@ const { MouseBindings } = csToolsEnums;
 const toolGroupId = 'STACK_TOOL_GROUP_ID';
 
 
-export default function StackView({ frames, toolGroup }) {
+export default function StackView({ frames, segmentationId, toolGroup }) {
   const [renderingEngine, setRenderingEngine] = useState();
 
   const [mip, setMip] = useState(false);
@@ -67,6 +67,7 @@ export default function StackView({ frames, toolGroup }) {
         frames={frames}
         toolGroup={toolGroup}
         renderingEngine={renderingEngine}
+        segmentationId={segmentationId}
         viewportId="myviewport"
       />
     </div>
