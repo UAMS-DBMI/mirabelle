@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as cornerstone from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core"
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 import './StackViewport.css';
 
@@ -29,7 +30,7 @@ function StackViewport({ frames, mip, viewportId, renderingEngine, toolGroup }) 
   console.log("[StackViewport] rendering")
   const elementRef = useRef(null);
 
-  window.re = renderingEngine;
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     const setup = async () => {
@@ -55,14 +56,16 @@ function StackViewport({ frames, mip, viewportId, renderingEngine, toolGroup }) 
 
       // Render the image
       viewport.render()
+      window.viewport = viewport;
+      setInitialized(true);
     }
 
     setup()
   }, [elementRef, frames])
 
-
   return (
     <>
+      {!initialized && <LoadingSpinner />}
       <div
         ref={elementRef}
         onContextMenu={(e) => e.preventDefault()}

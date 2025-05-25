@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import { Enums, setStackConfig, setVolumeConfig } from '@/features/presentationSlice';
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
@@ -76,9 +76,16 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
 
+  // Factor out the idea of "force stack view" from options
+  // so we can use it as a useEffect dependency, and it
+  // will only trigger a change when the "force stack view"
+  // status changes. That is, it will NOT trigger an update
+  // when view changes to something else (like projection).
+  const forceStackView = options.view === 'stack';
+
   let viewer;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {
       setRenderingEngine(new cornerstone.RenderingEngine("re1"));
@@ -106,13 +113,18 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   }, []);
 
     // Load the volume into the cache
-  useEffect(() => {
+  useLayoutEffect(() => {
     console.log("DicomReviewIEC useEffect[iec]:", iec);
     let volume;
 
     const initialize = async () => {
       const details = await getDicomDetails(iec);
-      const { volumetric } = details;
+      let { volumetric } = details;
+
+      if (options.view === 'stack') {
+        volumetric = false; // force stack view
+      }
+
       setDetails(details);
       setVolumetric(volumetric); // still update state
 
@@ -174,7 +186,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
     };
         
     initialize();
-  }, [iec]);
+  }, [iec, forceStackView]);
 
   useHotkeys('g', () => handleOperationsAction('good'));
   useHotkeys('b', () => handleOperationsAction('bad'));
