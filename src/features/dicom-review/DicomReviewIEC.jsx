@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Enums, setStackConfig, setVolumeConfig } from '@/features/presentationSlice';
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
 import toast from 'react-hot-toast';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
 import { volumeLoader } from "@cornerstonejs/core";
@@ -174,6 +175,13 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         
     initialize();
   }, [iec]);
+
+  useHotkeys('g', () => handleOperationsAction('good'));
+  useHotkeys('b', () => handleOperationsAction('bad'));
+  useHotkeys('l', () => handleOperationsAction('blank'));
+  useHotkeys('s', () => handleOperationsAction('scout'));
+  useHotkeys('o', () => handleOperationsAction('other'));
+  useHotkeys('f', () => handleOperationsAction('flag'));
 
   async function handleOperationsAction(action) {
     switch (action) {

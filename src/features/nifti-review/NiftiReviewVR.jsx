@@ -3,18 +3,22 @@ import MaterialButtonSet from '@/components/MaterialButtonSet';
 import NiftiReviewFile from '@/features/nifti-review/NiftiReviewFile';
 import { useDispatch } from 'react-redux';
 import { setLoading } from '@/features/optionSlice';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 import './NiftiReviewVR.css';
 
 export default function NiftiReviewVR({ vr, files }) {
-  const [file, setFile] = useState(0);
+  const [file, setFile] = useState();
   const [offset, setOffset] = useState(null);
+  const [error, setError] = useState(null);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (Array.isArray(files) && file.length) {
+    if (Array.isArray(files) && files.length) {
       setOffset(0);
-      setIec(file[0]);
+      setFile(files[0]);
+    } else {
+      setError("This VR contains no files, or does not exist!");
     }
   }, [files]);
 
@@ -40,6 +44,10 @@ export default function NiftiReviewVR({ vr, files }) {
 		setOffset(currentOffset);
 	};
 
+  useHotkeys('tab', handleNext);
+  useHotkeys('right', handleNext);
+  useHotkeys('left', handlePrevious);
+
 	return (
 		<>
 			{file && (
@@ -50,6 +58,11 @@ export default function NiftiReviewVR({ vr, files }) {
 					onPrevious={handlePrevious}
 				/>
 			)}
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
 		</>
 	);
 }

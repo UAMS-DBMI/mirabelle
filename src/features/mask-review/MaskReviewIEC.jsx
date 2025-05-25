@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import { Enums, setStackConfig, setVolumeConfig } from '@/features/presentationSlice';
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
+import { useHotkeys } from 'react-hotkeys-hook';
 import toast from 'react-hot-toast';
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
@@ -177,8 +178,40 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   }, [iec]);
 
+  useHotkeys('a', () => handleAction('accept mask'));
+  useHotkeys('r', () => handleAction('reject mask'));
+  useHotkeys('s', () => handleAction('skip mask'));
+  useHotkeys('n', () => handleAction('nonmaskable mask'));
+
+  function handleAcceptMask() {
+    toast.success("Mask accepted!");
+  }
+  function handleRejectMask() {
+    toast.success("Mask rejected!");
+  }
+  function handleSkipMask() {
+    toast.success("Mask skipped!");
+  }
+  function handleNonMaskable() {
+    toast.success("Image is not maskable!");
+  }
   function handleAction(action) {
-    toast.success("Action: " + action);
+    switch (action) {
+      case 'accept mask':
+        handleAcceptMask();
+        break;
+      case 'reject mask':
+        handleRejectMask();
+        break;
+      case 'skip mask':
+        handleSkipMask();
+        break;
+      case 'nonmaskable mask':
+        handleNonMaskable();
+        break;
+      default:
+        console.warn(`Unknown action: ${action}`);
+    }
   }
 
 

@@ -2,6 +2,7 @@ import React from 'react';
 
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
+import { useHotkeys } from 'react-hotkeys-hook';
 import { Enums, setStackConfig, setVolumeConfig } from '@/features/presentationSlice';
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
 import toast from 'react-hot-toast';
@@ -87,6 +88,10 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   let viewer;
 
   console.log("MaskIEC renderingEngine:", renderingEngine);
+
+  useHotkeys('e', handleExpand);
+  useHotkeys('c', handleClear);
+  useHotkeys('a', handleAccept);
 
   function handlePresetChange(newPreset) {
     const viewport = renderingEngine.getViewport("t3d_coronal");

@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Enums, setVolumeConfig, setNiftiConfig } from '@/features/presentationSlice';
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
 import toast from 'react-hot-toast';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 import {
   Enums as NiftiEnums,
@@ -170,6 +171,11 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
 
   }, [file]);
 
+  useHotkeys('g', () => handleOperationsAction('good'));
+  useHotkeys('b', () => handleOperationsAction('bad'));
+  useHotkeys('l', () => handleOperationsAction('blank'));
+  useHotkeys('s', () => handleOperationsAction('scout'));
+  useHotkeys('o', () => handleOperationsAction('other'));
 
   async function handleOperationsAction(action) {
     switch (action) {

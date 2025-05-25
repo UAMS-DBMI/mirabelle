@@ -3,6 +3,7 @@ import MaterialButtonSet from '@/components/MaterialButtonSet';
 import DicomReviewIEC from '@/features/dicom-review/DicomReviewIEC';
 import { useDispatch } from 'react-redux';
 import { setLoading } from '@/features/optionSlice';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 import './DicomReviewVR.css';
 
@@ -40,6 +41,10 @@ export default function DicomReviewVR({ vr, iecs }) {
 		setIec(iecs[currentOffset]);
 		setOffset(currentOffset);
 	};
+
+  useHotkeys('tab', handleNext);
+  useHotkeys('right', handleNext);
+  useHotkeys('left', handlePrevious);
 
 	return (
 		<>

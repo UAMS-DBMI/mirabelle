@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useLayoutEffect } from 'react';
 import { useLoaderData } from 'react-router-dom';
 import { useDispatch } from 'react-redux'
 
@@ -20,7 +20,7 @@ export default function RouteNiftiReviewVR() {
   const { vr, files } = useLoaderData();
   const dispatch = useDispatch();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     dispatch(reset());
     dispatch(setVisualReviewConfig());
   }, []);
