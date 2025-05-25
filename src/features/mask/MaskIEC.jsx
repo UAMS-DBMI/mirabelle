@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import { Enums, setStackConfig, setVolumeConfig } from '@/features/presentationSlice';
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
@@ -120,7 +120,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   }, []);
 
   // Load the volume into the cache
-  useEffect(() => {
+  useLayoutEffect(() => {
     console.log("MaskIEC useEffect[iec]:", iec);
 
     const initialize = async () => {

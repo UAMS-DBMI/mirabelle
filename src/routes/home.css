@@ -1,11 +1,11 @@
-#RouteHome ul, #RouteHome li {
+#home ul, #home li {
 	display: block;
 	padding-bottom: 0;
 	@apply
 		
 	pl-3;
 }
-#RouteHome li a {
+#home li a {
 	@apply
 		pl-5;
 }
@@ -13,18 +13,18 @@
 /* 	@apply */
 /* 		p-3; */
 /* } */
-#RouteHome h2 {
+#home h2 {
 	@apply
 		text-xl
 		mt-3
 }
-#RouteHome hr {
+#home hr {
 	@apply
 		mt-10
 		mb-10
 }
 
-#RouteHome {
+#home {
 	@apply
 	overflow-y-auto;
 }
