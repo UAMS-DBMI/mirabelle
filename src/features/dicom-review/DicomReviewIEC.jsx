@@ -11,7 +11,7 @@ import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData
 import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import { loadIECVolumeAndSegmentation, getIECInfo, } from '@/utilities';
+import { loadVolumeAndSegmentation, getIECInfo, getImageIdsFromIEC, } from '@/utilities';
 import { getDicomDetails, setDicomStatus, setMaskingFlag } from '@/visualreview';
 
 import Header from '@/components/Header';
@@ -112,10 +112,8 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
     };
   }, []);
 
-    // Load the volume into the cache
   useLayoutEffect(() => {
     console.log("DicomReviewIEC useEffect[iec]:", iec);
-    let volume;
 
     const initialize = async () => {
       const details = await getDicomDetails(iec);
@@ -128,20 +126,14 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       setDetails(details);
       setVolumetric(volumetric); // still update state
 
-      if (volumetric) {
-        await initializeVolume();
-      } else {
-        await initializeStack();
-      }
-    };
-
-    const initializeVolume = async () => {
       setIsErrored(false);
-      let volumeId = `vol-${iec}`;
-      let segmentationId = `vol-${iec}-seg`;
+      let volumeId = `dicom-review-${iec}-${Date.now()}`;
+      let segmentationId = `dicom-review-${iec}-seg-${Date.now()}`;
 
       try {
-        volume = await loadIECVolumeAndSegmentation(iec, volumeId, segmentationId, vr);
+        const imageIds = await getImageIdsFromIEC(iec);
+        setImageIds(imageIds);
+        await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
       } catch (error) {
         console.log(error);
         // TODO: set an isError status here and display an error message?
@@ -154,38 +146,22 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       setVolumeId(volumeId);
       setSegmentationId(segmentationId);
 
-      dispatch(setTitle("DICOM Volume Review"));
-      dispatch(setVolumeConfig());
-      //console.log(globalToolsConfig.leftClickToolGroup.defaultValue)
-      //dispatch(setOption({ key: "leftClick", value: globalToolsConfig.leftClickToolGroup.defaultValue }));
-      dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+      if (volumetric) {
+        dispatch(setTitle("DICOM Volume Review"));
+        dispatch(setVolumeConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+      } else {
+        dispatch(setTitle("DICOM Stack Review"));
+        dispatch(setStackConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+      }
       dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
       dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
       dispatch(setLoading(false));
     };
 
-    const initializeStack = async () => {
-      const imageIds = await createImageIdsAndCacheMetaData({
-        StudyInstanceUID:
-          `iec:${iec}`,
-        SeriesInstanceUID:
-          "any",
-        wadoRsRoot: "/papi/v1/wadors",
-      })
-      setImageIds(imageIds);
-      setIsInitialized(true);
-
-      dispatch(setTitle("DICOM Stack Review"));
-      dispatch(setStackConfig());
-
-      dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
-      dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
-      dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
-
-      dispatch(setLoading(false));
-    };
-        
     initialize();
+
   }, [iec, forceStackView]);
 
   useHotkeys('g', () => handleOperationsAction('good'));

@@ -123,8 +123,8 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       setVolumetric(volumetric); // still update state
 
       setIsErrored(false);
-      let volumeId = `${iec}-${Date.now()}`;
-      //let segmentationId = `${iec}-seg-${Date.now()}`;
+      let volumeId = `mask-review-${iec}-${Date.now()}`;
+      //let segmentationId = `mask-review-${iec}-seg-${Date.now()}`;
 
       const { frames } = await getIECInfo(iec, true);
       const volume = await cornerstone.volumeLoader.createAndCacheVolume(volumeId, {
