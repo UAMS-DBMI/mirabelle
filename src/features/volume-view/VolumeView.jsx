@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
-import { RenderingEngine } from "@cornerstonejs/core"
-import * as cornerstone from "@cornerstonejs/core"
-import * as cornerstoneTools from '@cornerstonejs/tools';
-import toast from 'react-hot-toast';
+import { RenderingEngine } from "@cornerstonejs/core";
+import * as cornerstone from "@cornerstonejs/core";
+import * as cornerstoneTools from "@cornerstonejs/tools";
+import toast from "react-hot-toast";
 
-import VolumeViewport from '@/components/VolumeViewport';
-import VolumeViewport3d from '@/components/VolumeViewport3d';
-import { ToolsPanel } from '@/features/tools';
-import useRendererResize from '@/hooks/useRendererResize';
+import VolumeViewport from "@/components/VolumeViewport";
+import VolumeViewport3d from "@/components/VolumeViewport3d";
+import { ToolsPanel } from "@/features/tools";
+import useRendererResize from "@/hooks/useRendererResize";
 
-import OperationsPanel from '@/components/OperationsPanel';
+import OperationsPanel from "@/components/OperationsPanel";
 
-import './VolumeView.css';
+import "./VolumeView.css";
 
 const {
   ToolGroupManager,
@@ -25,7 +25,13 @@ const {
 
 const { MouseBindings } = csToolsEnums;
 
-export default function VolumeView({ volumeId, segmentationId, defaultPreset3d, toolGroup, toolGroup3d }) {
+export default function VolumeView({
+  volumeId,
+  segmentationId,
+  defaultPreset3d,
+  toolGroup,
+  toolGroup3d,
+}) {
   const [voiSynchronizer, setVoiSynchronizer] = useState();
   const [renderingEngine, setRenderingEngine] = useState();
   const [preset3d, setPreset3d] = useState(defaultPreset3d);
@@ -41,15 +47,16 @@ export default function VolumeView({ volumeId, segmentationId, defaultPreset3d, 
     cornerstoneTools.addTool(StackScrollTool);
 
     if (!voiSynchronizer) {
-      let voiSync = cornerstoneTools.SynchronizerManager.getSynchronizer("vol_voi_syncronizer");
+      let voiSync = cornerstoneTools.SynchronizerManager.getSynchronizer(
+        "vol_voi_syncronizer",
+      );
       if (!voiSync) {
-        voiSync = cornerstoneTools.synchronizers.createVOISynchronizer("vol_voi_syncronizer");
+        voiSync = cornerstoneTools.synchronizers.createVOISynchronizer(
+          "vol_voi_syncronizer",
+        );
       }
       setVoiSynchronizer(voiSync);
     }
-
-
-
 
     // Only create a new rendering engine if one doesn't already exist
     let renderingEngine = cornerstone.getRenderingEngine("re1");
@@ -75,8 +82,7 @@ export default function VolumeView({ volumeId, segmentationId, defaultPreset3d, 
     setRenderingEngine(renderingEngine);
 
     // Teardown function
-    return () => {
-    };
+    return () => {};
   }, []);
 
   if (renderingEngine == null) {
@@ -84,8 +90,7 @@ export default function VolumeView({ volumeId, segmentationId, defaultPreset3d, 
   }
 
   return (
-    <div id="volume-view"
-      className="viewer">
+    <div id="volume-view" className="viewer">
       <VolumeViewport3d
         viewportId="coronal3d"
         volumeId={volumeId}
@@ -122,6 +127,6 @@ export default function VolumeView({ volumeId, segmentationId, defaultPreset3d, 
         segmentationId={segmentationId}
         orientation="SAGITTAL"
       />
-    </div >
+    </div>
   );
 }
