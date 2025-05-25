@@ -254,7 +254,9 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     }
 
     console.log(finalCoords, volumeId, iec);
-    await finalCalc(finalCoords, volumeId, iec, "cuboid", "mask");
+    let selectedForm = options.form
+    let selectedFunction = options.function
+    await finalCalc(finalCoords, volumeId, iec, selectedForm, selectedFunction);
     toast.success("Submitted for masking!");
   }
 
