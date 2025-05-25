@@ -36,7 +36,8 @@ function VolumeViewport({
   orientation,
   segmentationId
 }) {
-  const mip = useSelector(state => state.presentation.maximumIntensityProjection);
+  const viewMode = useSelector(state => state.options.view);
+  const [initialized, setInitialized] = useState(false);
 
   console.log("[VolumeViewport] rendering, volumeId=", volumeId)
   const elementRef = useRef(null);
@@ -96,35 +97,39 @@ function VolumeViewport({
 
       // Render the image
       viewport.render()
+
+      setInitialized(true);
     }
 
     setup()
   }, [elementRef, volumeId])
 
   useEffect(() => {
+    // Don't attempt to reset during initialization, as global
+    // properites may not be set yet
+    if (!initialized) return;
+
     const viewport = renderingEngine.getViewport(viewportId);
     const volume = cornerstone.cache.getVolume(volumeId);
     const volDimensions = volume.dimensions;
 
-    if (mip === false) {
+    if (viewMode === 'projection') {
+      const volSlab = Math.sqrt(
+        volDimensions[0] * volDimensions[0] +
+        volDimensions[1] * volDimensions[1] +
+        volDimensions[2] * volDimensions[2]
+      );
+
       viewport.setBlendMode(cornerstone.Enums.BlendModes.MAXIMUM_INTENSITY_BLEND);
       viewport.setSlabThickness(volSlab);
-
-      viewport.render();
-      return
+    } else {
+      console.log("Resetting viewport to default properties:", viewportId);
+      viewport.resetProperties();
+      viewport.resetToDefaultProperties();
     }
 
-    const volSlab = Math.sqrt(
-      volDimensions[0] * volDimensions[0] +
-      volDimensions[1] * volDimensions[1] +
-      volDimensions[2] * volDimensions[2]
-    );
-
-    viewport.setBlendMode(cornerstone.Enums.BlendModes.MAXIMUM_INTENSITY_BLEND);
-    viewport.setSlabThickness(volSlab);
-
     viewport.render();
-  }, [mip]);
+  }, [viewMode]);
 
   return (
     <>
