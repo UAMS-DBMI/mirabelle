@@ -39,7 +39,7 @@ function VolumeViewport({
   const viewMode = useSelector(state => state.options.view);
   const [initialized, setInitialized] = useState(false);
 
-  console.log("[VolumeViewport] rendering, volumeId=", volumeId)
+  // console.log("[VolumeViewport] rendering, volumeId=", volumeId)
   const elementRef = useRef(null);
 
   window.re = renderingEngine;
@@ -58,7 +58,7 @@ function VolumeViewport({
 
   useEffect(() => {
     const setup = async () => {
-      console.log("[VolumeViewport] setup running");
+      // console.log("[VolumeViewport] setup running");
 
       const viewportInput = {
         viewportId,
@@ -71,7 +71,7 @@ function VolumeViewport({
 
       renderingEngine.enableElement(viewportInput);
 
-      console.log("voi sync", voiSynchronizer);
+      // console.log("voi sync", voiSynchronizer);
 
       voiSynchronizer.add({
         renderingEngineId: renderingEngine.id,

@@ -88,7 +88,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
   let viewer;
 
-  console.log("MaskIEC renderingEngine:", renderingEngine);
+  // console.log("MaskIEC renderingEngine:", renderingEngine);
 
   useHotkeys('e', handleExpand);
   useHotkeys('c', handleClear);
@@ -290,7 +290,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         segmentationId={segmentationId}
         toolGroup={toolGroup}
         frames={imageIds}
-    />
+      />
   }
 
   return (

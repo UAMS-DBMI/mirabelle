@@ -11,7 +11,7 @@ import './header.css';
 function Header() {
   const title = useSelector(state => state.options.title);
   const [username, setUsername] = useState("Username");
-  console.log("Header title:", title);
+  // console.log("Header title:", title);
 
   useEffect(() => {
     (async () => {
