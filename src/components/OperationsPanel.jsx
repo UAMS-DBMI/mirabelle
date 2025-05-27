@@ -106,7 +106,7 @@ function OperationsPanel({ onAction }) {
 
       {buttonConfig.visualReview.visibility.flag && (
         <button
-          id="mark-flagged"
+          id="flag-for-masking"
           onClick={() => onAction("flag")} >
           Flag for Masking
         </button>

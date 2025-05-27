@@ -11,7 +11,7 @@
 		p-2;
 }
 
-#operations-panel #accept-mask {
+#operations-panel #accept-mask, #operations-panel #flag-for-masking {
 	@apply
 		text-white
 		bg-blue-700
