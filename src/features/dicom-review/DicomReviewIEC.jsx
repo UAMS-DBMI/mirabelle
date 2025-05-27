@@ -11,7 +11,7 @@ import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData
 import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import { loadVolumeAndSegmentation, getIECInfo, getImageIdsFromIEC, } from '@/utilities';
+import { loadVolumeAndSegmentation, getIECInfo, getImageIdsFromIEC, loadStackSegmentation,} from '@/utilities';
 import { getDicomDetails, setDicomStatus, setMaskingFlag } from '@/visualreview';
 
 import Header from '@/components/Header';
@@ -136,10 +136,26 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       let volumeId = `dicom-review-${iec}`;
       let segmentationId = `dicom-review-${iec}-seg`;
 
+      const imageIds = await getImageIdsFromIEC(iec);
+      setImageIds(imageIds);
+
+      setVolumeId(volumeId);
+      setSegmentationId(segmentationId);
+
       try {
-        const imageIds = await getImageIdsFromIEC(iec);
-        setImageIds(imageIds);
-        await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
+        if (volumetric) {
+          await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
+          dispatch(setTitle("DICOM Volume Review"));
+          dispatch(setVolumeConfig());
+          dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+        } else {
+          await loadStackSegmentation(imageIds, segmentationId);
+          dispatch(setTitle("DICOM Stack Review"));
+          dispatch(setStackConfig());
+          dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+        }
+        dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
+        dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
       } catch (error) {
         console.log(error);
         // TODO: set an isError status here and display an error message?
@@ -147,33 +163,14 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         setIsErrored(true);
         return;
       }
-      // if (!volume) {
-      //   setErrorMessage(new Error("Failed to load volume"));
-      //   setIsErrored(true);
-      //   return;
-      // }
 
       setIsInitialized(true);
-      setVolumeId(volumeId);
-      setSegmentationId(segmentationId);
-
-      if (volumetric) {
-        dispatch(setTitle("DICOM Volume Review"));
-        dispatch(setVolumeConfig());
-        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-      } else {
-        dispatch(setTitle("DICOM Stack Review"));
-        dispatch(setStackConfig());
-        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
-      }
-      dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
-      dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
       dispatch(setLoading(false));
     };
 
     initialize();
 
-  }, [iec, forceStackView]);
+  }, [iec]);
 
   useHotkeys('g', () => handleOperationsAction('good'));
   useHotkeys('b', () => handleOperationsAction('bad'));

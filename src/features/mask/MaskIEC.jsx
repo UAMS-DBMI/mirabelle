@@ -19,6 +19,7 @@ import {
   loadVolumeAndSegmentation,
   getIECInfo,
   getImageIdsFromIEC,
+  loadStackSegmentation,
 } from '@/utilities';
 import { getDicomDetails } from '@/visualreview';
 import { finalCalc } from '@/masking';
@@ -133,13 +134,33 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       setVolumetric(volumetric); // still update state
 
       setIsErrored(false);
-      let volumeId = `mask-${iec}-${Date.now()}`;
-      let segmentationId = `mask-${iec}-seg-${Date.now()}`;
+      let volumeId = `mask-${iec}`;
+      let segmentationId = `mask-${iec}-seg`;
+
+      const imageIds = await getImageIdsFromIEC(iec);
+      setImageIds(imageIds);
+
+      setVolumeId(volumeId);
+      setSegmentationId(segmentationId);
 
       try {
-        const imageIds = await getImageIdsFromIEC(iec);
-        setImageIds(imageIds);
-        await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
+        if (volumetric) {
+          await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
+          dispatch(setTitle("Mask Volume"));
+          dispatch(setVolumeConfig());
+          dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+          dispatch(setOption({ key: "function", value: Enums.FunctionOptions.MASK }));
+          dispatch(setOption({ key: "form", value: Enums.FormOptions.CYLINDER }));
+        } else {
+          await loadStackSegmentation(imageIds, segmentationId);
+          dispatch(setTitle("Mask Stack"));
+          dispatch(setStackConfig());
+          dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+          dispatch(setOption({ key: "function", value: Enums.FunctionOptions.BLACKOUT }));
+          dispatch(setOption({ key: "form", value: Enums.FormOptions.CUBOID }));
+        }
+        dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.SELECTION }));
+        dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
       } catch (error) {
         console.log(error);
         // TODO: set an isError status here and display an error message?
@@ -149,24 +170,6 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       }
 
       setIsInitialized(true);
-      setVolumeId(volumeId);
-      setSegmentationId(segmentationId);
-
-      if (volumetric) {
-        dispatch(setTitle("Mask Volume"));
-        dispatch(setVolumeConfig());
-        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-        dispatch(setOption({ key: "function", value: Enums.FunctionOptions.MASK }));
-        dispatch(setOption({ key: "form", value: Enums.FormOptions.CYLINDER }));
-      } else {
-        dispatch(setTitle("Mask Stack"));
-        dispatch(setStackConfig());
-        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
-        dispatch(setOption({ key: "function", value: Enums.FunctionOptions.BLACKOUT }));
-        dispatch(setOption({ key: "form", value: Enums.FormOptions.CUBOID }));
-      }
-      dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.SELECTION }));
-      dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
       dispatch(setLoading(false));
     };
 

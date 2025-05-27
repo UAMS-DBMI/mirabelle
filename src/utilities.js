@@ -311,6 +311,31 @@ export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentation
   return volume;
 }
 
+export async function loadStackSegmentation(imageIds, segmentationId) {
+
+  cornerstoneTools.segmentation.removeAllSegmentations();
+  cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
+
+  // Create a segmentation of the same resolution as the source data for the CT volume
+  imageLoader.createAndCacheDerivedLabelmapImages(imageIds);
+
+  segmentation.addSegmentations([
+    {
+      segmentationId,
+      representation: {
+        // The type of segmentation
+        type: csToolsEnums.SegmentationRepresentations.Labelmap,
+        // The actual segmentation data, in the case of labelmap this is a
+        // reference to the source volume of the segmentation.
+        data: {
+          imageIds,
+        },
+      },
+    },
+  ]);
+}
+
+
 export async function getImageIdsFromIEC(iec) {
 	let imageIds;
 	try {
