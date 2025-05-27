@@ -317,7 +317,7 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
   cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
 
   // Create a segmentation of the same resolution as the source data for the CT volume
-  imageLoader.createAndCacheDerivedLabelmapImages(imageIds);
+  const segImages = await imageLoader.createAndCacheDerivedLabelmapImages(imageIds);
 
   segmentation.addSegmentations([
     {
@@ -328,7 +328,7 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
         // The actual segmentation data, in the case of labelmap this is a
         // reference to the source volume of the segmentation.
         data: {
-          imageIds,
+          imageIds: segImages.map((it) => it.imageId),
         },
       },
     },
