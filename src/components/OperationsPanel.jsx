@@ -10,70 +10,104 @@ function OperationsPanel({ onAction }) {
 
   return (
     <div id="operations-panel">
-      {buttonConfig.maskerReview.visibility.accepted && (
-        <button onClick={() => onAction("accept mask")} >
-          Accept Mask
-        </button>
-      )}
-      {buttonConfig.maskerReview.visibility.rejected && (
-        <button onClick={() => onAction("reject mask")} >
-          Reject Mask
-        </button>
-      )}
-      {buttonConfig.maskerReview.visibility.skip && (
-        <button onClick={() => onAction("skip mask")} >
-          Skip
-        </button>
-      )}
-      {buttonConfig.maskerReview.visibility.nonMaskable && (
-        <button onClick={() => onAction("nonmaskable mask")} >
-          Non-Maskable
-        </button>
-      )}
-
       {buttonConfig.masker.visibility.expand && (
-        <button onClick={() => onAction("expand")} >
+        <button
+          id="expand-selection"
+          onClick={() => onAction("expand")} >
           Expand Selection
         </button>
       )}
+
       {buttonConfig.masker.visibility.clear && (
-        <button onClick={() => onAction("clear")} >
+        <button
+          id="clear-selection"
+          onClick={() => onAction("clear")} >
           Clear Selection
         </button>
       )}
+
       {buttonConfig.masker.visibility.accept && (
-        <button onClick={() => onAction("accept")} >
+        <button
+          id="accept-selection"
+          onClick={() => onAction("accept")} >
           Accept Selection
         </button>
       )}
 
+      {buttonConfig.maskerReview.visibility.accepted && (
+        <button
+          id="accept-mask"
+          onClick={() => onAction("accept mask")} >
+          Accept Mask
+        </button>
+      )}
+      {buttonConfig.maskerReview.visibility.rejected && (
+        <button
+          id="reject-mask"
+          onClick={() => onAction("reject mask")} >
+          Reject Mask
+        </button>
+      )}
+      {buttonConfig.maskerReview.visibility.skip && (
+        <button
+          id="skip-mask"
+          onClick={() => onAction("skip mask")} >
+          Skip Mask
+        </button>
+      )}
+
+      {buttonConfig.maskerReview.visibility.nonMaskable && (
+        <button
+          id="nonmaskable"
+          onClick={() => onAction("nonmaskable mask")} >
+          Non-Maskable
+        </button>
+      )}
+
       {buttonConfig.visualReview.visibility.good && (
-        <button onClick={() => onAction("good")} >
+        <button
+          id="mark-good"
+          onClick={() => onAction("good")} >
           Good
         </button>
       )}
+
       {buttonConfig.visualReview.visibility.bad && (
-        <button onClick={() => onAction("bad")} >
+        <button
+          id="mark-bad"
+          onClick={() => onAction("bad")} >
           Bad
         </button>
       )}
+
       {buttonConfig.visualReview.visibility.blank && (
-        <button onClick={() => onAction("blank")} >
+        <button
+          id="mark-blank"
+          onClick={() => onAction("blank")} >
           Blank
         </button>
       )}
+
       {buttonConfig.visualReview.visibility.scout && (
-        <button onClick={() => onAction("scout")} >
+        <button
+          id="mark-scout"
+          onClick={() => onAction("scout")} >
           Scout
         </button>
       )}
+
       {buttonConfig.visualReview.visibility.other && (
-        <button onClick={() => onAction("other")} >
+        <button
+          id="mark-other"
+          onClick={() => onAction("other")} >
           Other
         </button>
       )}
+
       {buttonConfig.visualReview.visibility.flag && (
-        <button onClick={() => onAction("flag")} >
+        <button
+          id="mark-flagged"
+          onClick={() => onAction("flag")} >
           Flag for Masking
         </button>
       )}

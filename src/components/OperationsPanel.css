@@ -10,3 +10,26 @@
 		rounded-lg
 		p-2;
 }
+
+#operations-panel #accept-mask {
+	@apply
+		text-white
+		bg-blue-700
+		hover:bg-blue-800
+		;
+}
+
+#operations-panel #reject-mask {
+	@apply text-white 
+	bg-red-700 
+	hover:bg-red-800;
+}
+
+#operations-panel #skip-mask, #operations-panel #nonmaskable {
+	@apply 
+	text-white
+	bg-slate-500
+	hover:bg-red-800
+	;
+}
+
