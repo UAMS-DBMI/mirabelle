@@ -118,6 +118,7 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
   }, [renderingEngine, viewportId, opacity]);
 
   // useEffect(() => {
+  //   console.log("[VolumeViewport3d] preset3d changed", preset3d);
   //   const viewport = renderingEngine.getViewport(viewportId);
   //   viewport.setProperties({
   //     preset: preset3d,

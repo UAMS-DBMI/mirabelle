@@ -221,7 +221,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       <VolumeView
         volumeId={volumeId}
         segmentationId={segmentationId}
-        defaultPreset3d="CT-MIP"
+        defaultPreset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
       />
@@ -258,7 +258,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         </>
       }
       rightPanel={
-        <DetailsPanel details={transformDetails(details)}  />
+        <DetailsPanel details={transformDetails(details)} />
       }
     />
   )

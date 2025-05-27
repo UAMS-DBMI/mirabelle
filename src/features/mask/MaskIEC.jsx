@@ -280,7 +280,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       <VolumeView
         volumeId={volumeId}
         segmentationId={segmentationId}
-        defaultPreset3d="CT-MIP"
+        defaultPreset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
       />

@@ -222,7 +222,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
     <VolumeView
       volumeId={volumeId}
       segmentationId={segmentationId}
-      defaultPreset3d="MR-Default"
+      defaultPreset3d={preset3d}
       toolGroup={toolGroup}
       toolGroup3d={toolGroup3d}
     />

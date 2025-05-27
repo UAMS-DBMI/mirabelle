@@ -82,8 +82,19 @@ export default function VolumeView({
     setRenderingEngine(renderingEngine);
 
     // Teardown function
-    return () => {};
+    return () => { };
   }, []);
+
+  useEffect(() => {
+    const renderingEngine = cornerstone.getRenderingEngine("re1");
+    if (!renderingEngine) return;
+
+    const viewport = renderingEngine.getViewport("coronal3d");
+    if (viewport) {
+      viewport.setProperties({ preset: defaultPreset3d });
+      viewport.render();
+    }
+  }, [defaultPreset3d]);
 
   if (renderingEngine == null) {
     return <div>Loading...</div>;
