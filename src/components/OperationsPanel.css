@@ -33,3 +33,15 @@
 	;
 }
 
+#operations-panel #mark-good {
+	@apply text-white bg-green-700 hover:bg-green-800;
+}
+
+#operations-panel #mark-bad {
+	@apply text-white bg-red-700 hover:bg-red-800;
+}
+
+#operations-panel #mark-blank, #operations-panel #mark-scout, #operations-panel #mark-other {
+	@apply text-white bg-yellow-700 hover:bg-yellow-800;
+}
+
