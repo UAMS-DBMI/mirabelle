@@ -123,31 +123,40 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       setVolumetric(volumetric); // still update state
 
       setIsErrored(false);
-      let volumeId = `mask-review-${iec}-${Date.now()}`;
-      //let segmentationId = `mask-review-${iec}-seg-${Date.now()}`;
+      let volumeId = `mask-review-${iec}`;
+      //let segmentationId = `mask-review-${iec}-seg`;
 
       const { frames } = await getIECInfo(iec, true);
-      const volume = await cornerstone.volumeLoader.createAndCacheVolume(volumeId, {
-        imageIds: frames,
-      });
-      volume.load();
-
       setImageIds(frames);
-      setIsInitialized(true);
+
       setVolumeId(volumeId);
+      //setSegmentationId(segmentationId);
 
-      if (volumetric) {
-        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-        dispatch(setTitle("Mask Volume Review"));
-        dispatch(setVolumeConfig());
-      } else {
-        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
-        dispatch(setTitle("Mask Stack Review"));
-        dispatch(setStackConfig());
+      try {
+        if (volumetric) {
+          const volume = await cornerstone.volumeLoader.createAndCacheVolume(volumeId, {
+            imageIds: frames,
+          });
+          volume.load();
+          dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+          dispatch(setTitle("Mask Volume Review"));
+          dispatch(setVolumeConfig());
+        } else {
+          dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+          dispatch(setTitle("Mask Stack Review"));
+          dispatch(setStackConfig());
+        }
+        dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
+        dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
+      } catch (error) {
+        console.log(error);
+        // TODO: set an isError status here and display an error message?
+        setErrorMessage(error);
+        setIsErrored(true);
+        return;
       }
-      dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
-      dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
 
+      setIsInitialized(true);
       dispatch(setLoading(false));
     };
 
