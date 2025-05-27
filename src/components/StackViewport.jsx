@@ -32,7 +32,8 @@ function StackViewport({
   viewportId,
   renderingEngine,
   toolGroup,
-  segmentationId
+  segmentationId,
+  onImageChange,
 }) {
   console.log("[StackViewport] rendering")
   const elementRef = useRef(null);
@@ -48,6 +49,16 @@ function StackViewport({
         return;
       }
       console.log("[StackViewport] setup running");
+
+      // Listen to some events from the viewport
+      elementRef.current.addEventListener(
+        cornerstone.Enums.Events.STACK_NEW_IMAGE,
+        (evt) => {
+          if (onImageChange) {
+            onImageChange(evt.detail.image.imageId);
+          }
+        }
+      );
 
       const viewportInput = {
         viewportId,
@@ -76,6 +87,10 @@ function StackViewport({
       // Render the image
       viewport.render()
       window.viewport = viewport;
+
+
+
+
       setInitialized(true);
     }
 

@@ -71,8 +71,6 @@ function VolumeViewport({
 
       renderingEngine.enableElement(viewportInput);
 
-      // console.log("voi sync", voiSynchronizer);
-
       voiSynchronizer.add({
         renderingEngineId: renderingEngine.id,
         viewportId,
@@ -122,7 +120,7 @@ function VolumeViewport({
 
       viewport.setBlendMode(cornerstone.Enums.BlendModes.MAXIMUM_INTENSITY_BLEND);
       viewport.setSlabThickness(volSlab);
-    } else {
+    } else if (viewMode === 'volume') {
       console.log("Resetting viewport to default properties:", viewportId);
       viewport.resetProperties();
       viewport.resetToDefaultProperties();

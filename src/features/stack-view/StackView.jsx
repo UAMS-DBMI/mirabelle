@@ -4,6 +4,8 @@ import { RenderingEngine } from "@cornerstonejs/core"
 import * as cornerstone from "@cornerstonejs/core"
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import useRendererResize from '@/hooks/useRendererResize';
+import { setOption } from '@/features/optionSlice';
+import { useDispatch } from 'react-redux';
 
 import StackViewport from '@/components/StackViewport';
 import { ToolsPanel } from '@/features/tools';
@@ -26,15 +28,12 @@ const toolGroupId = 'STACK_TOOL_GROUP_ID';
 
 export default function StackView({ frames, segmentationId, toolGroup }) {
   const [renderingEngine, setRenderingEngine] = useState();
-
-  const [mip, setMip] = useState(false);
+  const dispatch = useDispatch();
 
   useRendererResize(renderingEngine);
 
   useEffect(() => {
     cornerstoneTools.addTool(TrackballRotateTool);
-    cornerstoneTools.addTool(BrushTool);
-    cornerstoneTools.addTool(RectangleScissorsTool);
     cornerstoneTools.addTool(StackScrollTool);
 
     // Only create a new rendering engine if one doesn't already exist
@@ -56,6 +55,13 @@ export default function StackView({ frames, segmentationId, toolGroup }) {
     };
   }, []);
 
+  function handleImageChange(imageId) {
+    dispatch(setOption({
+      key: 'currentImageId',
+      value: imageId,
+    }));
+  }
+
   if (renderingEngine == null) {
     return <div>Loading...</div>;
   }
@@ -64,6 +70,7 @@ export default function StackView({ frames, segmentationId, toolGroup }) {
     <div id="stack-view"
       className="viewer">
       <StackViewport
+        onImageChange={handleImageChange}
         frames={frames}
         toolGroup={toolGroup}
         renderingEngine={renderingEngine}

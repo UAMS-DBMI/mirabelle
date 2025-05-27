@@ -54,6 +54,10 @@ import RouteNiftiReviewVR, {
   loader as routeNiftiReviewVRLoader,
 } from "./routes/nifti/RouteNiftiReviewVR";
 
+import RouteDump, {
+  loader as routeDumpLoader,
+} from "./routes/dicom/RouteDump";
+
 const router = createBrowserRouter(
   [
     {
@@ -115,6 +119,12 @@ const router = createBrowserRouter(
           element: <RouteDicomReviewVR />,
           HydrateFallback: LoadingSpinner,
           loader: routeDicomReviewVRLoader,
+        },
+        {
+          path: "dump/:file_id",
+          element: <RouteDump />,
+          HydrateFallback: LoadingSpinner,
+          loader: routeDumpLoader,
         },
       ],
     },

@@ -36,9 +36,9 @@ const {
   segmentation
 } = cornerstoneTools;
 
-function transformDetails(details) {
+function transformDetails(details, imageId) {
 
-  return {
+  let ret =  {
     'IEC': details.image_equivalence_class_id,
     'Images in IEC': details.file_count,
     'Processing Status': details.processing_status,
@@ -51,12 +51,18 @@ function transformDetails(details) {
     'download_path': details.download_path,
     'download_name': details.download_name,
   }
+  if (imageId) {
+    ret['Current Image ID'] = imageId;
+  }
+
+  return ret;
 }
 
 
 export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   const options = useSelector(state => state.options);
+  const currentImageId = useSelector(state => state.options.currentImageId);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
   const dispatch = useDispatch();
@@ -127,8 +133,8 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       setVolumetric(volumetric); // still update state
 
       setIsErrored(false);
-      let volumeId = `dicom-review-${iec}-${Date.now()}`;
-      let segmentationId = `dicom-review-${iec}-seg-${Date.now()}`;
+      let volumeId = `dicom-review-${iec}`;
+      let segmentationId = `dicom-review-${iec}-seg`;
 
       try {
         const imageIds = await getImageIdsFromIEC(iec);
@@ -141,6 +147,11 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         setIsErrored(true);
         return;
       }
+      // if (!volume) {
+      //   setErrorMessage(new Error("Failed to load volume"));
+      //   setIsErrored(true);
+      //   return;
+      // }
 
       setIsInitialized(true);
       setVolumeId(volumeId);
@@ -203,12 +214,13 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   }
 
   // short-circuit if not loaded yet
+  // TODO: make a nice error display
   if (isErrored) {
     return (
-      <>
+      <div className="error">
         <div>There was an error loading this IEC :(</div>
         <p>{errorMessage.message}</p>
-      </>
+      </div>
     );
   }
   if (!isInitialized) {
@@ -258,7 +270,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         </>
       }
       rightPanel={
-        <DetailsPanel details={transformDetails(details)} />
+        <DetailsPanel details={transformDetails(details, currentImageId)}  />
       }
     />
   )

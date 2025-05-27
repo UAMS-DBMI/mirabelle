@@ -260,6 +260,11 @@ export async function loadIECVolumeAndSegmentation(iec, volumeId, segmentationId
     return;
   }
 
+  if (!imageIds || imageIds.length === 0) {
+    console.log("No imageIds found for IEC:", iec);
+    return;
+  }
+
   return await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
 
 }
@@ -332,4 +337,14 @@ export function toAbsoluteURL(relative_url) {
   let url = new URL(window.location);
 
   return url.origin + relative_url;
+}
+
+export async function getDicomDump(file_id) {
+
+	const response = await fetch(
+		`/papi/v1/dump/${file_id}`);
+
+	const dump = await response.text();
+
+	return dump;
 }
