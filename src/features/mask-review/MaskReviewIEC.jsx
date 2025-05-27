@@ -210,7 +210,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
     viewer =
       <VolumeView
         volumeId={volumeId}
-        defaultPreset3d="CT-MIP"
+        defaultPreset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
       />
@@ -227,7 +227,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
               onNext={onNext}
               onPrevious={onPrevious}
               currentId={iec}
-              idLabel = 'IEC'
+              idLabel='IEC'
             />
           }
           <ToolsPanel
@@ -241,7 +241,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       middlePanel={
         <>
           {viewer}
-          <OperationsPanel onAction={handleAction}/>
+          <OperationsPanel onAction={handleAction} />
         </>
       }
       rightPanel={
