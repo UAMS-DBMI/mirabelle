@@ -117,6 +117,8 @@ const presentationSlice = createSlice({
           expand: false,
           clear: false,
           accept: false,
+          skip: false,
+          nonMaskable: false,
         },
       },
       maskerReview: {
@@ -124,8 +126,6 @@ const presentationSlice = createSlice({
         visibility: {
           accepted: false,
           rejected: false,
-          skip: false,
-          nonMaskable: false,
         },
       },
       visualReview: {
@@ -201,6 +201,8 @@ const presentationSlice = createSlice({
       state.buttonConfig.masker.visibility.expand = true;
       state.buttonConfig.masker.visibility.clear = true;
       state.buttonConfig.masker.visibility.accept = true;
+      state.buttonConfig.maskerReview.visibility.skip = true;
+      state.buttonConfig.maskerReview.visibility.nonMaskable = true;
 
       return state;
     },

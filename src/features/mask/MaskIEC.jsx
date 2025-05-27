@@ -93,11 +93,9 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   useHotkeys('e', handleExpand);
   useHotkeys('c', handleClear);
   useHotkeys('a', handleAccept);
+  useHotkeys('s', handleSkip);
+  useHotkeys('n', handleNonMaskable);
 
-  function handlePresetChange(newPreset) {
-    const viewport = renderingEngine.getViewport("t3d_coronal");
-    viewport.setProperties({ preset: context.presetToolValue });
-  }
   useEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {
@@ -187,6 +185,12 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       case "accept":
         await handleAccept();
         break;
+      case "skip":
+        await handleSkip();
+        break;
+      case "nonMaskable":
+        await handleNonMaskable();
+        break;
       default:
         console.log("Unknown action:", action);
     }
@@ -260,6 +264,13 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     toast.success("Submitted for masking!");
   }
 
+  function handleSkip() {
+    return
+  }
+
+  function handleNonMaskable() {
+    return
+  }
 
   // short-circuit if not loaded yet
   if (isErrored) {
