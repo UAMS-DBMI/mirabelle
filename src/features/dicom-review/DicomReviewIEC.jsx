@@ -38,7 +38,7 @@ const {
 
 function transformDetails(details, imageId) {
 
-  let ret =  {
+  let ret = {
     'IEC': details.image_equivalence_class_id,
     'Images in IEC': details.file_count,
     'Processing Status': details.processing_status,
@@ -233,7 +233,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       <VolumeView
         volumeId={volumeId}
         segmentationId={segmentationId}
-        defaultPreset3d={preset3d}
+        preset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
       />
@@ -256,7 +256,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
           <ToolsPanel
             toolGroup={toolGroup}
             toolGroup3d={toolGroup3d}
-            defaultPreset={preset3d}
+            preset3d={preset3d}
             onPresetChange={setPreset3d}
           />
         </>
@@ -270,7 +270,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         </>
       }
       rightPanel={
-        <DetailsPanel details={transformDetails(details, currentImageId)}  />
+        <DetailsPanel details={transformDetails(details, currentImageId)} />
       }
     />
   )

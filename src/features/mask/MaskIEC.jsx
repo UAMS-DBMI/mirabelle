@@ -291,7 +291,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       <VolumeView
         volumeId={volumeId}
         segmentationId={segmentationId}
-        defaultPreset3d={preset3d}
+        preset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
       />
@@ -319,7 +319,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
           <ToolsPanel
             toolGroup={toolGroup}
             toolGroup3d={toolGroup3d}
-            defaultPreset={preset3d}
+            preset3d={preset3d}
             onPresetChange={setPreset3d}
             renderingEngine={renderingEngine}
           />

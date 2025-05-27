@@ -24,7 +24,7 @@ export default function ToolsPanel({
   toolGroup,
   toolGroup3d,
   onPresetChange,
-  defaultPreset,
+  preset3d,
   renderingEngine
 }) {
   const dispatch = useDispatch();
@@ -45,7 +45,7 @@ export default function ToolsPanel({
   const maskingFunction = useSelector(state => state.masking.function);
   const maskingForm = useSelector(state => state.masking.form);
 
-  const [selectedPreset, setSelectedPreset] = useState(defaultPreset);
+  // const [selectedPreset, setSelectedPreset] = useState(preset3d);
 
   const manager = useToolsManager({
     toolGroup,
@@ -59,7 +59,7 @@ export default function ToolsPanel({
   const handlePresetChange = (event) => {
     const newPreset = event.target.value;
     console.log("Selected Preset:", newPreset);
-    setSelectedPreset(newPreset);
+    // setSelectedPreset(newPreset);
     onPresetChange(newPreset);
   };
 
@@ -136,7 +136,7 @@ export default function ToolsPanel({
             {/* <label htmlFor="preset-select">Preset:</label> */}
             <select
               id="preset-select"
-              value={selectedPreset}
+              value={preset3d}
               onChange={handlePresetChange}
               className="preset-select"
             >

@@ -28,13 +28,13 @@ const { MouseBindings } = csToolsEnums;
 export default function VolumeView({
   volumeId,
   segmentationId,
-  defaultPreset3d,
+  preset3d,
   toolGroup,
   toolGroup3d,
 }) {
   const [voiSynchronizer, setVoiSynchronizer] = useState();
   const [renderingEngine, setRenderingEngine] = useState();
-  const [preset3d, setPreset3d] = useState(defaultPreset3d);
+  // const [preset3d, setPreset3d] = useState(preset3d);
 
   const [mip, setMip] = useState(false);
 
@@ -91,10 +91,10 @@ export default function VolumeView({
 
     const viewport = renderingEngine.getViewport("coronal3d");
     if (viewport) {
-      viewport.setProperties({ preset: defaultPreset3d });
+      viewport.setProperties({ preset: preset3d });
       viewport.render();
     }
-  }, [defaultPreset3d]);
+  }, [preset3d]);
 
   if (renderingEngine == null) {
     return <div>Loading...</div>;
