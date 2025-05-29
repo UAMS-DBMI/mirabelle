@@ -637,3 +637,15 @@ export async function getDicomDump(file_id) {
 
 	return dump;
 }
+
+export function get3dViewports(rendingEngine) {
+  // return all the viewports that have a 3D volume type
+
+  // Get all viewports from the rendering engine
+  const viewports = renderingEngine.getViewports();
+
+  // Find 3D viewports
+  return viewports.find(viewport => {
+        return viewport.type === cornerstone.Enums.ViewportType.VOLUME_3D;
+      });
+}

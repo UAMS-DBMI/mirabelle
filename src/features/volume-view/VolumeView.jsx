@@ -9,6 +9,7 @@ import VolumeViewport from "@/components/VolumeViewport";
 import VolumeViewport3d from "@/components/VolumeViewport3d";
 import { ToolsPanel } from "@/features/tools";
 import useRendererResize from "@/hooks/useRendererResize";
+import { get3dViewports } from "@/utilities";
 
 import OperationsPanel from "@/components/OperationsPanel";
 
@@ -89,10 +90,15 @@ export default function VolumeView({
     const renderingEngine = cornerstone.getRenderingEngine("re1");
     if (!renderingEngine) return;
 
-    const viewport = renderingEngine.getViewport("coronal3d");
-    if (viewport) {
-      viewport.setProperties({ preset: preset3d });
-      viewport.render();
+    // return the viewport that has a 3D volume type
+    // const viewports = renderingEngine.getViewports();
+    // const viewport3d = viewports.find(viewport => {
+    //   return viewport.type === cornerstone.Enums.ViewportType.VOLUME_3D;
+    // });
+    const viewport3d = get3dViewports(renderingEngine);
+    if (viewport3d) {
+      viewport3d.setProperties({ preset: preset3d });
+      viewport3d.render();
     }
   }, [preset3d]);
 
