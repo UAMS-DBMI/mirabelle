@@ -46,6 +46,7 @@ function transformDetails(details) {
     'Images in IEC': details.file_count,
     'Processing Status': details.processing_status,
     'Review Status': details.review_status,
+    'Modality': details.modality,
     'Patient ID': details.patient_id,
     'Series Instance UID': details.series_instance_uid,
     'Series Description': details.series_description,

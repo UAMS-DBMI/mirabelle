@@ -2,17 +2,13 @@ import * as cornerstone from '@cornerstonejs/core';
 import dicomParser from 'dicom-parser';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import createImageIdsAndCacheMetaData from './lib/createImageIdsAndCacheMetaData';
+import * as cornerstoneAdapters from "@cornerstonejs/adapters";
 
-const { 
-  volumeLoader,
-  imageLoader,
-  metaData,
-} = cornerstone;
-const { 
-  Enums: csToolsEnums,
-  segmentation,
-} = cornerstoneTools;
+const { volumeLoader, imageLoader, metaData } = cornerstone;
+const { Enums: csToolsEnums, segmentation, } = cornerstoneTools;
 
+//import dcmjs from 'dcmjs';
+//const { adapters } = dcmjs;
 
 export function expandSegTo3D(segmentationId) {
 	const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
@@ -236,6 +232,15 @@ export async function getIECsForVR(visual_review_id) {
 	return details;
 }
 
+export async function getOtherIECsForFOR(iec) {
+
+  const response = await fetch(
+    `/papi/v1/iecs/${iec}/other_iecs_in_for`);
+  const iecList = await response.json();
+
+  return iecList;
+}
+
 export async function getFilesForNiftiVR(nifti_visual_review_id) {
 
 	const response = await fetch(
@@ -311,6 +316,53 @@ export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentation
   return volume;
 }
 
+
+
+export async function loadVolume(imageIds, volumeId, segmentationId) {
+
+  let volume = cornerstone.cache.getVolume(volumeId);
+  if (!volume) {
+    console.log("Volume didn't already exist, creating it");
+    volume = await volumeLoader.createAndCacheVolume(volumeId, {
+      imageIds,
+    })
+  } else {
+    console.log("Volume already existed, not creating it");
+    cornerstone.cache.removeVolumeLoadObject(segmentationId);
+  }
+
+  // Set the volume to load
+  await volume.load();
+
+  return volume;
+}
+
+export async function loadVolumeSegmentation(imageIds, volumeId, segmentationId) {
+
+  cornerstoneTools.segmentation.removeAllSegmentations();
+  cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
+
+  // Create a segmentation of the same resolution as the source data for the CT volume
+  volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
+    volumeId: segmentationId,
+  });
+
+  segmentation.addSegmentations([
+    {
+      segmentationId,
+      representation: {
+        // The type of segmentation
+        type: csToolsEnums.SegmentationRepresentations.Labelmap,
+        // The actual segmentation data, in the case of labelmap this is a
+        // reference to the source volume of the segmentation.
+        data: {
+          volumeId: segmentationId,
+        },
+      },
+    },
+  ]);
+}
+
 export async function loadStackSegmentation(imageIds, segmentationId) {
 
   cornerstoneTools.segmentation.removeAllSegmentations();
@@ -334,6 +386,181 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
     },
   ]);
 }
+
+
+
+export async function loadSEGSegmentation(arrayBuffer, referenceImageIds, segmentationId) {
+
+  segmentation.removeAllSegmentations();
+  segmentation.removeAllSegmentationRepresentations();
+
+  const { labelMapImages } =
+    await cornerstoneAdapters.adaptersSEG.Cornerstone3D.Segmentation.createFromDICOMSegBuffer(
+      referenceImageIds,
+      arrayBuffer,
+      { metadataProvider: metaData }
+    );
+
+  const imageIds = labelMapImages?.flat().map(image => image.imageId);
+
+  segmentation.addSegmentations([
+    {
+      segmentationId,
+      representation: {
+        type: cornerstoneTools.Enums.SegmentationRepresentations.Labelmap,
+        data: { imageIds }
+      }
+    }
+  ]);
+
+  const segState = segmentation.state.getSegmentation(segmentationId);
+  const segments = segState?.segments;
+
+  if (!segState?.segments?.length) {
+    console.warn('No segment metadata found.');
+    return;
+  }
+
+  for (const { segmentIndex } of segState.segments) {
+    segmentation.setSegmentVisibility(segmentationId, segmentIndex, true);
+  }
+
+  return segments.map(({ segmentIndex, label }) => ({ segmentIndex, label }));
+}
+
+
+///**
+// * Unpacks 1-bit-per-pixel binary data into 8-bit unsigned array.
+// * @param {Uint8Array} packed - Packed bit array
+// * @param {number} length - Total number of pixels expected
+// * @returns {Uint8Array}
+// */
+//function _unpackBinary(packed, length) {
+//  const unpacked = new Uint8Array(length);
+//  for (let i = 0; i < length; i++) {
+//    const byte = packed[Math.floor(i / 8)];
+//    const bit = 7 - (i % 8);
+//    unpacked[i] = (byte >> bit) & 1;
+//  }
+//  return unpacked;
+//}
+
+///**
+// * Parses a DICOM SEG and returns a labelmap and segment metadata.
+// * @param {ArrayBuffer} arrayBuffer - Raw DICOM SEG file buffer
+// * @returns {{
+// *   labelmapBuffer: Uint8Array,
+// *   metadata: Array<{ segmentNumber: number, segmentLabel: string, color: number[] }>,
+// *   dimensions: number[],
+// *   spacing: number[]
+// * }}
+// */
+//export async function parseSEGAndBuildLabelmap(arrayBuffer) {
+//  const dicomDict = dcmjs.data.DicomMessage.readFile(arrayBuffer);
+//  const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
+
+//  console.log('SEG Dataset:', dataset);
+
+//  const rows = dataset.Rows;
+//  const cols = dataset.Columns;
+//  const spacing = Array.isArray(dataset.PixelSpacing)
+//    ? dataset.PixelSpacing.map(Number)
+//    : [1, 1];
+//  const sliceThickness = Number(dataset.SliceThickness ?? 1);
+//  const spacingBetweenSlices = Number(dataset.SpacingBetweenSlices ?? sliceThickness);
+
+//  const frames = dataset.NumberOfFrames;
+//  const perFrameGroups = dataset.PerFrameFunctionalGroupsSequence;
+//  const segmentSequence = dataset.SegmentSequence;
+//  const pixelData = dataset.PixelData;
+
+//  if (!Array.isArray(perFrameGroups) || !pixelData) {
+//    throw new Error('Missing required SEG data');
+//  }
+
+//  const masks = {};
+//  const bytesPerFrame = Math.ceil((rows * cols) / 8);
+//  const frameData = new Uint8Array(pixelData);
+
+//  for (let frameIndex = 0; frameIndex < frames; frameIndex++) {
+//    const frameGroup = perFrameGroups[frameIndex];
+//    const segmentNumber = frameGroup.SegmentIdentificationSequence.SegmentNumber;
+
+//    if (!segmentNumber) {
+//      console.warn(`Missing SegmentNumber in frame ${frameIndex}`);
+//      continue;
+//    }
+
+//    console.log(`Frame ${frameIndex} ? SegmentNumber: ${segmentNumber}`);
+
+//    const offset = frameIndex * bytesPerFrame;
+//    const packed = frameData.slice(offset, offset + bytesPerFrame);
+//    const unpacked = _unpackBinary(packed, rows * cols);
+
+//    if (!masks[segmentNumber]) {
+//      masks[segmentNumber] = [];
+//    }
+
+//    const slice = [];
+//    for (let y = 0; y < rows; y++) {
+//      const row = unpacked.slice(y * cols, (y + 1) * cols);
+//      slice.push([...row]);
+//    }
+
+//    masks[segmentNumber].push(slice);
+//  }
+
+//  const metadata = segmentSequence.map((segment, i) => ({
+//    segmentNumber: segment.SegmentNumber ?? i + 1,
+//    segmentLabel: segment.SegmentLabel ?? `Segment ${i + 1}`,
+//    color: segment.RecommendedDisplayCIELabValue,
+//  }));
+
+//  console.log(
+//    'SegmentSequence defined numbers:',
+//    segmentSequence.map((s, i) => s.SegmentNumber ?? i + 1)
+//  );
+
+
+//  const depth = Math.max(...Object.values(masks).map(m => m.length));
+//  const numSegments = metadata.length;
+//  const labelmapBuffer = new Uint8Array(numSegments * rows * cols * depth);
+
+//  for (let i = 0; i < metadata.length; i++) {
+//    const segment = metadata[i];
+//    const segmentIndex = segment.segmentNumber;
+//    const slices = masks[segmentIndex];
+
+//    if (!slices || !Array.isArray(slices)) {
+//      console.warn(`Missing mask data for segment ${segmentIndex}`);
+//      continue;
+//    }
+
+//    for (let z = 0; z < slices.length; z++) {
+//      for (let y = 0; y < rows; y++) {
+//        for (let x = 0; x < cols; x++) {
+//          const value = slices[z][y][x];
+//          const offset = i * rows * cols * depth + z * rows * cols + y * cols + x;
+//          labelmapBuffer[offset] = value;
+//        }
+//      }
+//    }
+//  }
+
+
+//  return {
+//    labelmapBuffer,
+//    metadata,
+//    dimensions: [cols, rows, depth],
+//    spacing: [spacing[1], spacing[0], spacingBetweenSlices],
+//  };
+//}
+
+
+
+
+
+
 
 
 export async function getImageIdsFromIEC(iec) {

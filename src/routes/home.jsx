@@ -53,6 +53,9 @@ export default function Home() {
           <Link to="/review/dicom/iec/1167702">DICOM Review IEC (stack)</Link>
         </li>
         <li>
+          <Link to="/review/dicom/iec/1220008">DICOM Review IEC (seg)</Link>
+        </li>
+        <li>
           <Link to="/review/dicom/vr/1515">DICOM Review VR</Link>
         </li>
 

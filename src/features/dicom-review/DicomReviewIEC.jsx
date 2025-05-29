@@ -11,7 +11,15 @@ import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData
 import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import { loadVolumeAndSegmentation, getIECInfo, getImageIdsFromIEC, loadStackSegmentation,} from '@/utilities';
+import {
+  loadVolumeAndSegmentation,
+  getOtherIECsForFOR,
+  getImageIdsFromIEC,
+  loadStackSegmentation,
+  loadVolume,
+  loadVolumeSegmentation,
+  loadSEGSegmentation
+} from '@/utilities';
 import { getDicomDetails, setDicomStatus, setMaskingFlag } from '@/visualreview';
 
 import Header from '@/components/Header';
@@ -23,6 +31,7 @@ import { ToolsPanel } from '@/features/tools';
 import OperationsPanel from '@/components/OperationsPanel';
 import NavigationPanel from '@/components/NavigationPanel';
 import { DetailsPanel } from '@/features/details';
+import { SegPanel } from '@/features/seg';
 
 import { Context } from '@/components/Context.js';
 import RouteLayout from '@/components/RouteLayout';
@@ -43,6 +52,7 @@ function transformDetails(details, imageId) {
     'Images in IEC': details.file_count,
     'Processing Status': details.processing_status,
     'Review Status': details.review_status,
+    'Modality': details.modality,
     'Patient ID': details.patient_id,
     'Series Instance UID': details.series_instance_uid,
     'Series Description': details.series_description,
@@ -81,6 +91,10 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
+
+  const [isSeg, setIsSeg] = useState(false);
+  const [segBaseIEC, setSegBaseIEC] = useState(false);
+  const [segMetadata, setSegMetadata] = useState([]);
 
   // Factor out the idea of "force stack view" from options
   // so we can use it as a useEffect dependency, and it
@@ -123,7 +137,23 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
 
     const initialize = async () => {
       const details = await getDicomDetails(iec);
-      let { volumetric } = details;
+
+      let { modality, volumetric } = details;
+
+      let isSeg = false;
+      let iecList = null;
+      let segBaseIEC = null;
+      let segBaseDetails = null;
+      if (modality === 'SEG') {
+        isSeg = true;
+        iecList = await getOtherIECsForFOR(iec);
+        if (iecList.length > 0) {
+          segBaseIEC = iecList[0].image_equivalence_class_id;
+          segBaseDetails = await getDicomDetails(segBaseIEC);
+          volumetric = segBaseDetails.volumetric;
+        }
+      }
+      setIsSeg(isSeg)
 
       if (options.view === 'stack') {
         volumetric = false; // force stack view
@@ -136,7 +166,13 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       let volumeId = `dicom-review-${iec}`;
       let segmentationId = `dicom-review-${iec}-seg`;
 
-      const imageIds = await getImageIdsFromIEC(iec);
+      let imageIds = [];
+
+      if (!isSeg) {
+        imageIds = await getImageIdsFromIEC(iec);
+      } else {
+        imageIds = await getImageIdsFromIEC(segBaseIEC);
+      }      
       setImageIds(imageIds);
 
       setVolumeId(volumeId);
@@ -144,7 +180,26 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
 
       try {
         if (volumetric) {
-          await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
+          //await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
+          await loadVolume(imageIds, volumeId, segmentationId);
+
+          if (!isSeg) {
+            await loadVolumeSegmentation(imageIds, volumeId, segmentationId);
+          } else {
+            const response = await fetch('/papi/v1/files/131496059/data')
+            const data = await response.arrayBuffer();
+            await loadSEGSegmentation(data, imageIds, segmentationId);
+            //const { segments } = await loadSEGSegmentation(data, volumeId, segmentationId);
+            //setSegmentMetadata(segments);
+
+            //const segVol = cornerstone.cache.getVolume(segmentationId);
+            //const scalarData = segVol?.voxelManager?.getScalarData();
+            //const uniqueValues = [...new Set(scalarData)];
+            //console.log('Unique voxel values in segmentation volume:', uniqueValues);
+
+            let a = 'a'
+          }
+
           dispatch(setTitle("DICOM Volume Review"));
           dispatch(setVolumeConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
@@ -215,7 +270,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   if (isErrored) {
     return (
       <div className="error">
-        <div>There was an error loading this IEC :(</div>
+        <div>{`There was an error loading IEC: ${iec}`}</div>
         <p>{errorMessage.message}</p>
       </div>
     );
@@ -267,7 +322,10 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         </>
       }
       rightPanel={
-        <DetailsPanel details={transformDetails(details, currentImageId)} />
+        <>
+          {isSeg && <SegPanel />}
+          <DetailsPanel details={transformDetails(details, currentImageId)} />
+        </>
       }
     />
   )
