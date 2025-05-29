@@ -638,7 +638,7 @@ export async function getDicomDump(file_id) {
 	return dump;
 }
 
-export function get3dViewports(rendingEngine) {
+export function get3dViewports(renderingEngine) {
   // return all the viewports that have a 3D volume type
 
   // Get all viewports from the rendering engine
