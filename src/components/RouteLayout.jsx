@@ -1,6 +1,8 @@
 import React from 'react';
+import ErrorBoundary from './ErrorBoundary';
 
 import './RouteLayout.css';
+import TestError from './TestError';
 
 function RouteLayout({ header, leftPanel, middlePanel, rightPanel }) {
 
@@ -15,7 +17,9 @@ function RouteLayout({ header, leftPanel, middlePanel, rightPanel }) {
     return (
         <div id="main" className={colsClass}>
             {leftPanel && <div id="left-panel">{leftPanel}</div>}
-            <div id="middle-panel">{middlePanel}</div>
+            <ErrorBoundary>
+                <div id="middle-panel">{middlePanel}</div>
+            </ErrorBoundary>
             {rightPanel && <div id="right-panel">{rightPanel}</div>}
         </div>
     );

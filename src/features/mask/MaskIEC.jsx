@@ -37,6 +37,8 @@ import { DetailsPanel } from '@/features/details';
 import { Context } from '@/components/Context.js';
 import RouteLayout from '@/components/RouteLayout';
 
+import ErrorPanel from '@/components/ErrorPanel';
+
 import './MaskIEC.css';
 
 const {
@@ -279,10 +281,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   // short-circuit if not loaded yet
   if (isErrored) {
     return (
-      <>
-        <div>There was an error loading this IEC :(</div>
-        <p>{errorMessage.message}</p>
-      </>
+      <ErrorPanel error={errorMessage.message} />
     );
   }
   if (!isInitialized) {

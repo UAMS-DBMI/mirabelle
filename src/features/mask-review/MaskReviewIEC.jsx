@@ -29,6 +29,7 @@ import NavigationPanel from '@/components/NavigationPanel';
 import { DetailsPanel } from '@/features/details';
 
 import RouteLayout from '@/components/RouteLayout';
+import ErrorPanel from '@/components/ErrorPanel';
 
 import './MaskReviewIEC.css';
 
@@ -134,6 +135,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       //setSegmentationId(segmentationId);
 
       try {
+        // for testing error handling
         if (volumetric) {
           const volume = await cornerstone.volumeLoader.createAndCacheVolume(volumeId, {
             imageIds: frames,
@@ -149,12 +151,13 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
         }
         dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
         dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
+        // throw new Error("This is a test error");
       } catch (error) {
         console.log(error);
         // TODO: set an isError status here and display an error message?
         setErrorMessage(error);
         setIsErrored(true);
-        return;
+        // return;
       }
 
       setIsInitialized(true);
@@ -201,16 +204,8 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
     }
   }
 
-
   // short-circuit if not loaded yet
-  if (isErrored) {
-    return (
-      <>
-        <div>There was an error loading this IEC :(</div>
-        <p>{errorMessage.message}</p>
-      </>
-    );
-  }
+
   if (!isInitialized) {
     return <LoadingSpinner />
   }
@@ -226,6 +221,10 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       />
   } else {
     viewer = <StackView toolGroup={toolGroup} frames={imageIds} />
+  }
+
+  if (isErrored) {
+    viewer = <ErrorPanel error={errorMessage.message} />
   }
 
   return (

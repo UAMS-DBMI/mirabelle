@@ -9,19 +9,17 @@ import TestError from "./TestError";
 
 export default function AppLayout() {
   return (
-    <ErrorBoundary>
-      {/*<TestError />*/}
-      <div id="app">
-        <Toaster
-          toastOptions={{
-            style: {
-              fontSize: "1.5rem",
-            },
-          }}
-        />
-        <Header />
-        <Outlet />
-      </div>
-    </ErrorBoundary>
+
+    <div id="app">
+      <Toaster
+        toastOptions={{
+          style: {
+            fontSize: "1.5rem",
+          },
+        }}
+      />
+      <Header />
+      <Outlet />
+    </div>
   );
 }
