@@ -4,14 +4,14 @@ import { useDispatch } from 'react-redux'
 
 import MaskReviewVR from '@/features/mask-review/MaskReviewVR';
 
-import { getIECsForVR } from '@/utilities';
+import { getIECsForVRAwaitingReview } from '@/utilities';
 
 import { setMaskerReviewConfig, reset } from '@/features/presentationSlice'
 
 import './RouteMaskReviewVR.css';
 
 export async function loader({ params }) {
-  const iecs = await getIECsForVR(params.visual_review_instance_id);
+  const iecs = await getIECsForVRAwaitingReview(params.visual_review_instance_id);
 
   return { vr: params.visual_review_instance_id, iecs };
 }
