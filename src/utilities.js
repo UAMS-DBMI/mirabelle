@@ -1,14 +1,13 @@
 import * as cornerstone from '@cornerstonejs/core';
-import dicomParser from 'dicom-parser';
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import createImageIdsAndCacheMetaData from './lib/createImageIdsAndCacheMetaData';
 import * as cornerstoneAdapters from "@cornerstonejs/adapters";
+import createImageIdsAndCacheMetaData from './lib/createImageIdsAndCacheMetaData';
 
 const { volumeLoader, imageLoader, metaData } = cornerstone;
-const { Enums: csToolsEnums, segmentation, } = cornerstoneTools;
+const { Enums: csToolsEnums, segmentation: csToolsSegmentation, } = cornerstoneTools;
+const { Cornerstone3D } = cornerstoneAdapters.adaptersSEG;
 
-//import dcmjs from 'dcmjs';
-//const { adapters } = dcmjs;
+import dcmjs from 'dcmjs';
 
 export function expandSegTo3D(segmentationId) {
 	const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
@@ -76,8 +75,8 @@ export function expandSegTo3D(segmentationId) {
 }
 
 export function getCoordsForStackSeg(segmentationId) {
-  const segmentation = cornerstoneTools.segmentation.state.getSegmentation(segmentationId);
-  const imageIds = segmentation.representationData.Labelmap.imageIds;
+  const segmentation = csToolsSegmentation.state.getSegmentation(segmentationId);
+  const imageIds = csToolsSegmentation.representationData.Labelmap.imageIds;
 
   let minX = Infinity, minY = Infinity, minZ = Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -298,15 +297,15 @@ export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentation
   // Set the volume to load
   await volume.load();
 
-  cornerstoneTools.segmentation.removeAllSegmentations();
-  cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
+  csToolsSegmentation.removeAllSegmentations();
+  csToolsSegmentation.removeAllSegmentationRepresentations();
 
   // Create a segmentation of the same resolution as the source data for the CT volume
   volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
     volumeId: segmentationId,
   });
 
-  segmentation.addSegmentations([
+  csToolsSegmentation.addSegmentations([
     {
       segmentationId,
       representation: {
@@ -347,15 +346,15 @@ export async function loadVolume(imageIds, volumeId, segmentationId) {
 
 export async function loadVolumeSegmentation(imageIds, volumeId, segmentationId) {
 
-  cornerstoneTools.segmentation.removeAllSegmentations();
-  cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
+  csToolsSegmentation.removeAllSegmentations();
+  csToolsSegmentation.removeAllSegmentationRepresentations();
 
   // Create a segmentation of the same resolution as the source data for the CT volume
   volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
     volumeId: segmentationId,
   });
 
-  segmentation.addSegmentations([
+  csToolsSegmentation.addSegmentations([
     {
       segmentationId,
       representation: {
@@ -373,13 +372,13 @@ export async function loadVolumeSegmentation(imageIds, volumeId, segmentationId)
 
 export async function loadStackSegmentation(imageIds, segmentationId) {
 
-  cornerstoneTools.segmentation.removeAllSegmentations();
-  cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
+  csToolsSegmentation.removeAllSegmentations();
+  csToolsSegmentation.removeAllSegmentationRepresentations();
 
   // Create a segmentation of the same resolution as the source data for the CT volume
   const segImages = await imageLoader.createAndCacheDerivedLabelmapImages(imageIds);
 
-  segmentation.addSegmentations([
+  csToolsSegmentation.addSegmentations([
     {
       segmentationId,
       representation: {
@@ -396,14 +395,39 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
 }
 
 
+function parseSegMetadata(arrayBuffer) {
+  const dicomDict = dcmjs.data.DicomMessage.readFile(arrayBuffer);
+  const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
+  const segments = dataset.SegmentSequence;
+  const frames = dataset.PerFrameFunctionalGroupsSequence;
+  return { dataset, segments, frames };
+}
+
+function cielabToRGBA([L, a, b]) {
+  if (!dcmjs?.utilities?.LABToRGB) {
+    console.warn('dcmjs.utilities.LABToRGB is not available');
+    return [255, 255, 255, 255]; // fallback to white
+  }
+
+  try {
+    const { rgba } = dcmjs.utilities.LABToRGB([L, a, b]);
+    return [...rgba, 255]; // Add opaque alpha
+  } catch (e) {
+    console.error('Error converting CIELab to RGBA:', e);
+    return [255, 255, 255, 255];
+  }
+}
+
 
 export async function loadSEGSegmentation(arrayBuffer, referenceImageIds, segmentationId) {
 
-  segmentation.removeAllSegmentations();
-  segmentation.removeAllSegmentationRepresentations();
+  csToolsSegmentation.removeAllSegmentations();
+  csToolsSegmentation.removeAllSegmentationRepresentations();
+
+  const { segments } = parseSegMetadata(arrayBuffer);
 
   const { labelMapImages } =
-    await cornerstoneAdapters.adaptersSEG.Cornerstone3D.Segmentation.createFromDICOMSegBuffer(
+    await Cornerstone3D.Segmentation.createFromDICOMSegBuffer(
       referenceImageIds,
       arrayBuffer,
       { metadataProvider: metaData }
@@ -411,7 +435,7 @@ export async function loadSEGSegmentation(arrayBuffer, referenceImageIds, segmen
 
   const imageIds = labelMapImages?.flat().map(image => image.imageId);
 
-  segmentation.addSegmentations([
+  csToolsSegmentation.addSegmentations([
     {
       segmentationId,
       representation: {
@@ -421,19 +445,24 @@ export async function loadSEGSegmentation(arrayBuffer, referenceImageIds, segmen
     }
   ]);
 
-  const segState = segmentation.state.getSegmentation(segmentationId);
-  const segments = segState?.segments;
+  const stateSegments = Object.values(segments).map((seg, i) => {
+    const segmentIndex = seg.SegmentNumber ?? i + 1;
+    return { segmentIndex };
+  });
 
-  if (!segState?.segments?.length) {
-    console.warn('No segment metadata found.');
-    return;
-  }
+  const segmentList = stateSegments.map(({ segmentIndex }) => {
+    const seg = segments?.[segmentIndex - 1] ?? {};
+    const label = seg.SegmentLabel ?? `Segment ${segmentIndex}`;
+    const color = cielabToRGBA(seg.RecommendedDisplayCIELabValue);
+    return {
+      segmentIndex,
+      label,
+      color,
+      visible: true,
+    };
+  });
 
-  for (const { segmentIndex } of segState.segments) {
-    segmentation.setSegmentVisibility(segmentationId, segmentIndex, true);
-  }
-
-  return segments.map(({ segmentIndex, label }) => ({ segmentIndex, label }));
+  return segmentList;
 }
 
 

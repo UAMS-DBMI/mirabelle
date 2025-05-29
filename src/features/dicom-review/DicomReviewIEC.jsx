@@ -188,16 +188,10 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
           } else {
             const response = await fetch('/papi/v1/files/131496059/data')
             const data = await response.arrayBuffer();
-            await loadSEGSegmentation(data, imageIds, segmentationId);
-            //const { segments } = await loadSEGSegmentation(data, volumeId, segmentationId);
-            //setSegmentMetadata(segments);
-
-            //const segVol = cornerstone.cache.getVolume(segmentationId);
-            //const scalarData = segVol?.voxelManager?.getScalarData();
-            //const uniqueValues = [...new Set(scalarData)];
-            //console.log('Unique voxel values in segmentation volume:', uniqueValues);
-
-            let a = 'a'
+            const segSegments = await loadSEGSegmentation(data, imageIds, segmentationId);
+            setSegMetadata(segSegments);
+            //await loadSEGSegmentation(data, imageIds, segmentationId);
+            //setSegMetadata(null);
           }
 
           dispatch(setTitle("DICOM Volume Review"));
@@ -323,7 +317,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       }
       rightPanel={
         <>
-          {isSeg && <SegPanel />}
+          {isSeg && <SegPanel segments={segMetadata} segmentationId={segmentationId} />}
           <DetailsPanel details={transformDetails(details, currentImageId)} />
         </>
       }

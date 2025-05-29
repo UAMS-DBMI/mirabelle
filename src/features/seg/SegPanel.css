@@ -1,0 +1,33 @@
+#seg-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+    padding: 1rem;
+}
+
+    #seg-panel h3 {
+        margin: 0 0 0.75rem;
+        font-size: 1.1rem;
+        font-weight: bold;
+    }
+
+    #seg-panel ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+        overflow-y: auto;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    #seg-panel li {
+        display: flex;
+        align-items: center;
+    }
+
+    #seg-panel input[type="checkbox"] {
+        margin-right: 0.5rem;
+    }
