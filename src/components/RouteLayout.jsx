@@ -16,11 +16,21 @@ function RouteLayout({ header, leftPanel, middlePanel, rightPanel }) {
 
     return (
         <div id="main" className={colsClass}>
-            {leftPanel && <div id="left-panel">{leftPanel}</div>}
+            {leftPanel && (
+                <div id="left-panel">
+                    {leftPanel}
+                    <div id="filler-panel" className="side-panel" />
+                </div>
+            )}
             <ErrorBoundary>
                 <div id="middle-panel">{middlePanel}</div>
             </ErrorBoundary>
-            {rightPanel && <div id="right-panel">{rightPanel}</div>}
+            {rightPanel && (
+                <div id="right-panel">
+                    {rightPanel}
+                    <div id="filler-panel" className="side-panel" />
+                </div>
+            )}
         </div>
     );
 }
