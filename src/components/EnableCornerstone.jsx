@@ -11,6 +11,7 @@ import { init as csRenderInit, imageLoader } from "@cornerstonejs/core"
 import { init as csToolsInit } from "@cornerstonejs/tools"
 import * as cornerstoneTools from '@cornerstonejs/tools'
 import { init as dicomImageLoaderInit } from "@cornerstonejs/dicom-image-loader"
+import * as cornerstoneDicomImageLoader from "@cornerstonejs/dicom-image-loader"
 import { cornerstoneNiftiImageLoader } from '@cornerstonejs/nifti-volume-loader'
 import * as polySeg from '@cornerstonejs/polymorphic-segmentation'
 
@@ -44,6 +45,7 @@ function EnableCornerstone({ children }) {
       window.cornerstoneTools = cornerstoneTools;
       window.cornerstone = cornerstone;
       window.polyseg = polySeg;
+      window.cornerstoneDicomImageLoader = cornerstoneDicomImageLoader;
 
       setIsInitialized(true);
     };

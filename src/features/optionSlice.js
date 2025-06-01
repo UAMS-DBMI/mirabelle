@@ -16,7 +16,7 @@ const initialState = {
 };
 
 const optionSlice = createSlice({
-  name: 'selection',
+  name: 'options',
   initialState,
   reducers: {
     setOption: (state, action) => {

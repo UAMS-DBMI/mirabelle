@@ -3,9 +3,10 @@ import React from 'react';
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import { Enums, setStackConfig, setVolumeConfig } from '@/features/presentationSlice';
-import { setTitle, setLoading, setOption } from '@/features/optionSlice';
+import { setTitle, setLoading, setOption, resetOptions } from '@/features/optionSlice';
 import toast from 'react-hot-toast';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { wadouri } from "@cornerstonejs/dicom-image-loader"
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
 import { volumeLoader } from "@cornerstonejs/core";
@@ -18,8 +19,10 @@ import {
   loadStackSegmentation,
   loadVolume,
   loadVolumeSegmentation,
-  loadSEGSegmentation
-} from '@/utilities';
+  loadSEGSegmentation,
+  getFiles,
+  fetchFileAsArrayBuffer,
+} from "@/utilities";
 import { getDicomDetails, setDicomStatus, setMaskingFlag } from '@/visualreview';
 
 import Header from '@/components/Header';
@@ -156,6 +159,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       setIsSeg(isSeg)
 
       if (optionsView === 'stack') {
+        console.log("DicomReviewIEC: forcing stack view");
         volumetric = false; // force stack view
       }
 
@@ -186,12 +190,16 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
           if (!isSeg) {
             await loadVolumeSegmentation(imageIds, volumeId, segmentationId);
           } else {
-            const response = await fetch('/papi/v1/files/131496059/data')
-            const data = await response.arrayBuffer();
+
+            const segFileIds = await getFiles(iec);
+            if (segFileIds.length > 1) {
+              throw new Error("More than one SEG image found for IEC:", iec);
+            }
+
+            const data = await fetchFileAsArrayBuffer(segFileIds[0]);
+
             const segSegments = await loadSEGSegmentation(data, imageIds, segmentationId);
-            setSegMetadata(segSegments);
-            //await loadSEGSegmentation(data, imageIds, segmentationId);
-            //setSegMetadata(null);
+            setSegMetadata(segSegments.segments);
           }
 
           dispatch(setTitle("DICOM Volume Review"));

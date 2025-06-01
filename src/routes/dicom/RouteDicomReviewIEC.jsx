@@ -7,6 +7,7 @@ import DicomReviewIEC from '@/features/dicom-review/DicomReviewIEC';
 //import { getDicomDetails } from '@/visualreview.js';
 
 import { setVisualReviewConfig, reset } from '@/features/presentationSlice'
+import { resetOptions } from '@/features/optionSlice';
 
 import './RouteDicomReviewIEC.css';
 
@@ -26,9 +27,11 @@ export default function RouteDicomReviewIEC() {
   let { iec } = useLoaderData();
 
   useEffect(() => {
+    console.log("[RouteDicomReviewIEC] useEffect running, iec=", iec);
+    dispatch(resetOptions());
     dispatch(reset());
     dispatch(setVisualReviewConfig());
-  }, []);
+  });
 
   return (
     <DicomReviewIEC iec={iec} />

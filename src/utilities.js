@@ -8,6 +8,7 @@ const { Enums: csToolsEnums, segmentation: csToolsSegmentation, } = cornerstoneT
 const { Cornerstone3D } = cornerstoneAdapters.adaptersSEG;
 
 import dcmjs from 'dcmjs';
+window.dcmjs = dcmjs; // Make dcmjs globally available
 
 export function expandSegTo3D(segmentationId) {
 	const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
@@ -394,7 +395,6 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
   ]);
 }
 
-
 function parseSegMetadata(arrayBuffer) {
   const dicomDict = dcmjs.data.DicomMessage.readFile(arrayBuffer);
   const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
@@ -404,201 +404,82 @@ function parseSegMetadata(arrayBuffer) {
 }
 
 function cielabToRGBA([L, a, b]) {
-  if (!dcmjs?.utilities?.LABToRGB) {
-    console.warn('dcmjs.utilities.LABToRGB is not available');
-    return [255, 255, 255, 255]; // fallback to white
-  }
-
-  try {
-    const { rgba } = dcmjs.utilities.LABToRGB([L, a, b]);
-    return [...rgba, 255]; // Add opaque alpha
-  } catch (e) {
-    console.error('Error converting CIELab to RGBA:', e);
-    return [255, 255, 255, 255];
-  }
+  // TODO might need to add alpha to the end, should always be 255?
+  return dcmjs.data.Colors.dicomlab2RGB([L, a, b])
+    .map(val => Math.round(val * 255));
 }
-
 
 export async function loadSEGSegmentation(arrayBuffer, referenceImageIds, segmentationId) {
 
   csToolsSegmentation.removeAllSegmentations();
   csToolsSegmentation.removeAllSegmentationRepresentations();
 
-  const { segments } = parseSegMetadata(arrayBuffer);
-
-  const { labelMapImages } =
+  // Parse the DICOM SEG metadata using adapterSEG
+  const adapterRet = 
     await Cornerstone3D.Segmentation.createFromDICOMSegBuffer(
       referenceImageIds,
       arrayBuffer,
       { metadataProvider: metaData }
     );
 
-  const imageIds = labelMapImages?.flat().map(image => image.imageId);
+  const { labelMapImages } = adapterRet;
 
-  csToolsSegmentation.addSegmentations([
-    {
-      segmentationId,
-      representation: {
-        type: cornerstoneTools.Enums.SegmentationRepresentations.Labelmap,
-        data: { imageIds }
+  // build segmentList from segMetadata
+  const segmentList = adapterRet.segMetadata.data.map((seg, i) => {
+    if (!seg) { 
+      return {
+        segmentIndex: i + 1,
+        label: `Segment ${i + 1}`,
+        description: "",
+        visible: true,
       }
     }
-  ]);
-
-  const stateSegments = Object.values(segments).map((seg, i) => {
-    const segmentIndex = seg.SegmentNumber ?? i + 1;
-    return { segmentIndex };
-  });
-
-  const segmentList = stateSegments.map(({ segmentIndex }) => {
-    const seg = segments?.[segmentIndex - 1] ?? {};
-    const label = seg.SegmentLabel ?? `Segment ${segmentIndex}`;
-    const color = cielabToRGBA(seg.RecommendedDisplayCIELabValue);
-    return {
-      segmentIndex,
-      label,
-      color,
+    let segment = {
+      segmentIndex: seg.SegmentNumber ?? i + 1,
+      label: seg.SegmentLabel ?? `Segment ${i + 1}`,
+      description: seg.SegmentDescription ?? "", // optional, unused?
+      color: cielabToRGBA(seg.RecommendedDisplayCIELabValue),
       visible: true,
     };
+    return segment;
   });
 
-  return segmentList;
+
+  // TODO: we need to create a new segmentation object for each entry
+  // in the labelMapImages here
+
+  // Actually, it looks like we can get the list of segments
+  // from the segMetadata (in adapterRet). We don't have to map
+  // them to labelMapImages, instead we can put all the segments
+  // into each segmentation object, and it's fine. 
+  // Then when we change visibility we can just apply it to all
+  // the segmentations at once.
+  const imageIds = labelMapImages[1].map(image => image.imageId);
+
+  const segmentationList = labelMapImages.map((labelMapImage, i) => {
+    // Create a segmentation for each labelMapImage
+    const newSegmentationId = `${segmentationId}-${i}`;
+    csToolsSegmentation.addSegmentations([
+      {
+        segmentationId: newSegmentationId,
+        representation: {
+          type: csToolsEnums.SegmentationRepresentations.Labelmap,
+          data: { imageIds: labelMapImage.map((image) => image.imageId) },
+        },
+        config: {
+          segments: segmentList,
+        },
+      },
+    ]);
+    return newSegmentationId;
+  });
+
+  console.log("new segmentations =", segmentationList);
+  return {
+    segments: segmentList,
+    segmentationIds: segmentationList,
+  }
 }
-
-
-///**
-// * Unpacks 1-bit-per-pixel binary data into 8-bit unsigned array.
-// * @param {Uint8Array} packed - Packed bit array
-// * @param {number} length - Total number of pixels expected
-// * @returns {Uint8Array}
-// */
-//function _unpackBinary(packed, length) {
-//  const unpacked = new Uint8Array(length);
-//  for (let i = 0; i < length; i++) {
-//    const byte = packed[Math.floor(i / 8)];
-//    const bit = 7 - (i % 8);
-//    unpacked[i] = (byte >> bit) & 1;
-//  }
-//  return unpacked;
-//}
-
-///**
-// * Parses a DICOM SEG and returns a labelmap and segment metadata.
-// * @param {ArrayBuffer} arrayBuffer - Raw DICOM SEG file buffer
-// * @returns {{
-// *   labelmapBuffer: Uint8Array,
-// *   metadata: Array<{ segmentNumber: number, segmentLabel: string, color: number[] }>,
-// *   dimensions: number[],
-// *   spacing: number[]
-// * }}
-// */
-//export async function parseSEGAndBuildLabelmap(arrayBuffer) {
-//  const dicomDict = dcmjs.data.DicomMessage.readFile(arrayBuffer);
-//  const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
-
-//  console.log('SEG Dataset:', dataset);
-
-//  const rows = dataset.Rows;
-//  const cols = dataset.Columns;
-//  const spacing = Array.isArray(dataset.PixelSpacing)
-//    ? dataset.PixelSpacing.map(Number)
-//    : [1, 1];
-//  const sliceThickness = Number(dataset.SliceThickness ?? 1);
-//  const spacingBetweenSlices = Number(dataset.SpacingBetweenSlices ?? sliceThickness);
-
-//  const frames = dataset.NumberOfFrames;
-//  const perFrameGroups = dataset.PerFrameFunctionalGroupsSequence;
-//  const segmentSequence = dataset.SegmentSequence;
-//  const pixelData = dataset.PixelData;
-
-//  if (!Array.isArray(perFrameGroups) || !pixelData) {
-//    throw new Error('Missing required SEG data');
-//  }
-
-//  const masks = {};
-//  const bytesPerFrame = Math.ceil((rows * cols) / 8);
-//  const frameData = new Uint8Array(pixelData);
-
-//  for (let frameIndex = 0; frameIndex < frames; frameIndex++) {
-//    const frameGroup = perFrameGroups[frameIndex];
-//    const segmentNumber = frameGroup.SegmentIdentificationSequence.SegmentNumber;
-
-//    if (!segmentNumber) {
-//      console.warn(`Missing SegmentNumber in frame ${frameIndex}`);
-//      continue;
-//    }
-
-//    console.log(`Frame ${frameIndex} ? SegmentNumber: ${segmentNumber}`);
-
-//    const offset = frameIndex * bytesPerFrame;
-//    const packed = frameData.slice(offset, offset + bytesPerFrame);
-//    const unpacked = _unpackBinary(packed, rows * cols);
-
-//    if (!masks[segmentNumber]) {
-//      masks[segmentNumber] = [];
-//    }
-
-//    const slice = [];
-//    for (let y = 0; y < rows; y++) {
-//      const row = unpacked.slice(y * cols, (y + 1) * cols);
-//      slice.push([...row]);
-//    }
-
-//    masks[segmentNumber].push(slice);
-//  }
-
-//  const metadata = segmentSequence.map((segment, i) => ({
-//    segmentNumber: segment.SegmentNumber ?? i + 1,
-//    segmentLabel: segment.SegmentLabel ?? `Segment ${i + 1}`,
-//    color: segment.RecommendedDisplayCIELabValue,
-//  }));
-
-//  console.log(
-//    'SegmentSequence defined numbers:',
-//    segmentSequence.map((s, i) => s.SegmentNumber ?? i + 1)
-//  );
-
-
-//  const depth = Math.max(...Object.values(masks).map(m => m.length));
-//  const numSegments = metadata.length;
-//  const labelmapBuffer = new Uint8Array(numSegments * rows * cols * depth);
-
-//  for (let i = 0; i < metadata.length; i++) {
-//    const segment = metadata[i];
-//    const segmentIndex = segment.segmentNumber;
-//    const slices = masks[segmentIndex];
-
-//    if (!slices || !Array.isArray(slices)) {
-//      console.warn(`Missing mask data for segment ${segmentIndex}`);
-//      continue;
-//    }
-
-//    for (let z = 0; z < slices.length; z++) {
-//      for (let y = 0; y < rows; y++) {
-//        for (let x = 0; x < cols; x++) {
-//          const value = slices[z][y][x];
-//          const offset = i * rows * cols * depth + z * rows * cols + y * cols + x;
-//          labelmapBuffer[offset] = value;
-//        }
-//      }
-//    }
-//  }
-
-
-//  return {
-//    labelmapBuffer,
-//    metadata,
-//    dimensions: [cols, rows, depth],
-//    spacing: [spacing[1], spacing[0], spacingBetweenSlices],
-//  };
-//}
-
-
-
-
-
-
-
 
 export async function getImageIdsFromIEC(iec) {
 	let imageIds;
@@ -649,3 +530,14 @@ export function get3dViewports(renderingEngine) {
         return viewport.type === cornerstone.Enums.ViewportType.VOLUME_3D;
       });
 }
+
+export function fetchFileAsArrayBuffer(fileId) {
+  // Fetch a file from the server and return it as an ArrayBuffer
+  return fetch(`/papi/v1/files/${fileId}/data`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.statusText}`);
+      }
+      return response.arrayBuffer();
+    });
+} 

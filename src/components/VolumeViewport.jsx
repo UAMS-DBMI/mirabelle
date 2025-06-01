@@ -3,7 +3,8 @@
  * been created and loaded into the cache. Accepts volumeId as a prop
  **/
 import React, { useState, useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { setOption } from '@/features/optionSlice';
 
 import * as cornerstone from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
@@ -38,6 +39,7 @@ function VolumeViewport({
 }) {
   const viewMode = useSelector(state => state.options.view);
   const [initialized, setInitialized] = useState(false);
+  const dispatch = useDispatch();
 
   // console.log("[VolumeViewport] rendering, volumeId=", volumeId)
   const elementRef = useRef(null);
@@ -84,17 +86,21 @@ function VolumeViewport({
       // Set the volume on the viewport and it's default properties
       viewport.setVolumes([{ volumeId }])
 
+      // Apply all active segmentations to the viewport
+      const segmentationIds = segmentation.state
+        .getSegmentations()
+        .map((seg) => seg.segmentationId);
+
       await segmentation.addLabelmapRepresentationToViewportMap({
-        [viewportId]: [
-          {
-            segmentationId,
-            type: csToolsEnums.SegmentationRepresentations.Labelmap,
-          }
-        ],
+        [viewportId]: segmentationIds.map((segmentationId) => ({
+          segmentationId,
+        })),
       });
 
       // Render the image
       viewport.render()
+
+      dispatch(setOption({ key: "viewport", value: viewportId }));
 
       setInitialized(true);
     }
