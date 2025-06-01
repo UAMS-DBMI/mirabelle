@@ -68,7 +68,8 @@ function transformDetails(details) {
 
 export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
-  const options = useSelector(state => state.options);
+  const optionsForm = useSelector(state => state.options.form);
+  const optionsFunction = useSelector(state => state.options.function);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
   const dispatch = useDispatch();
@@ -264,8 +265,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     }
 
     console.log(finalCoords, volumeId, iec);
-    let selectedForm = options.form
-    let selectedFunction = options.function
+    let selectedForm = optionsForm;
+    let selectedFunction = optionsFunction;
     await finalCalc(finalCoords, volumeId, iec, selectedForm, selectedFunction);
     toast.success("Submitted for masking!");
   }

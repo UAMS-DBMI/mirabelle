@@ -71,7 +71,7 @@ function transformDetails(details, imageId) {
 
 export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
 
-  const options = useSelector(state => state.options);
+  const optionsView = useSelector(state => state.options.view);
   const currentImageId = useSelector(state => state.options.currentImageId);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
@@ -101,7 +101,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   // will only trigger a change when the "force stack view"
   // status changes. That is, it will NOT trigger an update
   // when view changes to something else (like projection).
-  const forceStackView = options.view === 'stack';
+  const forceStackView = optionsView === 'stack';
 
   let viewer;
 
@@ -155,7 +155,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       }
       setIsSeg(isSeg)
 
-      if (options.view === 'stack') {
+      if (optionsView === 'stack') {
         volumetric = false; // force stack view
       }
 

@@ -60,7 +60,6 @@ function transformDetails(details) {
 
 export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
-  const options = useSelector(state => state.options);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
   const dispatch = useDispatch();
