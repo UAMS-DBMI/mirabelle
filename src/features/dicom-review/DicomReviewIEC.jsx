@@ -199,6 +199,9 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
             const data = await fetchFileAsArrayBuffer(segFileIds[0]);
 
             const segSegments = await loadSEGSegmentation(data, imageIds, segmentationId);
+            // NOTE: At some point down in the bowels, the values
+            // in the segment list are used for React keys, so make sure
+            // the segmentIndex is unique (handled in loadSEGSegmentation)
             setSegMetadata(segSegments.segments);
           }
 

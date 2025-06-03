@@ -427,11 +427,18 @@ export async function loadSEGSegmentation(arrayBuffer, referenceImageIds, segmen
   // build segmentList from segMetadata
   const segmentList = adapterRet.segMetadata.data.map((seg, i) => {
     if (!seg) { 
+      // NOTE: This might not always be the case, but in testing
+      // so far, DICOM SEG objects seem to have an empty segment
+      // at the beginning. This code could fail if the empty segment
+      // is somewhere else, not sure.
+      //
+      // skip is set so in the SegPanel we can skip rendering
       return {
-        segmentIndex: i + 1,
-        label: `Segment ${i + 1}`,
-        description: "",
-        visible: true,
+        segmentIndex: i,
+        label: `Empty Segment ${i}`,
+        description: "Empty Segment",
+        visible: false,
+        skip: true, // will use this in SegPanel to skip rendering
       }
     }
     let segment = {

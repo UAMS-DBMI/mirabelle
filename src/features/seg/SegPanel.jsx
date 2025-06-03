@@ -9,7 +9,8 @@ export default function SegPanel({ segments }) {
   // This is here to force a re-render of this component whenever
   // a new viewport mounts. Over in VolumeViewport the viewport
   // option is updated whenever a new viewport is mounted.
-  const lastMountedViewport = useSelector(state => state.options.viewport)
+  const _ = useSelector(state => state.options.viewport)
+
   const [colors, setColors] = useState();
 
   const viewportIds = cornerstone
@@ -48,7 +49,7 @@ export default function SegPanel({ segments }) {
       }
     }
     setColors(lcolors);
-  }, [segments, lastMountedViewport]);
+  }, [segments, viewportIds.length]);
 
   const handleToggle = (segmentIndex, event) => {
 
@@ -79,15 +80,19 @@ export default function SegPanel({ segments }) {
     }
   };
 
+  // NOTE We may have set some segments to skip when loading from
+  // the DICOM SEG object, so we want to skip them here.
+  const displaySegments = segments.filter((s) => s.skip !== true);
+
   return (
     <div id="seg-panel" className="side-panel">
-      {!segments || segments.length === 0 ? (
+      {!displaySegments || displaySegments.length === 0 ? (
         <p>No segment data available.</p>
       ) : (
         <>
           <h3>Segments</h3>
           <ul>
-            {segments.map(({ segmentIndex, label }) => (
+            {displaySegments.map(({ segmentIndex, label }) => (
               <li key={segmentIndex}>
                 <label>
                   <input
