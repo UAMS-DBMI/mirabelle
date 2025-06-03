@@ -84,6 +84,11 @@ export default function SegPanel({ segments }) {
   // the DICOM SEG object, so we want to skip them here.
   const displaySegments = segments.filter((s) => s.skip !== true);
 
+  if (!colors) {
+    // Don't render at all until we have the colors
+    return;
+  }
+
   return (
     <div id="seg-panel" className="side-panel">
       {!displaySegments || displaySegments.length === 0 ? (
@@ -100,15 +105,14 @@ export default function SegPanel({ segments }) {
                     defaultChecked
                     onChange={(event) => handleToggle(segmentIndex, event)}
                   />
-                  {label || `Segment ${segmentIndex}`}
-                  {colors && colors[segmentIndex] && (
-                    <span
-                      className="seg-color"
-                      style={{
-                        backgroundColor: `rgba(${colors[segmentIndex].join(",")})`,
-                      }}
-                    >The color</span>
-                  )}
+                  <span
+                    className="seg-color"
+                    style={{
+                      backgroundColor: `rgba(${colors[segmentIndex].join(",")})`,
+                    }}
+                  >
+                    {label || `Segment ${segmentIndex}`}
+                  </span>
                 </label>
               </li>
             ))}
