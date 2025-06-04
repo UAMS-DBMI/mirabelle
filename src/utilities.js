@@ -1,3 +1,4 @@
+import DEBUG, { log } from '@/debug';
 import * as cornerstone from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import * as cornerstoneAdapters from "@cornerstonejs/adapters";
@@ -451,18 +452,8 @@ export async function loadSEGSegmentation(arrayBuffer, referenceImageIds, segmen
     return segment;
   });
 
-
-  // TODO: we need to create a new segmentation object for each entry
-  // in the labelMapImages here
-
-  // Actually, it looks like we can get the list of segments
-  // from the segMetadata (in adapterRet). We don't have to map
-  // them to labelMapImages, instead we can put all the segments
-  // into each segmentation object, and it's fine. 
-  // Then when we change visibility we can just apply it to all
-  // the segmentations at once.
-  const imageIds = labelMapImages[1].map(image => image.imageId);
-
+  // Create a new segmentation object for each entry
+  // in the labelMapImages 
   const segmentationList = labelMapImages.map((labelMapImage, i) => {
     // Create a segmentation for each labelMapImage
     const newSegmentationId = `${segmentationId}-${i}`;
@@ -481,7 +472,6 @@ export async function loadSEGSegmentation(arrayBuffer, referenceImageIds, segmen
     return newSegmentationId;
   });
 
-  console.log("new segmentations =", segmentationList);
   return {
     segments: segmentList,
     segmentationIds: segmentationList,
