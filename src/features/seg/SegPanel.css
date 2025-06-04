@@ -1,68 +1,31 @@
 #seg-panel {
-    display: flex;
+    @apply flex;
 }
 
 #seg-panel h3 {
-    margin: 0 0 0.75rem;
-    font-size: 1.1rem;
-    font-weight: bold;
+    @apply mb-3 font-bold;
 }
 
 #seg-panel ul {
-    list-style: none;
-    padding-left: 0;
-    margin: 0;
-    overflow-y: auto;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
-
-#seg-panel li {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-
-
-#seg-panel input[type="checkbox"] {
-    margin-right: 0.5rem;
+    @apply list-none pl-0 m-0 overflow-y-auto flex-1 flex flex-col gap-[0.3rem];
 }
 
 #seg-panel div.seg-color {
-    flex-shrink: 0;
-    width: 15px;
-    height: 15px;
-    border-radius: 100%;
+    @apply flex-shrink-0 w-[15px] h-[15px] rounded-full;
 }
-
-/* #seg-panel li:nth-child(odd) {
-    background-color: rgba(0, 0, 0, 0.3);
-}
-
-#seg-panel li:nth-child(even) {
-    background-color: rgba(0, 0, 0, 0.5);
-} */
 
 #seg-panel li {
-    background-color: rgba(0, 0, 0, 0.1);
-    cursor: pointer;
+    @apply flex items-center p-2 overflow-hidden whitespace-nowrap bg-white bg-opacity-10 dark:bg-black dark:bg-opacity-10 cursor-pointer;
 }
 
 #seg-panel li:hover{
-    background-color: rgba(0, 0, 0, 0.3);
-    opacity: 1;
+    @apply bg-opacity-30 dark:bg-opacity-30;
 }
 
 #seg-panel li.selected:hover {
-    background-color: rgba(0, 0, 0, 0.8);
-    opacity: 1;
+    @apply bg-opacity-80 dark:bg-opacity-80;
 }
 
 #seg-panel li.selected {
-    background-color: rgba(0, 0, 0, 0.5);
+    @apply bg-opacity-50 dark:bg-opacity-50;
 }

@@ -104,11 +104,6 @@ export default function SegPanel({ segments }) {
                 onClick={
                   (event) => handleToggle(segmentIndex, event)
                 }>
-                {/* <input
-                  type="checkbox"
-                  defaultChecked
-                  onChange={(event) => handleToggle(segmentIndex, event)}
-                /> */}
                 {colors && colors[segmentIndex] && (
                   <div
                     className="seg-color"
