@@ -1,4 +1,4 @@
-import DEBUG, { log } from '@/debug';
+// import DEBUG, { log } from '@/debug';
 import * as cornerstone from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import * as cornerstoneAdapters from "@cornerstonejs/adapters";
