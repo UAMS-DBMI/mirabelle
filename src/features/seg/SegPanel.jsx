@@ -53,7 +53,8 @@ export default function SegPanel({ segments }) {
 
   const handleToggle = (segmentIndex, event) => {
 
-    let visible = event.target.checked;
+
+    const visible = event.currentTarget.classList.toggle("selected");
 
     // For each viewport:
     //   For each segmentation:
@@ -98,22 +99,25 @@ export default function SegPanel({ segments }) {
           <h3>Segments</h3>
           <ul>
             {displaySegments.map(({ segmentIndex, label }) => (
-              <li key={segmentIndex}>
-                <label>
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    onChange={(event) => handleToggle(segmentIndex, event)}
-                  />
-                  <span
+              <li key={segmentIndex}
+                className="selected"
+                onClick={
+                  (event) => handleToggle(segmentIndex, event)
+                }>
+                {/* <input
+                  type="checkbox"
+                  defaultChecked
+                  onChange={(event) => handleToggle(segmentIndex, event)}
+                /> */}
+                {colors && colors[segmentIndex] && (
+                  <div
                     className="seg-color"
                     style={{
                       backgroundColor: `rgba(${colors[segmentIndex].join(",")})`,
                     }}
-                  >
-                    {label || `Segment ${segmentIndex}`}
-                  </span>
-                </label>
+                  ></div>
+                )}
+                <label>{label || `Segment ${segmentIndex}`}</label>
               </li>
             ))}
           </ul>

@@ -16,14 +16,53 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.3rem;
 }
 
 #seg-panel li {
     display: flex;
     align-items: center;
+    padding: 0.5rem;
+    overflow: hidden;
+    white-space: nowrap;
 }
+
+
 
 #seg-panel input[type="checkbox"] {
     margin-right: 0.5rem;
+}
+
+#seg-panel div.seg-color {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    border-radius: 100%;
+}
+
+/* #seg-panel li:nth-child(odd) {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+#seg-panel li:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.5);
+} */
+
+#seg-panel li {
+    background-color: rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+#seg-panel li:hover{
+    background-color: rgba(0, 0, 0, 0.3);
+    opacity: 1;
+}
+
+#seg-panel li.selected:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    opacity: 1;
+}
+
+#seg-panel li.selected {
+    background-color: rgba(0, 0, 0, 0.5);
 }
