@@ -3,7 +3,7 @@
 }
 
 #seg-panel h3 {
-    @apply mb-3 font-bold;
+    @apply font-bold;
 }
 
 #seg-panel ul {
