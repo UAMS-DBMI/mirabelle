@@ -19,7 +19,7 @@ function RouteLayout({ header, leftPanel, middlePanel, rightPanel }) {
             {leftPanel && (
                 <div id="left-panel">
                     {leftPanel}
-                    <div id="filler-panel" className="side-panel" />
+                    {/* <div id="filler-panel" className="side-panel" /> */}
                 </div>
             )}
             <ErrorBoundary>
@@ -28,7 +28,7 @@ function RouteLayout({ header, leftPanel, middlePanel, rightPanel }) {
             {rightPanel && (
                 <div id="right-panel">
                     {rightPanel}
-                    <div id="filler-panel" className="side-panel" />
+                    {/* <div id="filler-panel" className="side-panel" /> */}
                 </div>
             )}
         </div>

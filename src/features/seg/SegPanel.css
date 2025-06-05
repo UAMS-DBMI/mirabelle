@@ -7,7 +7,7 @@
 }
 
 #seg-panel ul {
-    @apply list-none pl-0 m-0 overflow-y-auto flex-1 flex flex-col gap-[0.3rem];
+    @apply list-none pl-0 m-0 flex-1 flex flex-col gap-[0.3rem];
 }
 
 #seg-panel div.seg-color {

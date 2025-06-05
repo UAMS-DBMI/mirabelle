@@ -2,8 +2,7 @@
 
 #navigation-panel {
 	@apply
-		relative
-		p-6
+		flex-none
 	;
 }
 

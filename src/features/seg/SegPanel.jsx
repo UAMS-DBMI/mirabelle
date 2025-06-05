@@ -96,7 +96,7 @@ export default function SegPanel({ segments }) {
         <p>No segment data available.</p>
       ) : (
         <>
-          <h3>Segments</h3>
+          <h3>Segments:</h3>
           <ul>
             {displaySegments.map(({ segmentIndex, label }) => (
               <li key={segmentIndex}
