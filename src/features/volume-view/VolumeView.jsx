@@ -108,16 +108,6 @@ export default function VolumeView({
 
   return (
     <div id="volume-view" className="viewer">
-
-      <VolumeViewport3d
-        viewportId="coronal3d"
-        volumeId={volumeId}
-        renderingEngine={renderingEngine}
-        toolGroup={toolGroup3d}
-        segmentationId={segmentationId}
-        orientation="CORONAL"
-        preset3d={preset3d}
-      />
       <VolumeViewport
         viewportId="axial2d"
         volumeId={volumeId}
@@ -126,6 +116,15 @@ export default function VolumeView({
         toolGroup={toolGroup}
         segmentationId={segmentationId}
         orientation="AXIAL"
+      />
+      <VolumeViewport3d
+        viewportId="coronal3d"
+        volumeId={volumeId}
+        renderingEngine={renderingEngine}
+        toolGroup={toolGroup3d}
+        segmentationId={segmentationId}
+        orientation="CORONAL"
+        preset3d={preset3d}
       />
       <VolumeViewport
         viewportId="coronal2d"
