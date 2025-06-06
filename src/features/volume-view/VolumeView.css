@@ -1,5 +1,6 @@
 #volume-view {
   @apply
+    relative
     w-full
     h-full
     rounded-lg
@@ -11,7 +12,11 @@
   ;
 }
 
-#volume-view #axial2d {
+#volume-view.expanded {
+  @apply grid-cols-[1fr] grid-rows-[1fr] gap-0;
+}
+
+/* #volume-view #axial2d {
   @apply row-start-1 col-start-1;
 }
 
@@ -25,7 +30,7 @@
 
 #volume-view #sagittal2d {
   @apply row-start-2 col-start-2;
-}
+} */
 
 /* 
 

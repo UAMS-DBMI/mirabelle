@@ -64,8 +64,28 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
       // renderingEngine.enableElement(viewportInput)
       renderingEngine.setViewports(viewportInputArray);
 
-      // Get the stack viewport that was created
+      // Enable double click to toggle viewport size
+      function toggleViewportSize(wrapper) {
+        /* A hack to force-render a 3d viewport */
+        Array.from(wrapper.parentNode.children)
+          .filter(child => child !== wrapper)
+          .forEach((child) => {
+            child.classList.toggle('minimized');
+          });
+        wrapper.classList.toggle('expanded');
+        wrapper.parentElement.classList.toggle('expanded');
+        renderingEngine.resize(true, true);
+        renderingEngine.render();
+      }
+
+      // Get the volume viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
+      const wrapper = viewport.element;
+
+      wrapper.addEventListener(
+        'dblclick',
+        () => toggleViewportSize(wrapper)
+      );
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 

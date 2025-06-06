@@ -108,6 +108,7 @@ export default function VolumeView({
 
   return (
     <div id="volume-view" className="viewer">
+
       <VolumeViewport3d
         viewportId="coronal3d"
         volumeId={volumeId}

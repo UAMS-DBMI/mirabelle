@@ -11,6 +11,7 @@ import * as cornerstoneTools from '@cornerstonejs/tools';
 import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core"
 
 import './VolumeViewport.css';
+import { re } from 'mathjs';
 
 const {
   PanTool,
@@ -27,6 +28,8 @@ const {
 const { segmentation: segmentationUtils } = cstUtils;
 
 const { ViewportType } = Enums;
+
+
 
 function VolumeViewport({
   viewportId,
@@ -57,7 +60,6 @@ function VolumeViewport({
     realOrientation = Enums.OrientationAxis.CORONAL;
   }
 
-
   useEffect(() => {
     const setup = async () => {
       // console.log("[VolumeViewport] setup running");
@@ -78,8 +80,27 @@ function VolumeViewport({
         viewportId,
       });
 
-      // Get the stack viewport that was created
+      // Enable double click to toggle viewport size
+      function toggleViewportSize(wrapper) {
+        Array.from(wrapper.parentNode.children)
+          .filter(child => child !== wrapper)
+          .forEach((child) => {
+            child.classList.toggle('minimized');
+          });
+        wrapper.classList.toggle('expanded');
+        wrapper.parentElement.classList.toggle('expanded');
+        renderingEngine.resize(true, true);
+        renderingEngine.render();
+      }
+
+      // Get the volume viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
+      const wrapper = viewport.element;
+
+      wrapper.addEventListener(
+        'dblclick',
+        () => toggleViewportSize(wrapper)
+      );
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 

@@ -1,1 +1,20 @@
 /* VolumeViewport.css */
+
+.volume-viewport {
+    @apply
+        relative
+        w-full
+        h-full
+    ;
+}
+
+.volume-viewport.expanded {
+    @apply
+        col-span-full row-span-full
+    ;
+}
+
+/* A hack to force-render a 3d viewport */
+.volume-viewport.minimized {
+    @apply w-[1px] h-[1px];
+}
