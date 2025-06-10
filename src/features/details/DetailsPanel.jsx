@@ -43,20 +43,24 @@ export default function DetailsPanel({ details }) {
 
   return (
     <div id="details-panel" className="side-panel">
+      <h2 id="title">Details</h2>
+      <div className="wrapper">
+        {Object.entries(details)
+          .filter(([key]) => !ignoredKeys.includes(key))
+          .map(([key, value]) => (
+            <div key={key} className="detail-item">
+              <p id="key">{key}:</p>
+              <p id="value">{value}</p>
+            </div>
+          ))}
+      </div>
       <button
         id="download"
+        title="Download File"
         onClick={() => handleDownload(details)}
       >
         Download
       </button>
-      {Object.entries(details)
-        .filter(([key]) => !ignoredKeys.includes(key))
-        .map(([key, value]) => (
-          <div key={key} className="detail-item">
-            <p id="key">{key}:</p>
-            <p id="value">{value}</p>
-          </div>
-        ))}
     </div>
   );
 }

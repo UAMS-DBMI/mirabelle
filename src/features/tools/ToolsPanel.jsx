@@ -65,90 +65,93 @@ export default function ToolsPanel({
 
   return (
     <div id="tools-panel" className="side-panel">
-      {
-        globalToolsConfig.viewToolGroup.visible &&
-        <div>
-          <p>View:</p>
-          <MaterialButtonSet
-            buttonConfig={toolsConfigs.viewGroupButtonConfig}
-            initialActiveButton={toTitleCase(globalStateValues.view)}
-          />
-        </div>
-      }
-      {
-        globalToolsConfig.functionToolGroup.visible &&
-        <div>
-          <p>Function:</p>
-          <MaterialButtonSet
-            buttonConfig={toolsConfigs.functionGroupButtonConfig}
-            initialActiveButton={toTitleCase(globalStateValues.function)}
-          />
-        </div>
-      }
-      {
-        globalToolsConfig.formToolGroup.visible &&
-        <div>
-          <p>Form:</p>
-          <MaterialButtonSet
-            buttonConfig={toolsConfigs.formGroupButtonConfig}
-            initialActiveButton={toTitleCase(globalStateValues.form)}
-          />
-        </div>
-      }
-      {
-        globalToolsConfig.leftClickToolGroup.visible &&
-        <div>
-          <p>Left-Click:</p>
-          <MaterialButtonSet
-            buttonConfig={toolsConfigs.leftClickGroupButtonConfig}
-            initialActiveButton={toTitleCase(globalStateValues.leftClick)}
-          />
-        </div>
-      }
-      {
-        globalToolsConfig.rightClickToolGroup.visible &&
-        <div>
-          <p>Right-Click:</p>
-          <MaterialButtonSet
-            buttonConfig={toolsConfigs.rightClickGroupButtonConfig}
-            initialActiveButton={toTitleCase(globalStateValues.rightClick)}
-          />
-        </div>
-      }
-      {opacityToolGroup.visible && (
-        <div className="opacity-control">
-          <p>Opacity <span>{opacity.toFixed(1)}:</span></p>
-          <input
-            type="range"
-            min={opacityToolGroup.min}
-            max={opacityToolGroup.max}
-            step={opacityToolGroup.step}
-            value={opacity}
-            onChange={handleOpacityChange}
-          />
-        </div>
-      )}
-      {
-        globalToolsConfig.presetToolGroup.visible &&
-        <div>
-          <p>Preset:</p>
-          <div className="preset-dropdown-container">
-            {/* <label htmlFor="preset-select">Preset:</label> */}
-            <select
-              id="preset-select"
-              value={preset3d}
-              onChange={handlePresetChange}
-              className="preset-select"
-            >
-              {presets.map(preset => (
-                <option key={preset} value={preset}>
-                  {preset}
-                </option>
-              ))}
-            </select>
+      <h2 id="title">Tools</h2>
+      <div className="wrapper">
+        {
+          globalToolsConfig.viewToolGroup.visible &&
+          <div>
+            <p>View:</p>
+            <MaterialButtonSet
+              buttonConfig={toolsConfigs.viewGroupButtonConfig}
+              initialActiveButton={toTitleCase(globalStateValues.view)}
+            />
           </div>
-        </div>
-      }
+        }
+        {
+          globalToolsConfig.functionToolGroup.visible &&
+          <div>
+            <p>Function:</p>
+            <MaterialButtonSet
+              buttonConfig={toolsConfigs.functionGroupButtonConfig}
+              initialActiveButton={toTitleCase(globalStateValues.function)}
+            />
+          </div>
+        }
+        {
+          globalToolsConfig.formToolGroup.visible &&
+          <div>
+            <p>Form:</p>
+            <MaterialButtonSet
+              buttonConfig={toolsConfigs.formGroupButtonConfig}
+              initialActiveButton={toTitleCase(globalStateValues.form)}
+            />
+          </div>
+        }
+        {
+          globalToolsConfig.leftClickToolGroup.visible &&
+          <div>
+            <p>Left-Click:</p>
+            <MaterialButtonSet
+              buttonConfig={toolsConfigs.leftClickGroupButtonConfig}
+              initialActiveButton={toTitleCase(globalStateValues.leftClick)}
+            />
+          </div>
+        }
+        {
+          globalToolsConfig.rightClickToolGroup.visible &&
+          <div>
+            <p>Right-Click:</p>
+            <MaterialButtonSet
+              buttonConfig={toolsConfigs.rightClickGroupButtonConfig}
+              initialActiveButton={toTitleCase(globalStateValues.rightClick)}
+            />
+          </div>
+        }
+        {opacityToolGroup.visible && (
+          <div className="opacity-control">
+            <p>Opacity <span>{opacity.toFixed(1)}:</span></p>
+            <input
+              type="range"
+              min={opacityToolGroup.min}
+              max={opacityToolGroup.max}
+              step={opacityToolGroup.step}
+              value={opacity}
+              onChange={handleOpacityChange}
+            />
+          </div>
+        )}
+        {
+          globalToolsConfig.presetToolGroup.visible &&
+          <div>
+            <p>Preset:</p>
+            <div className="preset-dropdown-container">
+              {/* <label htmlFor="preset-select">Preset:</label> */}
+              <select
+                id="preset-select"
+                value={preset3d}
+                onChange={handlePresetChange}
+                className="preset-select"
+              >
+                {presets.map(preset => (
+                  <option key={preset} value={preset}>
+                    {preset}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        }
+      </div>
     </div>
   );
 }

@@ -15,11 +15,33 @@
         flex-col
         gap-2
         bg-blue-100 dark:bg-blue-900
-        p-6 
+        p-2
         rounded-lg
-        overflow-y-auto
+        overflow-hidden
         flex-1
     ;
+}
+
+.side-panel h2#title {
+    @apply 
+        /* border-2 */
+        bg-blue-950/100
+        /* border-blue-950 */
+        p-2
+        rounded-lg
+        font-bold
+        text-center
+    ; 
+}
+
+.side-panel .wrapper {
+    @apply  
+        overflow-y-auto 
+        gap-3
+        flex
+        flex-col
+        rounded-lg
+    ; 
 }
 
 #main #middle-panel {

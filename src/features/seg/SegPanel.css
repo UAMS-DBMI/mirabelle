@@ -2,12 +2,8 @@
     @apply flex-none max-h-[50%];
 }
 
-#seg-panel h3 {
-    @apply font-bold;
-}
-
 #seg-panel ul {
-    @apply list-none pl-0 m-0 flex flex-col gap-[0.3rem] ;
+    @apply overflow-y-auto gap-1;
 }
 
 #seg-panel div.seg-color {
@@ -15,18 +11,34 @@
 }
 
 #seg-panel li {
-    @apply flex items-center p-2 overflow-hidden whitespace-nowrap bg-white bg-opacity-50 dark:bg-black dark:bg-opacity-10 cursor-pointer;
+    @apply 
+        flex
+        shrink-0
+        items-center
+        p-2
+        overflow-hidden
+        whitespace-nowrap
+        bg-white/50
+        dark:bg-slate-900/20
+        cursor-pointer
+    ;
 }
 
 #seg-panel li.selected {
-    @apply bg-opacity-100 dark:bg-opacity-50;
+    @apply
+        bg-white/100
+        dark:bg-slate-900/100;
 }
 
 #seg-panel li:hover{
-    @apply bg-opacity-80 dark:bg-opacity-30;
+    @apply
+        bg-white/80
+        dark:bg-slate-900/40;
 }
 
 #seg-panel li.selected:hover {
-    @apply bg-opacity-100 dark:bg-opacity-80;
+    @apply
+        bg-white/100
+        dark:bg-slate-900/80;
 }
 

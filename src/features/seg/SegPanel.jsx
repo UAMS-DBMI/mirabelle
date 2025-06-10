@@ -92,12 +92,12 @@ export default function SegPanel({ segments }) {
 
   return (
     <div id="seg-panel" className="side-panel">
+      <h2 id="title">Segments</h2>
       {!displaySegments || displaySegments.length === 0 ? (
         <p>No segment data available.</p>
       ) : (
         <>
-          <h3>Segments:</h3>
-          <ul>
+          <ul className="wrapper">
             {displaySegments.map(({ segmentIndex, label }) => (
               <li key={segmentIndex}
                 className="selected"

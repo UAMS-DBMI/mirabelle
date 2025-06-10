@@ -24,7 +24,7 @@
 
 #details-panel p#value {
     @apply 
-    bg-white
+    bg-slate-900/20
     bg-opacity-50
     min-h-[1.3lh]
     dark:bg-opacity-5
