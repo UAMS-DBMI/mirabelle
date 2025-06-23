@@ -52,17 +52,16 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
   useEffect(() => {
     const setup = async () => {
 
-      const viewportInputArray = [{
+      const viewportInputArray = {
         viewportId,
         type: Enums.ViewportType.VOLUME_3D,
         element: elementRef.current,
         defaultOptions: {
           orientation: realOrientation,
         },
-      }];
+      };
 
-      // renderingEngine.enableElement(viewportInput)
-      renderingEngine.setViewports(viewportInputArray);
+      renderingEngine.enableElement(viewportInputArray);
 
       // Enable double click to toggle viewport size
       function toggleViewportSize(wrapper) {
