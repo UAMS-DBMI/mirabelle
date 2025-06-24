@@ -25,7 +25,8 @@
 .side-panel h2#title {
     @apply 
         /* border-2 */
-        bg-blue-950/100
+        bg-transparent
+        dark:bg-blue-950/100
         /* border-blue-950 */
         p-2
         rounded-lg
