@@ -16,7 +16,6 @@ export default function SegPanel({ segments }) {
   const viewportIds = cornerstone
     .getRenderingEngines()?.[0]
     .getViewports()
-    .filter((viewport) => viewport.type === "orthographic")
     .map((viewport) => viewport.id);
 
   useLayoutEffect(() => {
@@ -32,7 +31,12 @@ export default function SegPanel({ segments }) {
 
     const segmentIndices = segments.map((seg) => seg.segmentIndex);
 
-    const firstViewportId = viewportIds[0];
+    // first ortho viewport, skip the 3d
+    const firstViewportId = cornerstone
+      .getRenderingEngines()?.[0]
+      .getViewports()
+      .filter((viewport) => viewport.type === "orthographic")
+      .map((viewport) => viewport.id)[0];
 
     let lcolors = {};
 
@@ -45,9 +49,11 @@ export default function SegPanel({ segments }) {
         );
         // Yes this will repeat for several indexes but they should
         // share the same color anyway
+        console.log("Setting color for", segmentIndex, "to", color);
         lcolors[segmentIndex] = color;
       }
     }
+    console.log("[SegPanel]: Segment colors calculated:", lcolors);
     setColors(lcolors);
   }, [segments, viewportIds.length]);
 

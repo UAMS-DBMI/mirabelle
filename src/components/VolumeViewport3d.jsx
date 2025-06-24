@@ -48,6 +48,9 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
     realOrientation = Enums.OrientationAxis.CORONAL;
   }
 
+  const segmentationIds = segmentation.state
+    .getSegmentations()
+    .map((seg) => seg.segmentationId);
 
   useEffect(() => {
     const setup = async () => {
@@ -94,24 +97,34 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
         renderingEngine,
         [{ volumeId }],
         [viewportId]
-      ).then(() => {
-        viewport.setProperties({
-          // preset: 'CT-MIP',
-          // preset: 'MR-T2-Brain',
-          // preset: 'MR-Default',
-          preset: preset3d,
-        });
-        viewport.render();
+      )
+      await viewport.setProperties({
+        // preset: 'CT-MIP',
+        // preset: 'MR-T2-Brain',
+        // preset: 'MR-Default',
+        preset: preset3d,
       });
 
+      // Apply all active segmentations to the viewport
+
+      if (segmentationIds) {
+        console.log("VolumeViewport3d: Applying segmentationIds=", segmentationIds);
+        await segmentation.addSegmentationRepresentations(
+          viewportId, 
+          segmentationIds.map((segmentationId) => ({
+            segmentationId,
+            type: csToolsEnums.SegmentationRepresentations.Surface,
+          })),
+        );
+      }
 
       // Render the image
-      // viewport.render()
+      viewport.render()
 
     }
 
     setup()
-  }, [elementRef, volumeId]);
+  }, [elementRef, volumeId, segmentationIds.length]);
 
   // Update scalar opacity
   useEffect(() => {

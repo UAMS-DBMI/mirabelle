@@ -35,6 +35,7 @@ import OperationsPanel from '@/components/OperationsPanel';
 import NavigationPanel from '@/components/NavigationPanel';
 import { DetailsPanel } from '@/features/details';
 import { SegPanel } from '@/features/seg';
+import ErrorPanel from '@/components/ErrorPanel';
 
 import { Context } from '@/components/Context.js';
 import RouteLayout from '@/components/RouteLayout';
@@ -73,6 +74,7 @@ function transformDetails(details, imageId) {
 
 
 export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
+  console.log("[DicomReviewIEC] rendering, iec:", iec);
 
   const optionsView = useSelector(state => state.options.view);
   const currentImageId = useSelector(state => state.options.currentImageId);
@@ -271,13 +273,9 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   }
 
   // short-circuit if not loaded yet
-  // TODO: make a nice error display
   if (isErrored) {
     return (
-      <div className="error">
-        <div>{`There was an error loading IEC: ${iec}`}</div>
-        <p>{errorMessage.message}</p>
-      </div>
+      <ErrorPanel error={errorMessage.message} />
     );
   }
   if (!isInitialized) {
@@ -285,7 +283,6 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   }
 
   if (volumetric) {
-    console.log(">>>>> about to pass volumeId=", volumeId);
     viewer =
       <VolumeView
         volumeId={volumeId}
