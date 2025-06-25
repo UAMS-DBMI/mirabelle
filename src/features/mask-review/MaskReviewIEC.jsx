@@ -91,6 +91,12 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   /**
    * Setup the RenderingEngine and ToolGroup
    */
+
+  // Fire a resize event whenever the right and left panels toggle
+  useEffect(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, [showLeftPanel, showRightPanel]);
+
   useEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {

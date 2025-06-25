@@ -106,6 +106,11 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   useHotkeys('s', handleSkip);
   useHotkeys('n', handleNonMaskable);
 
+  // Fire a resize event whenever the right and left panels toggle
+  useEffect(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, [showLeftPanel, showRightPanel]);
+
   useEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {

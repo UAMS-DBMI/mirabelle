@@ -78,6 +78,11 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
 
   let viewer;
 
+  // Fire a resize event whenever the right and left panels toggle
+  useEffect(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, [showLeftPanel, showRightPanel]);
+
   useEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {

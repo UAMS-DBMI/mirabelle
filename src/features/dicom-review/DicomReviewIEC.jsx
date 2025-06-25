@@ -115,6 +115,11 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   let viewer;
 
+  // Fire a resize event whenever the right and left panels toggle
+  useEffect(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, [showLeftPanel, showRightPanel]);
+
   useLayoutEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {
