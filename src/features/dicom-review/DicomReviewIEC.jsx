@@ -299,7 +299,12 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         onToggleRightPanel={toggleRightPanel}
       />
   } else {
-    viewer = <StackView toolGroup={toolGroup} frames={imageIds} />
+    viewer = <StackView
+      toolGroup={toolGroup}
+      frames={imageIds}
+      onToggleLeftPanel={toggleLeftPanel}
+      onToggleRightPanel={toggleRightPanel}
+    />
   }
 
   return (

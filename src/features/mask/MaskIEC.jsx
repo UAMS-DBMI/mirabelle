@@ -312,6 +312,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         segmentationId={segmentationId}
         toolGroup={toolGroup}
         frames={imageIds}
+        onToggleLeftPanel={toggleLeftPanel}
+        onToggleRightPanel={toggleRightPanel}
       />
   }
 

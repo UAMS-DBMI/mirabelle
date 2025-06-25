@@ -26,7 +26,13 @@ const { MouseBindings } = csToolsEnums;
 const toolGroupId = 'STACK_TOOL_GROUP_ID';
 
 
-export default function StackView({ frames, segmentationId, toolGroup }) {
+export default function StackView({
+  frames,
+  segmentationId,
+  toolGroup,
+  onToggleLeftPanel,
+  onToggleRightPanel,
+}) {
   const [renderingEngine, setRenderingEngine] = useState();
   const dispatch = useDispatch();
 
@@ -69,6 +75,20 @@ export default function StackView({ frames, segmentationId, toolGroup }) {
   return (
     <div id="stack-view"
       className="viewer">
+
+      <div id="viewer-resizer">
+        <button
+          id="left-resize-button"
+          className="material-symbols-rounded"
+          onClick={onToggleLeftPanel}
+        >chevron_left</button>
+        <button
+          id="right-resize-button"
+          className="material-symbols-rounded"
+          onClick={onToggleRightPanel}
+        >chevron_right</button>
+      </div>
+
       <StackViewport
         onImageChange={handleImageChange}
         frames={frames}
