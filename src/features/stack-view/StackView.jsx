@@ -80,12 +80,18 @@ export default function StackView({
         <button
           id="left-resize-button"
           className="material-symbols-rounded"
-          onClick={onToggleLeftPanel}
+          onClick={e => {
+            e.currentTarget.classList.toggle("flipped");
+            onToggleLeftPanel(e);
+          }}
         >chevron_left</button>
         <button
           id="right-resize-button"
           className="material-symbols-rounded"
-          onClick={onToggleRightPanel}
+          onClick={e => {
+            e.currentTarget.classList.toggle("flipped");
+            onToggleRightPanel(e);
+          }}
         >chevron_right</button>
       </div>
 

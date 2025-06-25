@@ -3,11 +3,15 @@
 }
 
 #stack-view #viewer-resizer {
-  @apply flex absolute top-[50%] translate-y-[-50%] justify-between left-[-1.2rem] right-[-1.2rem] z-50 pointer-events-none;
+  @apply flex absolute top-[50%] translate-y-[-50%] justify-between left-[-0.8rem] right-[-0.8rem] z-50 pointer-events-none;
 }
 
 #stack-view #viewer-resizer button {
   @apply bg-blue-500 text-white p-1 rounded-full pointer-events-auto;
+}
+
+#stack-view #viewer-resizer button.flipped {
+  transform: scaleX(-1);
 }
 
 /* 
