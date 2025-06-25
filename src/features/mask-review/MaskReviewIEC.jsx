@@ -60,6 +60,11 @@ function transformDetails(details) {
 
 export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
+  const [showLeftPanel, setShowLeftPanel] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(true);
+  const toggleLeftPanel = () => setShowLeftPanel(v => !v);
+  const toggleRightPanel = () => setShowRightPanel(v => !v);
+
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
   const dispatch = useDispatch();
@@ -217,6 +222,8 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
         preset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
+        onToggleLeftPanel={toggleLeftPanel}
+        onToggleRightPanel={toggleRightPanel}
       />
   } else {
     viewer = <StackView toolGroup={toolGroup} frames={imageIds} />
@@ -229,22 +236,24 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   return (
     <RouteLayout
       leftPanel={
-        <>
-          {vr &&
-            <NavigationPanel
-              onNext={onNext}
-              onPrevious={onPrevious}
-              currentId={iec}
-              idLabel='IEC'
+        showLeftPanel ?
+          <>
+            {vr &&
+              <NavigationPanel
+                onNext={onNext}
+                onPrevious={onPrevious}
+                currentId={iec}
+                idLabel='IEC'
+              />
+            }
+            <ToolsPanel
+              toolGroup={toolGroup}
+              toolGroup3d={toolGroup3d}
+              preset3d={preset3d}
+              onPresetChange={setPreset3d}
             />
-          }
-          <ToolsPanel
-            toolGroup={toolGroup}
-            toolGroup3d={toolGroup3d}
-            preset3d={preset3d}
-            onPresetChange={setPreset3d}
-          />
-        </>
+          </>
+          : null
       }
       middlePanel={
         <>
@@ -253,7 +262,9 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
         </>
       }
       rightPanel={
-        <DetailsPanel details={transformDetails(details)} />
+        showRightPanel ?
+          <DetailsPanel details={transformDetails(details)} />
+          : null
       }
     />
   )

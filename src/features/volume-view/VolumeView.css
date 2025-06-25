@@ -4,7 +4,7 @@
     w-full
     h-full
     rounded-lg
-    overflow-hidden
+    overflow-visible
     grid
     grid-cols-[1fr,1fr]
     grid-rows-[1fr,1fr]
@@ -14,6 +14,29 @@
 
 #volume-view.expanded {
   @apply grid-cols-[1fr] grid-rows-[1fr] gap-0;
+}
+
+#volume-view #viewer-resizer {
+  @apply
+    flex
+    absolute
+    top-[50%]
+    translate-y-[-50%]
+    justify-between
+    left-[-1.2rem]
+    right-[-1.2rem]
+    z-50
+    pointer-events-none;
+}
+
+#volume-view #viewer-resizer button {
+  @apply
+    bg-blue-500
+    text-white
+    p-1
+    rounded-full
+    pointer-events-auto
+    ;
 }
 
 /* #volume-view #axial2d {

@@ -76,6 +76,11 @@ function transformDetails(details, imageId) {
 export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   console.log("[DicomReviewIEC] rendering, iec:", iec);
 
+  const [showLeftPanel, setShowLeftPanel] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(true);
+  const toggleLeftPanel = () => setShowLeftPanel(v => !v);
+  const toggleRightPanel = () => setShowRightPanel(v => !v);
+
   const optionsView = useSelector(state => state.options.view);
   const currentImageId = useSelector(state => state.options.currentImageId);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
@@ -178,7 +183,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         imageIds = await getImageIdsFromIEC(iec);
       } else {
         imageIds = await getImageIdsFromIEC(segBaseIEC);
-      }      
+      }
       setImageIds(imageIds);
 
       setVolumeId(volumeId);
@@ -290,6 +295,8 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         preset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
+        onToggleLeftPanel={toggleLeftPanel}
+        onToggleRightPanel={toggleRightPanel}
       />
   } else {
     viewer = <StackView toolGroup={toolGroup} frames={imageIds} />
@@ -298,22 +305,24 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   return (
     <RouteLayout
       leftPanel={
-        <>
-          {vr &&
-            <NavigationPanel
-              onNext={onNext}
-              onPrevious={onPrevious}
-              currentId={iec}
-              idLabel='IEC'
+        showLeftPanel ?
+          <>
+            {vr &&
+              <NavigationPanel
+                onNext={onNext}
+                onPrevious={onPrevious}
+                currentId={iec}
+                idLabel='IEC'
+              />
+            }
+            <ToolsPanel
+              toolGroup={toolGroup}
+              toolGroup3d={toolGroup3d}
+              preset3d={preset3d}
+              onPresetChange={setPreset3d}
             />
-          }
-          <ToolsPanel
-            toolGroup={toolGroup}
-            toolGroup3d={toolGroup3d}
-            preset3d={preset3d}
-            onPresetChange={setPreset3d}
-          />
-        </>
+          </>
+          : null
       }
       middlePanel={
         <>
@@ -324,10 +333,12 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         </>
       }
       rightPanel={
-        <>
-          {isSeg && <SegPanel segments={segMetadata} segmentationId={segmentationId} />}
-          <DetailsPanel details={transformDetails(details, currentImageId)} />
-        </>
+        showRightPanel ?
+          <>
+            {isSeg && <SegPanel segments={segMetadata} segmentationId={segmentationId} />}
+            <DetailsPanel details={transformDetails(details, currentImageId)} />
+          </>
+          : null
       }
     />
   )

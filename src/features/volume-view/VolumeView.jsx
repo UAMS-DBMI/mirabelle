@@ -32,6 +32,8 @@ export default function VolumeView({
   preset3d,
   toolGroup,
   toolGroup3d,
+  onToggleLeftPanel,
+  onToggleRightPanel,
 }) {
   const [voiSynchronizer, setVoiSynchronizer] = useState();
   const [renderingEngine, setRenderingEngine] = useState();
@@ -108,6 +110,19 @@ export default function VolumeView({
 
   return (
     <div id="volume-view" className="viewer">
+
+      <div id="viewer-resizer">
+        <button
+          id="left-resize-button"
+          className="material-symbols-rounded"
+          onClick={onToggleLeftPanel}
+        >chevron_left</button>
+        <button
+          id="right-resize-button"
+          className="material-symbols-rounded"
+          onClick={onToggleRightPanel}
+        >chevron_right</button>
+      </div>
 
       <VolumeViewport
         key="axial2d"
