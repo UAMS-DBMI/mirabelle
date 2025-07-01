@@ -5,6 +5,7 @@
         grid
         /* rounded-lg */
         gap-2
+        p-2
         overflow-hidden
     ;
 }
@@ -15,7 +16,7 @@
         flex-col
         gap-2
         bg-blue-100 dark:bg-blue-900
-        p-2
+        p-4
         rounded-lg
         overflow-hidden
         flex-1

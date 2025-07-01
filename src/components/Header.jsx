@@ -6,7 +6,7 @@ import logoLight from '@/assets/mirabelle-logo-light.svg';
 import logoDark from '@/assets/mirabelle-logo-dark.svg';
 import { getUsername } from '@/utilities';
 
-import './header.css';
+import './Header.css';
 
 function Header() {
   const title = useSelector(state => state.options.title);

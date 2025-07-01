@@ -23,8 +23,8 @@
     top-[50%]
     translate-y-[-50%]
     justify-between
-    left-[-0.8rem]
-    right-[-0.8rem]
+    left-[-1.4rem]
+    right-[-1.4rem]
     z-50
     pointer-events-none;
 }
@@ -33,14 +33,18 @@
   @apply
     bg-blue-500
     text-white
-    p-1
+    p-2
     rounded-full
     pointer-events-auto
+    /* animate transform */
+    transition-transform
+    duration-500
+    ease-in-out
     ;
 }
 
 #volume-view #viewer-resizer button.flipped {
-  transform: scaleX(-1);
+  transform: rotateZ(180deg);
 }
 
 /* #volume-view #axial2d {

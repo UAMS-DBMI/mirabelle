@@ -2,12 +2,12 @@
     @apply
         grid
         grid-rows-[auto,1fr]
-        gap-2
+        /* gap-2 */
         w-screen
         h-screen
         min-w-[1440px]
         bg-white
-        p-2
+        /* p-2 */
         dark:bg-blue-950
     ;
 }
