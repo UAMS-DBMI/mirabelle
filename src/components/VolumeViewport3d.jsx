@@ -108,10 +108,14 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
       // Apply all active segmentations to the viewport
 
       if (segmentationIds) {
-        console.log("VolumeViewport3d: Applying segmentationIds=", segmentationIds);
+        // TODO: temp fix, this suppresses render of mask segs alltogether. Need instead
+        // a way to signal when the expand has happened and it's safe to display?
+        // note that currently it is being applied directly from elsewhere
+        const nonMaskSegmentationIds = segmentationIds.filter(segmentationId => !segmentationId.startsWith('mask-'));
+        console.log("VolumeViewport3d: Applying segmentationIds=", nonMaskSegmentationIds);
         await segmentation.addSegmentationRepresentations(
           viewportId, 
-          segmentationIds.map((segmentationId) => ({
+          nonMaskSegmentationIds.map((segmentationId) => ({
             segmentationId,
             type: csToolsEnums.SegmentationRepresentations.Surface,
           })),
