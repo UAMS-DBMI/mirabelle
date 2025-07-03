@@ -20,6 +20,8 @@
         rounded-lg
         overflow-hidden
         flex-1
+        whitespace-nowrap
+        w-72
     ;
 }
 
@@ -58,11 +60,19 @@
     @apply
         flex
         flex-col
-        w-72
         overflow-hidden
         /* rounded-lg */
         gap-2
+        w-72
     ;
+    /* transition: width 0.3s ease-in-out;
+    will-change: width; */
+}
+
+#main #left-panel.collapsed,
+#main #right-panel.collapsed {
+    width: 0;
+    pointer-events: none;
 }
 
 /* #main #filler-panel {

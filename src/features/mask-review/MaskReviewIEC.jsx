@@ -247,24 +247,24 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   return (
     <RouteLayout
       leftPanel={
-        showLeftPanel ?
-          <>
-            {vr &&
-              <NavigationPanel
-                onNext={onNext}
-                onPrevious={onPrevious}
-                currentId={iec}
-                idLabel='IEC'
-              />
-            }
-            <ToolsPanel
-              toolGroup={toolGroup}
-              toolGroup3d={toolGroup3d}
-              preset3d={preset3d}
-              onPresetChange={setPreset3d}
+        // showLeftPanel ?
+        <>
+          {vr &&
+            <NavigationPanel
+              onNext={onNext}
+              onPrevious={onPrevious}
+              currentId={iec}
+              idLabel='IEC'
             />
-          </>
-          : null
+          }
+          <ToolsPanel
+            toolGroup={toolGroup}
+            toolGroup3d={toolGroup3d}
+            preset3d={preset3d}
+            onPresetChange={setPreset3d}
+          />
+        </>
+        // : null
       }
       middlePanel={
         <>
@@ -273,10 +273,12 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
         </>
       }
       rightPanel={
-        showRightPanel ?
-          <DetailsPanel details={transformDetails(details)} />
-          : null
+        // showRightPanel ?
+        <DetailsPanel details={transformDetails(details)} />
+        // : null
       }
+      showLeftPanel={showLeftPanel}
+      showRightPanel={showRightPanel}
     />
   )
 }

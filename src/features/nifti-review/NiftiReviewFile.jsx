@@ -242,24 +242,24 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
   return (
     <RouteLayout
       leftPanel={
-        showLeftPanel ?
-          <>
-            {vr &&
-              <NavigationPanel
-                onNext={onNext}
-                onPrevious={onPrevious}
-                currentId={file}
-                idLabel='File'
-              />
-            }
-            <ToolsPanel
-              toolGroup={toolGroup}
-              toolGroup3d={toolGroup3d}
-              preset3d={preset3d}
-              onPresetChange={setPreset3d}
+        // showLeftPanel ?
+        <>
+          {vr &&
+            <NavigationPanel
+              onNext={onNext}
+              onPrevious={onPrevious}
+              currentId={file}
+              idLabel='File'
             />
-          </>
-          : null
+          }
+          <ToolsPanel
+            toolGroup={toolGroup}
+            toolGroup3d={toolGroup3d}
+            preset3d={preset3d}
+            onPresetChange={setPreset3d}
+          />
+        </>
+        // : null
       }
       middlePanel={
         <>
@@ -270,10 +270,12 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
         </>
       }
       rightPanel={
-        showRightPanel ?
-          <DetailsPanel details={transformDetails(details)} />
-          : null
+        // showRightPanel ?
+        <DetailsPanel details={transformDetails(details)} />
+        // : null
       }
+      showLeftPanel={showLeftPanel}
+      showRightPanel={showRightPanel}
     />
   );
 }

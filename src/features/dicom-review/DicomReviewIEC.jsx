@@ -315,24 +315,24 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   return (
     <RouteLayout
       leftPanel={
-        showLeftPanel ?
-          <>
-            {vr &&
-              <NavigationPanel
-                onNext={onNext}
-                onPrevious={onPrevious}
-                currentId={iec}
-                idLabel='IEC'
-              />
-            }
-            <ToolsPanel
-              toolGroup={toolGroup}
-              toolGroup3d={toolGroup3d}
-              preset3d={preset3d}
-              onPresetChange={setPreset3d}
+        // showLeftPanel ?
+        <>
+          {vr &&
+            <NavigationPanel
+              onNext={onNext}
+              onPrevious={onPrevious}
+              currentId={iec}
+              idLabel='IEC'
             />
-          </>
-          : null
+          }
+          <ToolsPanel
+            toolGroup={toolGroup}
+            toolGroup3d={toolGroup3d}
+            preset3d={preset3d}
+            onPresetChange={setPreset3d}
+          />
+        </>
+        // : null
       }
       middlePanel={
         <>
@@ -343,13 +343,15 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         </>
       }
       rightPanel={
-        showRightPanel ?
-          <>
-            {isSeg && <SegPanel segments={segMetadata} segmentationId={segmentationId} />}
-            <DetailsPanel details={transformDetails(details, currentImageId)} />
-          </>
-          : null
+        // showRightPanel ?
+        <>
+          {isSeg && <SegPanel segments={segMetadata} segmentationId={segmentationId} />}
+          <DetailsPanel details={transformDetails(details, currentImageId)} />
+        </>
+        // : null
       }
+      showLeftPanel={showLeftPanel}
+      showRightPanel={showRightPanel}
     />
   )
 }
