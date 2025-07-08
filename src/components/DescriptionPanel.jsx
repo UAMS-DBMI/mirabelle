@@ -124,10 +124,18 @@ function DescriptionPanel({ details }) {
         </div>
         <hr className="border-t border-gray-300 mb-4" />
 
+        <div className="w-full mb-2 font-bold">Patient ID:</div>
+        <div className="w-full mb-2 font-normal break-words mb-4">
+          {details["patient_id"]}
+        </div>
+
+        <hr className="border-t border-gray-300 mb-4" />
+
         <div className="w-full mb-2 font-bold">Series Instance UID:</div>
         <div className="w-full mb-2 font-normal break-words mb-4">
           {details["series_instance_uid"]}
         </div>
+        <hr className="border-t border-gray-300 mb-4" />
         <div className="w-full mb-2 font-bold">Series Description:</div>
         <div className="w-full mb-2 font-normal break-words mb-4">
           {details["series_description"]}
@@ -139,6 +147,7 @@ function DescriptionPanel({ details }) {
           {details["path"]}
         </div>
         <hr className="border-t border-gray-300 mb-4" />
+
 
         {/*<div className="w-full mb-2 font-semibold">Description</div>*/}
         {/*<div className="w-full h-full overflow-y-scroll no-scrollbars pb-8">Heres a 4-sentence random description about the current selection or feature being reviewed, description about the current selection or feature being reviewed, description about the current selection random description about the current selection or feature being reviewed, description about the current selection or feature being reviewed, description about the current selection or feature being reviewed, providing context or additional information as required.</div>*/}
