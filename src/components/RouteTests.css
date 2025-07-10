@@ -1,0 +1,23 @@
+#testtwo-component {
+  background-color: #f0f0f0;
+  padding: 20px;
+  border-radius: 8px;
+}
+#testtwo-component ul {
+  display: block;
+}
+#testtwo-component h1 {
+  font-size: 2em;
+  margin-bottom: 0.5em;
+}
+
+#testtwo-component .button {
+  display: inline-block;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+#testtwo-component ul {
+  overflow: auto;
+  height: 40em;
+}

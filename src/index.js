@@ -58,6 +58,8 @@ import RouteDump, {
   loader as routeDumpLoader,
 } from "./routes/dicom/RouteDump";
 
+import RouteTests from "@/components/RouteTests";
+
 const router = createBrowserRouter(
   [
     {
@@ -125,6 +127,16 @@ const router = createBrowserRouter(
           element: <RouteDump />,
           HydrateFallback: LoadingSpinner,
           loader: routeDumpLoader,
+        },
+        {
+          path: "test/:vr/:file_id",
+          element: <RouteTests />,
+          HydrateFallback: LoadingSpinner,
+        },
+        {
+          path: "test/:vr",
+          element: <RouteTests />,
+          HydrateFallback: LoadingSpinner,
         },
       ],
     },
