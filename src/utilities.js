@@ -17,55 +17,26 @@ export function expandSegTo3D(segmentationId) {
 
 	// It's fastest to extract the scalardata as an array
 	// and then set it back later, rather than to update individual pixels
+  // I tested it twice, this is more than 10x faster
 	let scalarData = voxelManager.getCompleteScalarDataArray();
 
 	const [x_size, y_size, z_size] = dimensions;
 
-	let xmin = z_size * y_size * x_size;
-	let xmax = 0;
-	let ymin = xmin;
-	let ymax = 0;
-	let zmin = xmin;
-	let zmax = 0;
+  const [
+    [xmin, xmax],
+    [ymin, ymax],
+    [zmin, zmax],
+  ] = voxelManager.getBoundsIJK();
 
-	for (let z = 0; z < z_size; z++) {
-		for (let y = 0; y < y_size; y++) {
-			for (let x = 0; x < x_size; x++) {
-				// offset into the array
-				let offset = (z * x_size * y_size) + (y * x_size) + x;
-
-				if (scalarData[offset] > 0) {
-					if (x < xmin) { xmin = x; }
-					if (x > xmax) { xmax = x; }
-					if (y < ymin) { ymin = y; }
-					if (y > ymax) { ymax = y; }
-					if (z < zmin) { zmin = z; }
-					if (z > zmax) { zmax = z; }
-				}
-			}
-		}
-	}
-	// Expand into a cube
-	for (let z = 0; z < z_size; z++) {
-		for (let y = 0; y < y_size; y++) {
-			for (let x = 0; x < x_size; x++) {
-				// offset into the array
-				let offset = (z * x_size * y_size) + (y * x_size) + x;
-				if (
-					x >= xmin &&
-					x <= xmax &&
-					y >= ymin &&
-					y <= ymax &&
-					z >= zmin &&
-					z <= zmax
-				) {
-					scalarData[offset] = 2;
-				} else {
-					scalarData[offset] = 0;
-				}
-			}
-		}
-	}
+  for (let z = zmin; z <= zmax; z++) {
+    for (let y = ymin; y <= ymax; y++) {
+      for (let x = xmin; x <= xmax; x++) {
+        // offset into the array
+        let offset = (z * x_size * y_size) + (y * x_size) + x;
+        scalarData[offset] = 2;
+      }
+    }
+  }
 
 	voxelManager.setCompleteScalarDataArray(scalarData);
 
@@ -75,6 +46,7 @@ export function expandSegTo3D(segmentationId) {
 		z: { min: zmin, max: zmax },
 	};
 }
+window.expandSegTo3D = expandSegTo3D;
 
 export function getCoordsForStackSeg(segmentationId) {
   const segmentation = csToolsSegmentation.state.getSegmentation(segmentationId);
