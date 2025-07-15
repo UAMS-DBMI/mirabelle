@@ -2,7 +2,15 @@ import React from 'react';
 
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
-import { Enums, setStackConfig, setVolumeConfig } from '@/features/presentationSlice';
+
+import {
+  Enums,
+  setStackConfig,
+  setVolumeConfig,
+  toggleLeftPanel,
+  toggleRightPanel,
+} from '@/features/presentationSlice';
+
 import { setTitle, setLoading, setOption, resetOptions } from '@/features/optionSlice';
 import toast from 'react-hot-toast';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -76,16 +84,22 @@ function transformDetails(details, imageId) {
 export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   console.log("[DicomReviewIEC] rendering, iec:", iec);
 
-  const [showLeftPanel, setShowLeftPanel] = useState(true);
-  const [showRightPanel, setShowRightPanel] = useState(true);
-  const toggleLeftPanel = () => setShowLeftPanel(v => !v);
-  const toggleRightPanel = () => setShowRightPanel(v => !v);
+  // const [showLeftPanel, setShowLeftPanel] = useState(true);
+  // const [showRightPanel, setShowRightPanel] = useState(true);
+  // const toggleLeftPanel = () => setShowLeftPanel(v => !v);
+  // const toggleRightPanel = () => setShowRightPanel(v => !v);
+
+  const dispatch = useDispatch();
+
+  const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
+  const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
+  console.log("DicomReviewIEC: showLeftPanel:", showLeftPanel, "showRightPanel:", showRightPanel);
+  const handleToggleLeft = () => dispatch(toggleLeftPanel());
+  const handleToggleRight = () => dispatch(toggleRightPanel());
 
   const optionsView = useSelector(state => state.options.view);
   const currentImageId = useSelector(state => state.options.currentImageId);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
-
-  const dispatch = useDispatch();
 
   const [volumeId, setVolumeId] = useState()
   const [segmentationId, setSegmentationId] = useState();
@@ -300,15 +314,15 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         preset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
-        onToggleLeftPanel={toggleLeftPanel}
-        onToggleRightPanel={toggleRightPanel}
+        onToggleLeftPanel={handleToggleLeft}
+        onToggleRightPanel={handleToggleRight}
       />
   } else {
     viewer = <StackView
       toolGroup={toolGroup}
       frames={imageIds}
-      onToggleLeftPanel={toggleLeftPanel}
-      onToggleRightPanel={toggleRightPanel}
+      onToggleLeftPanel={handleToggleLeft}
+      onToggleRightPanel={handleToggleRight}
     />
   }
 

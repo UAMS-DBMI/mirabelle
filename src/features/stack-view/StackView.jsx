@@ -10,6 +10,8 @@ import { useDispatch } from 'react-redux';
 import StackViewport from '@/components/StackViewport';
 import { ToolsPanel } from '@/features/tools';
 
+import ViewerResizer from '@/components/ViewerResizer';
+
 import './StackView.css';
 
 const {
@@ -30,8 +32,8 @@ export default function StackView({
   frames,
   segmentationId,
   toolGroup,
-  onToggleLeftPanel,
-  onToggleRightPanel,
+  // onToggleLeftPanel,
+  // onToggleRightPanel,
 }) {
   const [renderingEngine, setRenderingEngine] = useState();
   const dispatch = useDispatch();
@@ -75,8 +77,9 @@ export default function StackView({
   return (
     <div id="stack-view"
       className="viewer">
+      <ViewerResizer />
 
-      <div id="viewer-resizer">
+      {/* <div id="viewer-resizer">
         <button
           id="left-resize-button"
           className="material-symbols-rounded"
@@ -93,7 +96,7 @@ export default function StackView({
             onToggleRightPanel(e);
           }}
         >chevron_right</button>
-      </div>
+      </div> */}
 
       <StackViewport
         onImageChange={handleImageChange}

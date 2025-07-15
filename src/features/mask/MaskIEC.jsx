@@ -3,7 +3,15 @@ import React from 'react';
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import { useHotkeys } from 'react-hotkeys-hook';
-import { Enums, setStackConfig, setVolumeConfig } from '@/features/presentationSlice';
+
+import {
+  Enums,
+  setStackConfig,
+  setVolumeConfig,
+  toggleLeftPanel,
+  toggleRightPanel,
+} from '@/features/presentationSlice';
+
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
 import toast from 'react-hot-toast';
 
@@ -68,16 +76,22 @@ function transformDetails(details) {
 
 export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
-  const [showLeftPanel, setShowLeftPanel] = useState(true);
-  const [showRightPanel, setShowRightPanel] = useState(true);
-  const toggleLeftPanel = () => setShowLeftPanel(v => !v);
-  const toggleRightPanel = () => setShowRightPanel(v => !v);
+  // const [showLeftPanel, setShowLeftPanel] = useState(true);
+  // const [showRightPanel, setShowRightPanel] = useState(true);
+  // const toggleLeftPanel = () => setShowLeftPanel(v => !v);
+  // const toggleRightPanel = () => setShowRightPanel(v => !v);
+
+  const dispatch = useDispatch();
+
+  const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
+  const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
+  console.log("showLeftPanel:", showLeftPanel, "showRightPanel:", showRightPanel);
+  const handleToggleLeft = () => dispatch(toggleLeftPanel());
+  const handleToggleRight = () => dispatch(toggleRightPanel());
 
   const optionsForm = useSelector(state => state.options.form);
   const optionsFunction = useSelector(state => state.options.function);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
-
-  const dispatch = useDispatch();
 
   const [volumeId, setVolumeId] = useState()
   const [segmentationId, setSegmentationId] = useState();
@@ -308,8 +322,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         preset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
-        onToggleLeftPanel={toggleLeftPanel}
-        onToggleRightPanel={toggleRightPanel}
+        onToggleLeftPanel={handleToggleLeft}
+        onToggleRightPanel={handleToggleRight}
       />
   } else {
     viewer =
@@ -317,8 +331,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         segmentationId={segmentationId}
         toolGroup={toolGroup}
         frames={imageIds}
-        onToggleLeftPanel={toggleLeftPanel}
-        onToggleRightPanel={toggleRightPanel}
+        onToggleLeftPanel={handleToggleLeft}
+        onToggleRightPanel={handleToggleRight}
       />
   }
 

@@ -65,8 +65,11 @@
         gap-2
         w-72
     ;
-    /* transition: width 0.3s ease-in-out;
-    will-change: width; */
+    /* 
+        Animating the side-panels breaks the resize behavior of the viewports.
+        transition: width 0.3s ease-in-out;
+        will-change: width;
+    */
 }
 
 #main #left-panel.collapsed,

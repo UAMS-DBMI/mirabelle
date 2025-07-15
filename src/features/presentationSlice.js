@@ -169,6 +169,13 @@ const presentationSlice = createSlice({
       state.presets = state.presets.filter(preset => preset !== action.payload)
     },
 
+    // toggle just the left/right booleans
+    toggleLeftPanel(state) {
+      state.panelConfig.open.left = !state.panelConfig.open.left;
+    },
+    toggleRightPanel(state) {
+      state.panelConfig.open.right = !state.panelConfig.open.right;
+    },
 
     // Sets the configuration for the Masker Route
     setMaskerConfig: (state, action) => {
@@ -183,6 +190,7 @@ const presentationSlice = createSlice({
       state.panelConfig.visibility.reset = true;
 
       state.panelConfig.open.left = true;
+      state.panelConfig.open.right = true;
 
       state.toolsConfig.functionToolGroup.visible = true;
       state.toolsConfig.formToolGroup.visible = true;
@@ -214,6 +222,7 @@ const presentationSlice = createSlice({
       state.panelConfig.visibility.reset = true;
 
       state.panelConfig.open.left = true;
+      state.panelConfig.open.right = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
       state.toolsConfig.leftClickToolGroup.defaultValue = Enums.LeftClickOptions.WINDOW_LEVEL;
@@ -311,6 +320,9 @@ const presentationSlice = createSlice({
       state.buttonConfig.visualReview.visibility.flag = false;
       state.toolsConfig.viewToolGroup.visibility.stack = false;
 
+      state.panelConfig.open.left = true;
+      state.panelConfig.open.right = true;
+
       return state;
     },
 
@@ -324,6 +336,8 @@ export const {
   removePreset,
   setToolsConfig,
   reset,
+  toggleLeftPanel,
+  toggleRightPanel,
   setMaskerConfig,
   setMaskerReviewConfig,
   setVisualReviewConfig,

@@ -2,7 +2,15 @@ import React from 'react';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
-import { Enums, setStackConfig, setVolumeConfig } from '@/features/presentationSlice';
+
+import {
+  Enums,
+  setStackConfig,
+  setVolumeConfig,
+  toggleLeftPanel,
+  toggleRightPanel,
+} from '@/features/presentationSlice';
+
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
 import { useHotkeys } from 'react-hotkeys-hook';
 import toast from 'react-hot-toast';
@@ -60,14 +68,20 @@ function transformDetails(details) {
 
 export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
-  const [showLeftPanel, setShowLeftPanel] = useState(true);
-  const [showRightPanel, setShowRightPanel] = useState(true);
-  const toggleLeftPanel = () => setShowLeftPanel(v => !v);
-  const toggleRightPanel = () => setShowRightPanel(v => !v);
-
-  const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
+  // const [showLeftPanel, setShowLeftPanel] = useState(true);
+  // const [showRightPanel, setShowRightPanel] = useState(true);
+  // const toggleLeftPanel = () => setShowLeftPanel(v => !v);
+  // const toggleRightPanel = () => setShowRightPanel(v => !v);
 
   const dispatch = useDispatch();
+
+  const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
+  const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
+  console.log("showLeftPanel:", showLeftPanel, "showRightPanel:", showRightPanel);
+  const handleToggleLeft = () => dispatch(toggleLeftPanel());
+  const handleToggleRight = () => dispatch(toggleRightPanel());
+
+  const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
   const [volumeId, setVolumeId] = useState()
   const [imageIds, setImageIds] = useState()
@@ -228,15 +242,15 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
         preset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
-        onToggleLeftPanel={toggleLeftPanel}
-        onToggleRightPanel={toggleRightPanel}
+        onToggleLeftPanel={handleToggleLeft}
+        onToggleRightPanel={handleToggleRight}
       />
   } else {
     viewer = <StackView
       toolGroup={toolGroup}
       frames={imageIds}
-      onToggleLeftPanel={toggleLeftPanel}
-      onToggleRightPanel={toggleRightPanel}
+      onToggleLeftPanel={handleToggleLeft}
+      onToggleRightPanel={handleToggleRight}
     />
   }
 

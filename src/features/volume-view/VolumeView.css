@@ -16,37 +16,6 @@
   @apply grid-cols-[1fr] grid-rows-[1fr] gap-0;
 }
 
-#volume-view #viewer-resizer {
-  @apply
-    flex
-    absolute
-    top-[50%]
-    translate-y-[-50%]
-    justify-between
-    left-[-1.4rem]
-    right-[-1.4rem]
-    z-50
-    pointer-events-none;
-}
-
-#volume-view #viewer-resizer button {
-  @apply
-    bg-blue-500
-    text-white
-    p-2
-    rounded-full
-    pointer-events-auto
-    /* animate transform */
-    transition-transform
-    duration-500
-    ease-in-out
-    ;
-}
-
-#volume-view #viewer-resizer button.flipped {
-  transform: rotateZ(180deg);
-}
-
 /* #volume-view #axial2d {
   @apply row-start-1 col-start-1;
 }

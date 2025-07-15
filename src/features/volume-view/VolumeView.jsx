@@ -14,6 +14,7 @@ import { get3dViewports } from "@/utilities";
 import OperationsPanel from "@/components/OperationsPanel";
 
 import "./VolumeView.css";
+import ViewerResizer from "@/components/ViewerResizer";
 
 const {
   ToolGroupManager,
@@ -32,8 +33,8 @@ export default function VolumeView({
   preset3d,
   toolGroup,
   toolGroup3d,
-  onToggleLeftPanel,
-  onToggleRightPanel,
+  // onToggleLeftPanel,
+  // onToggleRightPanel,
 }) {
   const [voiSynchronizer, setVoiSynchronizer] = useState();
   const [renderingEngine, setRenderingEngine] = useState();
@@ -110,8 +111,8 @@ export default function VolumeView({
 
   return (
     <div id="volume-view" className="viewer">
-
-      <div id="viewer-resizer">
+      <ViewerResizer />
+      {/* <div id="viewer-resizer">
         <button
           id="left-resize-button"
           className="material-symbols-rounded "
@@ -128,7 +129,7 @@ export default function VolumeView({
             onToggleRightPanel(e);
           }}
         >chevron_right</button>
-      </div>
+      </div> */}
 
       <VolumeViewport
         key="axial2d"
