@@ -50,7 +50,7 @@ window.expandSegTo3D = expandSegTo3D;
 
 export function getCoordsForStackSeg(segmentationId) {
   const segmentation = csToolsSegmentation.state.getSegmentation(segmentationId);
-  const imageIds = csToolsSegmentation.representationData.Labelmap.imageIds;
+  const imageIds = csToolsSegmentation.getLabelmapImageIds(segmentationId);
 
   let minX = Infinity, minY = Infinity, minZ = Infinity;
   let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
