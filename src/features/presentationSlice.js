@@ -185,10 +185,14 @@ const presentationSlice = createSlice({
       // Object.assign(state,
       //   JSON.parse(JSON.stringify(presentationSlice.getInitialState())));
 
-      state.panelConfig.visibility.left = true;
       state.panelConfig.visibility.tools = true;
       state.panelConfig.visibility.reset = true;
 
+      // Set visibility for left and right panels
+      state.panelConfig.visibility.left = true;
+      state.panelConfig.visibility.right = true;
+
+      // Set open state for left and right panels
       state.panelConfig.open.left = true;
       state.panelConfig.open.right = true;
 
@@ -217,10 +221,14 @@ const presentationSlice = createSlice({
 
     // Sets the configuration for the Masker Review Route
     setMaskerReviewConfig: (state, action) => {
-      state.panelConfig.visibility.left = true;
       state.panelConfig.visibility.tools = true;
       state.panelConfig.visibility.reset = true;
 
+      // Set visibility for left and right panels
+      state.panelConfig.visibility.left = true;
+      state.panelConfig.visibility.right = true;
+
+      // Set open state for left and right panels
       state.panelConfig.open.left = true;
       state.panelConfig.open.right = true;
 
@@ -244,12 +252,15 @@ const presentationSlice = createSlice({
 
     // Sets the configuration for the Visual Review Route
     setVisualReviewConfig: (state, action) => {
-      state.panelConfig.visibility.left = true;
-      state.panelConfig.visibility.right = true;
       state.panelConfig.visibility.tools = true;
       state.panelConfig.visibility.reset = true;
       state.panelConfig.visibility.description = true;
 
+      // Set visibility for left and right panels
+      state.panelConfig.visibility.left = true;
+      state.panelConfig.visibility.right = true;
+
+      // Set open state for left and right panels
       state.panelConfig.open.left = true;
       state.panelConfig.open.right = true;
 
@@ -320,6 +331,11 @@ const presentationSlice = createSlice({
       state.buttonConfig.visualReview.visibility.flag = false;
       state.toolsConfig.viewToolGroup.visibility.stack = false;
 
+      // Set visibility for left and right panels
+      state.panelConfig.visibility.left = true;
+      state.panelConfig.visibility.right = true;
+
+      // Set open state for left and right panels
       state.panelConfig.open.left = true;
       state.panelConfig.open.right = true;
 

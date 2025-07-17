@@ -1,36 +1,50 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import ErrorBoundary from './ErrorBoundary';
 
 import './RouteLayout.css';
 import TestError from './TestError';
 
-function RouteLayout({ leftPanel, middlePanel, rightPanel, showLeftPanel, showRightPanel }) {
+function RouteLayout({
+    leftPanel,
+    middlePanel,
+    rightPanel,
+    showLeftPanel,
+    showRightPanel
+}) {
 
-    let colsClass;
+    const leftPanelVisibility = useSelector(s => s.presentation.panelConfig.visibility.left);
+    const rightPanelVisibility = useSelector(s => s.presentation.panelConfig.visibility.right);
 
-    if (showLeftPanel) {
-        colsClass = showRightPanel ? 'main--3col' : 'main--2col-left';
+    let columnsClass;
+
+    if (leftPanelVisibility) {
+        columnsClass = rightPanelVisibility ? 'main--3col' : 'main--2col-left';
     } else {
-        colsClass = showRightPanel ? 'main--2col-right' : 'main--1col';
+        columnsClass = rightPanelVisibility ? 'main--2col-right' : 'main--1col';
     }
 
     return (
-        <div id="main" className="main--3col">
-            <div
-                id="left-panel"
-                className={showLeftPanel ? '' : 'collapsed'}
-            >
-                {leftPanel}
-            </div>
+        <div id="main" className={columnsClass}>
+            {leftPanelVisibility && (
+                <div
+                    id="left-panel"
+                    className={showLeftPanel ? '' : 'collapsed'}
+                >
+                    {leftPanel}
+                </div>
+            )}
             <ErrorBoundary>
                 <div id="middle-panel">{middlePanel}</div>
             </ErrorBoundary>
-            <div
-                id="right-panel"
-                className={showRightPanel ? '' : 'collapsed'}
-            >
-                {rightPanel}
-            </div>
+            {rightPanelVisibility && (
+                <div
+                    id="right-panel"
+                    className={showRightPanel ? '' : 'collapsed'}
+                >
+                    {rightPanel}
+                </div>
+            )}
         </div>
     );
 }
