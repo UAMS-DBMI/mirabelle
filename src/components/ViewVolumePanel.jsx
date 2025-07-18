@@ -33,7 +33,7 @@ import {
   flagAsRejected,
   flagAsSkipped,
   flagAsNonmaskable,
-  finalCalc,
+  submitFinalCoords,
 } from "../masking";
 import {
   getNiftiDetails,
@@ -1526,7 +1526,9 @@ function ViewVolumePanel({ volumeName, files, iec }) {
     }
     const maskForm = context.formToolGroupValue;
     const maskFunction = context.functionToolGroupValue;
-    await finalCalc(coords, volumeId, iec, maskForm, maskFunction);
+    const volume = cornerstone.cache.getVolume(volumeId);
+    const spacing = volume.spacing;
+    await submitFinalCoords(coords, spacing, iec, maskForm, maskFunction);
     context.showToast("Submitted for masking!");
   }
   async function handleMarkAccepted() {

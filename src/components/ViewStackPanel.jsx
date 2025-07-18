@@ -27,7 +27,7 @@ import {
   flagAsRejected,
   flagAsSkipped,
   flagAsNonmaskable,
-  finalCalc,
+  submitFinalCoords,
 } from "../masking";
 import {
   getNiftiDetails,
@@ -929,7 +929,8 @@ function ViewStackPanel({ volumeName, files, iec }) {
   async function handleAcceptSelection() {
     const maskForm = context.formToolGroupValue;
     const maskFunction = context.functionToolGroupValue;
-    await finalCalc(coords, volumeId, iec, maskForm, maskFunction);
+    const spacing = null
+    await submitFinalCoords(coords, spacing, iec, maskForm, maskFunction);
   }
   async function handleMarkAccepted() {
     await flagAsAccepted(iec);

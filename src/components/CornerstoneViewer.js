@@ -33,7 +33,7 @@ import {
   flagAsRejected,
   flagAsSkipped,
   flagAsNonmaskable,
-  finalCalc,
+  submitFinalCoords,
 } from "../masking";
 import {
   getNiftiDetails,
@@ -1841,7 +1841,7 @@ function CornerstoneViewer({ volumeName, files, iec }) {
     );
   }
   async function handleAcceptSelection() {
-    await finalCalc(coords, volumeId, iec, maskForm, maskFunction);
+    await submitFinalCoords(coords, volumeId, iec, maskForm, maskFunction);
   }
   async function handleMarkAccepted() {
     await flagAsAccepted(iec);
