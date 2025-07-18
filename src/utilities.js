@@ -20,75 +20,72 @@ export function expandSegTo3D(segmentationId) {
   // I tested it twice, this is more than 10x faster
 	let scalarData = voxelManager.getCompleteScalarDataArray();
 
-	const [x_size, y_size, z_size] = dimensions;
+	const [i_size, j_size, k_size] = dimensions;
 
   const [
-    [xmin, xmax],
-    [ymin, ymax],
-    [zmin, zmax],
+    [imin, imax],
+    [jmin, jmax],
+    [kmin, kmax],
   ] = voxelManager.getBoundsIJK();
 
-  for (let z = zmin; z <= zmax; z++) {
-    for (let y = ymin; y <= ymax; y++) {
-      for (let x = xmin; x <= xmax; x++) {
+  for (let k = kmin; k <= kmax; k++) {
+    for (let j = jmin; j <= jmax; j++) {
+      for (let i = imin; i <= imax; i++) {
         // offset into the array
-        let offset = (z * x_size * y_size) + (y * x_size) + x;
+        let offset = (k * i_size * j_size) + (j * i_size) + i;
         scalarData[offset] = 2;
       }
     }
   }
-
 	voxelManager.setCompleteScalarDataArray(scalarData);
 
 	return {
-		x: { min: xmin, max: xmax },
-		y: { min: ymin, max: ymax },
-		z: { min: zmin, max: zmax },
+		i: { min: imin, max: imax },
+		j: { min: jmin, max: jmax },
+		k: { min: kmin, max: kmax },
 	};
 }
 window.expandSegTo3D = expandSegTo3D;
 
-export function getCoordsForStackSeg(segmentationId) {
-  const segmentation = csToolsSegmentation.state.getSegmentation(segmentationId);
-  const imageIds = csToolsSegmentation.getLabelmapImageIds(segmentationId);
+export function getCoordsForStackSeg(imageIds) {
 
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let imin = Infinity, jmin = Infinity, kmin = Infinity;
+  let imax = -Infinity, jmax = -Infinity, kmax = -Infinity;
 
-  imageIds.forEach((imageId, z) => {
+  imageIds.forEach((imageId, k) => {
     const image = cornerstone.cache.getImage(imageId);
     const pixelData = image.getPixelData();
     const { rows, columns } = image;
 
     let sliceHasData = false;
 
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < columns; x++) {
-        const index = y * columns + x;
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < columns; i++) {
+        const index = j * columns + i;
         if (pixelData[index] > 0) {
           sliceHasData = true;
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
+          if (i < imin) imin = i;
+          if (i > imax) imax = i;
+          if (j < jmin) jmin = j;
+          if (j > jmax) jmax = j;
         }
       }
     }
 
     if (sliceHasData) {
-      if (z < minZ) minZ = z;
-      if (z > maxZ) maxZ = z;
+      if (k < kmin) kmin = k;
+      if (k > kmax) kmax = k;
     }
   });
 
-  if (minX === Infinity) {
+  if (imin === Infinity) {
     return null; // No segmentation found
   }
 
   return {
-    x: { min: minX, max: maxX },
-    y: { min: minY, max: maxY },
-    z: { min: minZ, max: maxZ },
+    i: { min: imin, max: imax },
+    j: { min: jmin, max: jmax },
+    k: { min: kmin, max: kmax },
   };
 }
 

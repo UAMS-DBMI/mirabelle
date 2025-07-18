@@ -25,7 +25,6 @@ import {
   getIECInfo,
 } from '@/utilities';
 import { getDicomDetails } from '@/visualreview';
-import { finalCalc } from '@/masking';
 
 
 import LoadingSpinner from '@/components/LoadingSpinner';

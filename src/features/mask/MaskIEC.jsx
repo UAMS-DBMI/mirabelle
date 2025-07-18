@@ -30,7 +30,7 @@ import {
   loadStackSegmentation,
 } from '@/utilities';
 import { getDicomDetails } from '@/visualreview';
-import { finalCalc } from '@/masking';
+import { submitFinalCoords } from '@/masking';
 
 import Header from '@/components/Header';
 
@@ -282,16 +282,32 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     }
 
     let finalCoords = coords;
-
-    if (!volumetric && !coords) {
-      finalCoords = getCoordsForStackSeg(segmentationId);
-      setCoords(finalCoords);
-    }
-
-    console.log(finalCoords, volumeId, iec);
     let selectedForm = optionsForm;
     let selectedFunction = optionsFunction;
-    await finalCalc(finalCoords, volumeId, iec, selectedForm, selectedFunction);
+
+    let spacing = null
+
+    if (volumetric) {
+      const volume = cornerstone.cache.getVolume(volumeId);
+      spacing = volume.spacing;
+    }
+    else {
+      const imageIds = segmentation.getLabelmapImageIds(segmentationId);
+      if (!coords) {
+        finalCoords = getCoordsForStackSeg(imageIds);
+        setCoords(finalCoords);
+      }
+      const image = cornerstone.cache.getImage(imageIds[0]);
+      spacing = [
+        image.columnPixelSpacing ?? 1,
+        image.rowPixelSpacing ?? 1,
+        1
+      ];
+    }
+
+    console.log(finalCoords, spacing, iec);
+    await submitFinalCoords(finalCoords, spacing, iec, selectedForm, selectedFunction);
+
     toast.success("Submitted for masking!");
   }
 
