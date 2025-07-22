@@ -109,13 +109,13 @@ export async function tests() {
 
 export async function submitFinalCoords(coords, spacing, iec, maskForm, maskFunction) {
 
-  // single image
-  // iec = 1167702
-  coords = {
-    "x": { "min": 180, "max": 329 },
-    "y": { "min": 114, "max": 412 },
-    "z": { "min": 0, "max": 0 }
-  }
+  //// single image
+  //// iec = 1167702
+  //coords = {
+  //  "x": { "min": 180, "max": 329 },
+  //  "y": { "min": 114, "max": 412 },
+  //  "z": { "min": 0, "max": 0 }
+  //}
 
   //// orthogonal
   //// iec = 1170774
