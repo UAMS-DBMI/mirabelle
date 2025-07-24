@@ -310,7 +310,7 @@ const presentationSlice = createSlice({
       state.toolsConfig.viewToolGroup.defaultValue = Enums.ViewOptions.VOLUME;
       state.toolsConfig.viewToolGroup.visibility.volume = true;
       state.toolsConfig.viewToolGroup.visibility.projection = true;
-      state.toolsConfig.viewToolGroup.visibility.stack = true;
+      state.toolsConfig.viewToolGroup.visibility.stack = false;
 
       state.toolsConfig.functionToolGroup.defaultValue = Enums.FunctionOptions.MASK;
       state.toolsConfig.functionToolGroup.visibility.mask = true;
