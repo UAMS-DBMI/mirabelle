@@ -3,6 +3,7 @@ import MaterialButtonSet from '@/components/MaterialButtonSet';
 import MaskReviewIEC from '@/features/mask-review/MaskReviewIEC';
 import { useDispatch } from 'react-redux';
 import { setLoading } from '@/features/optionSlice';
+import { resetOptions } from '@/features/optionSlice';
 
 import './MaskReviewVR.css';
 
@@ -20,6 +21,7 @@ export default function MaskReviewVR({ vr, iecs }) {
 	}, [iecs]);
 
 	const handleNext = () => {
+		dispatch(resetOptions());
 		let currentOffset = 0;
 		if (offset != null) {
 			currentOffset = offset + 1;
@@ -31,6 +33,7 @@ export default function MaskReviewVR({ vr, iecs }) {
 	};
 
 	const handlePrevious = () => {
+		dispatch(resetOptions());
 		let currentOffset = 0;
 		if (offset != null) {
 			currentOffset = offset - 1;

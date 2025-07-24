@@ -4,13 +4,14 @@ import { useDispatch } from 'react-redux';
 import { setLoading } from '@/features/optionSlice';
 import MaterialButtonSet from '@/components/MaterialButtonSet';
 import MaskIEC from '@/features/mask/MaskIEC';
+import { resetOptions } from '@/features/optionSlice';
 
 import './MaskVR.css';
 
 export default function MaskVR({ vr, iecs }) {
 	const [iec, setIec] = useState(0);
 	const [offset, setOffset] = useState(null);
-  const dispatch = useDispatch();
+	const dispatch = useDispatch();
 
 
 	// as soon as we get an array of iecs, show the first one
@@ -22,17 +23,19 @@ export default function MaskVR({ vr, iecs }) {
 	}, [iecs]);
 
 	const handleNext = () => {
+		dispatch(resetOptions());
 		let currentOffset = 0;
 		if (offset != null) {
 			currentOffset = offset + 1;
 		}
 		console.log("setting to", currentOffset);
-    dispatch(setLoading(true));
+		dispatch(setLoading(true));
 		setIec(iecs[currentOffset]);
 		setOffset(currentOffset);
 	};
 
 	const handlePrevious = () => {
+		dispatch(resetOptions());
 		let currentOffset = 0;
 		if (offset != null) {
 			currentOffset = offset - 1;
@@ -43,9 +46,9 @@ export default function MaskVR({ vr, iecs }) {
 		setOffset(currentOffset);
 	};
 
-  useHotkeys('tab', handleNext);
-  useHotkeys('right', handleNext);
-  useHotkeys('left', handlePrevious);
+	useHotkeys('tab', handleNext);
+	useHotkeys('right', handleNext);
+	useHotkeys('left', handlePrevious);
 
 	return (
 		<>
