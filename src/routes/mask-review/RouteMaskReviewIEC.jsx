@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLoaderData } from 'react-router-dom';
+import { resetOptions } from '@/features/optionSlice';
 
 import { Context } from '@/components/Context';
 import useConfigState from '@/hooks/useConfigState';
@@ -26,6 +27,7 @@ export default function RouteMaskReviewIEC() {
   const { details, iec } = useLoaderData();
 
   useEffect(() => {
+    dispatch(resetOptions());
     dispatch(reset());
     dispatch(setMaskerReviewConfig());
   }, []);

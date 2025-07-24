@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLoaderData } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux'
+import { resetOptions } from '@/features/optionSlice';
 
 import MaskIEC from '@/features/mask/MaskIEC';
 
@@ -25,6 +26,7 @@ export default function RouteMaskIEC() {
   let { iec } = useLoaderData();
 
   useEffect(() => {
+    dispatch(resetOptions());
     dispatch(reset());
     dispatch(setMaskerConfig());
   }, []);

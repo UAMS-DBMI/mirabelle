@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLoaderData } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux'
+import { resetOptions } from '@/features/optionSlice';
 
 import NiftiReviewFile from '@/features/nifti-review/NiftiReviewFile';
 
@@ -19,6 +20,7 @@ export default function RouteNiftiReviewFile() {
   let { file } = useLoaderData();
 
   useEffect(() => {
+    dispatch(resetOptions());
     dispatch(reset());
     dispatch(setVisualReviewConfig());
   }, []);

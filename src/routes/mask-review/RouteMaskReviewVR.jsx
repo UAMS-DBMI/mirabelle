@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLoaderData } from 'react-router-dom';
 import { useDispatch } from 'react-redux'
+import { resetOptions } from '@/features/optionSlice';
 
 import MaskReviewVR from '@/features/mask-review/MaskReviewVR';
 
@@ -21,6 +22,7 @@ export default function RouteMaskReviewVR() {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    dispatch(resetOptions());
     dispatch(reset());
     dispatch(setMaskerReviewConfig());
   }, []);

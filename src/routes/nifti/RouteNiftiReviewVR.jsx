@@ -1,6 +1,7 @@
 import React, { useLayoutEffect } from 'react';
 import { useLoaderData } from 'react-router-dom';
 import { useDispatch } from 'react-redux'
+import { resetOptions } from '@/features/optionSlice';
 
 import NiftiReviewVR from '@/features/nifti-review/NiftiReviewVR';
 
@@ -21,6 +22,7 @@ export default function RouteNiftiReviewVR() {
   const dispatch = useDispatch();
 
   useLayoutEffect(() => {
+    dispatch(resetOptions());
     dispatch(reset());
     dispatch(setVisualReviewConfig());
   }, []);
