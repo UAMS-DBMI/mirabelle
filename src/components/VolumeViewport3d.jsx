@@ -58,13 +58,13 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
 
     // Enable double click to toggle viewport size
     function toggleViewportSize() {
-      /* A hack to force-render a 3d viewport */
       Array.from(wrapper.parentNode.children)
         .filter(child => child !== wrapper)
         .forEach(child => child.classList.toggle('minimized'))
       wrapper.classList.toggle('expanded')
       wrapper.parentElement.classList.toggle('expanded')
 
+      /* A hack to force-render a 3d viewport */
       renderingEngine.resize(true, true)
       renderingEngine.render()
     }

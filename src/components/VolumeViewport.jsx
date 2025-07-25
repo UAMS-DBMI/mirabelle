@@ -85,6 +85,20 @@ function VolumeViewport({
     const setup = async () => {
       // console.log("[VolumeViewport] setup running");
 
+      // Remove any leftover minimized/expanded classes on volume change
+      const wrapper = elementRef.current;
+      if (wrapper && wrapper.parentNode) {
+        Array.from(wrapper.parentNode.children).forEach((child) => {
+          child.classList.remove('minimized', 'expanded');
+        });
+        wrapper.classList.remove('minimized', 'expanded');
+        wrapper.parentElement.classList.remove('expanded');
+
+        /* A hack to force-render a 3d viewport */
+        renderingEngine.resize(true, true)
+        renderingEngine.render()
+      }
+
       const viewportInput = {
         viewportId,
         type: Enums.ViewportType.ORTHOGRAPHIC,
