@@ -53,6 +53,29 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
     .map((seg) => seg.segmentationId);
 
   useEffect(() => {
+    const wrapper = elementRef.current
+    if (!wrapper || !renderingEngine) return
+
+    // Enable double click to toggle viewport size
+    function toggleViewportSize() {
+      /* A hack to force-render a 3d viewport */
+      Array.from(wrapper.parentNode.children)
+        .filter(child => child !== wrapper)
+        .forEach(child => child.classList.toggle('minimized'))
+      wrapper.classList.toggle('expanded')
+      wrapper.parentElement.classList.toggle('expanded')
+
+      renderingEngine.resize(true, true)
+      renderingEngine.render()
+    }
+
+    wrapper.addEventListener('dblclick', toggleViewportSize)
+    return () => {
+      wrapper.removeEventListener('dblclick', toggleViewportSize)
+    }
+  }, [])
+
+  useEffect(() => {
     const setup = async () => {
 
       const viewportInputArray = {
@@ -66,28 +89,8 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
 
       renderingEngine.enableElement(viewportInputArray);
 
-      // Enable double click to toggle viewport size
-      function toggleViewportSize(wrapper) {
-        /* A hack to force-render a 3d viewport */
-        Array.from(wrapper.parentNode.children)
-          .filter(child => child !== wrapper)
-          .forEach((child) => {
-            child.classList.toggle('minimized');
-          });
-        wrapper.classList.toggle('expanded');
-        wrapper.parentElement.classList.toggle('expanded');
-        renderingEngine.resize(true, true);
-        renderingEngine.render();
-      }
-
       // Get the volume viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
-      const wrapper = viewport.element;
-
-      wrapper.addEventListener(
-        'dblclick',
-        () => toggleViewportSize(wrapper)
-      );
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 
@@ -114,7 +117,7 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
         const nonMaskSegmentationIds = segmentationIds.filter(segmentationId => !segmentationId.startsWith('mask-'));
         console.log("VolumeViewport3d: Applying segmentationIds=", nonMaskSegmentationIds);
         await segmentation.addSegmentationRepresentations(
-          viewportId, 
+          viewportId,
           nonMaskSegmentationIds.map((segmentationId) => ({
             segmentationId,
             type: csToolsEnums.SegmentationRepresentations.Surface,

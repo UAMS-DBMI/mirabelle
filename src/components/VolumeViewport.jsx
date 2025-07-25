@@ -61,6 +61,27 @@ function VolumeViewport({
   }
 
   useEffect(() => {
+    const wrapper = elementRef.current
+    if (!wrapper || !renderingEngine) return
+
+    function toggleViewportSize() {
+      Array.from(wrapper.parentNode.children)
+        .filter(child => child !== wrapper)
+        .forEach(child => child.classList.toggle('minimized'))
+      wrapper.classList.toggle('expanded')
+      wrapper.parentElement.classList.toggle('expanded')
+
+      renderingEngine.resize(true, true)
+      renderingEngine.render()
+    }
+
+    wrapper.addEventListener('dblclick', toggleViewportSize)
+    return () => {
+      wrapper.removeEventListener('dblclick', toggleViewportSize)
+    }
+  }, [])
+
+  useEffect(() => {
     const setup = async () => {
       // console.log("[VolumeViewport] setup running");
 
@@ -80,27 +101,8 @@ function VolumeViewport({
         viewportId,
       });
 
-      // Enable double click to toggle viewport size
-      function toggleViewportSize(wrapper) {
-        Array.from(wrapper.parentNode.children)
-          .filter(child => child !== wrapper)
-          .forEach((child) => {
-            child.classList.toggle('minimized');
-          });
-        wrapper.classList.toggle('expanded');
-        wrapper.parentElement.classList.toggle('expanded');
-        renderingEngine.resize(true, true);
-        renderingEngine.render();
-      }
-
       // Get the volume viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
-      const wrapper = viewport.element;
-
-      wrapper.addEventListener(
-        'dblclick',
-        () => toggleViewportSize(wrapper)
-      );
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 
