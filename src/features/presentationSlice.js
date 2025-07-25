@@ -296,9 +296,6 @@ const presentationSlice = createSlice({
       state.toolsConfig.formToolGroup.defaultValue = Enums.FormOptions.CUBOID;
       state.toolsConfig.formToolGroup.visibility.cuboid = true;
 
-      state.toolsConfig.opacityToolGroup.visible = false;
-      state.toolsConfig.presetToolGroup.visible = false;
-
       state.buttonConfig.masker.visibility.expand = false;
 
       return state;

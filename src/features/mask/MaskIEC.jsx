@@ -6,10 +6,12 @@ import { useHotkeys } from 'react-hotkeys-hook';
 
 import {
   Enums,
+  setMaskerConfig,
   setStackConfig,
   setVolumeConfig,
   toggleLeftPanel,
   toggleRightPanel,
+  reset,
 } from '@/features/presentationSlice';
 
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
@@ -32,8 +34,6 @@ import {
 import { getDicomDetails } from '@/visualreview';
 import { submitFinalCoords } from '@/masking';
 
-import Header from '@/components/Header';
-
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { VolumeView } from '@/features/volume-view';
 import { StackView } from '@/features/stack-view';
@@ -42,9 +42,7 @@ import OperationsPanel from '@/components/OperationsPanel';
 import NavigationPanel from '@/components/NavigationPanel';
 import { DetailsPanel } from '@/features/details';
 
-import { Context } from '@/components/Context.js';
 import RouteLayout from '@/components/RouteLayout';
-
 import ErrorPanel from '@/components/ErrorPanel';
 
 import './MaskIEC.css';
@@ -159,7 +157,6 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       const details = await getDicomDetails(iec);
       const { volumetric } = details;
       setDetails(details);
-      setVolumetric(volumetric); // still update state
 
       setIsErrored(false);
       let volumeId = `mask-${iec}`;
@@ -169,12 +166,15 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       setImageIds(imageIds);
 
       setVolumeId(volumeId);
+      setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
 
       try {
         if (volumetric) {
           await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
           dispatch(setTitle("Mask Volume"));
+          dispatch(reset());
+          dispatch(setMaskerConfig());
           dispatch(setVolumeConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
           dispatch(setOption({ key: "function", value: Enums.FunctionOptions.MASK }));
@@ -182,6 +182,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         } else {
           await loadStackSegmentation(imageIds, segmentationId);
           dispatch(setTitle("Mask Stack"));
+          dispatch(reset());
+          dispatch(setMaskerConfig());
           dispatch(setStackConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
           dispatch(setOption({ key: "function", value: Enums.FunctionOptions.BLACKOUT }));

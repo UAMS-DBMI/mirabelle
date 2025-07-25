@@ -5,10 +5,12 @@ import { useSelector, useDispatch } from 'react-redux';
 
 import {
   Enums,
+  setVisualReviewConfig,
   setVolumeConfig,
   setNiftiConfig,
   toggleLeftPanel,
   toggleRightPanel,
+  reset,
 } from '@/features/presentationSlice';
 
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
@@ -180,6 +182,8 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       setSegmentationId(segmentationId);
 
       dispatch(setTitle("Nifti File Review"));
+      dispatch(reset());
+      dispatch(setVisualReviewConfig());
       dispatch(setVolumeConfig());
       dispatch(setNiftiConfig());
 

@@ -5,10 +5,12 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import {
   Enums,
+  setMaskerReviewConfig,
   setStackConfig,
   setVolumeConfig,
   toggleLeftPanel,
   toggleRightPanel,
+  reset,
 } from '@/features/presentationSlice';
 
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
@@ -19,13 +21,11 @@ import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import {
-  expandSegTo3D,
   isSegFlat,
   loadVolumeAndSegmentation,
   getIECInfo,
 } from '@/utilities';
 import { getDicomDetails } from '@/visualreview';
-
 
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { VolumeView } from '@/features/volume-view';
@@ -95,12 +95,10 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
-  const [expanded, setExpanded] = useState(false);
 
   let viewer;
 
-  let coords; // coordinates of drawn mask
-
+  
   /**
    * Setup the RenderingEngine and ToolGroup
    */
@@ -113,13 +111,13 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   useEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {
+      console.log("Creating new rendering engine");
       setRenderingEngine(new cornerstone.RenderingEngine("re1"));
     }
 
     let toolGroup = ToolGroupManager.createToolGroup("toolGroup2d");
     let toolGroup3d = ToolGroupManager.createToolGroup("toolGroup3d");
 
-    setRenderingEngine(renderingEngine);
     setToolGroup(toolGroup);
     setToolGroup3d(toolGroup3d);
 
@@ -145,7 +143,6 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       const details = await getDicomDetails(iec);
       const { volumetric } = details;
       setDetails(details);
-      setVolumetric(volumetric); // still update state
 
       setIsErrored(false);
       let volumeId = `mask-review-${iec}`;
@@ -155,6 +152,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       setImageIds(frames);
 
       setVolumeId(volumeId);
+      setVolumetric(volumetric); // still update state
       //setSegmentationId(segmentationId);
 
       try {
@@ -164,13 +162,17 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
             imageIds: frames,
           });
           volume.load();
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
           dispatch(setTitle("Mask Volume Review"));
+          dispatch(reset());
+          dispatch(setMaskerReviewConfig());
           dispatch(setVolumeConfig());
+          dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
         } else {
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
           dispatch(setTitle("Mask Stack Review"));
+          dispatch(reset());
+          dispatch(setMaskerReviewConfig());
           dispatch(setStackConfig());
+          dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
         }
         dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
         dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));

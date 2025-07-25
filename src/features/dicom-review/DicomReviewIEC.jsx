@@ -5,10 +5,12 @@ import { useSelector, useDispatch } from 'react-redux'
 
 import {
   Enums,
+  setVisualReviewConfig,
   setStackConfig,
   setVolumeConfig,
   toggleLeftPanel,
   toggleRightPanel,
+  reset,
 } from '@/features/presentationSlice';
 
 import { setTitle, setLoading, setOption, resetOptions } from '@/features/optionSlice';
@@ -125,7 +127,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   // will only trigger a change when the "force stack view"
   // status changes. That is, it will NOT trigger an update
   // when view changes to something else (like projection).
-  const forceStackView = optionsView === 'stack';
+  //const forceStackView = optionsView === 'stack';
 
   let viewer;
 
@@ -137,13 +139,13 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
   useLayoutEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {
+      console.log("Creating new rendering engine");
       setRenderingEngine(new cornerstone.RenderingEngine("re1"));
     }
 
     let toolGroup = ToolGroupManager.createToolGroup("toolGroup2d");
     let toolGroup3d = ToolGroupManager.createToolGroup("toolGroup3d");
 
-    setRenderingEngine(renderingEngine);
     setToolGroup(toolGroup);
     setToolGroup3d(toolGroup3d);
 
@@ -166,7 +168,6 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
 
     const initialize = async () => {
       const details = await getDicomDetails(iec);
-
       let { modality, volumetric } = details;
 
       let isSeg = false;
@@ -184,13 +185,12 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       }
       setIsSeg(isSeg)
 
-      if (optionsView === 'stack') {
-        console.log("DicomReviewIEC: forcing stack view");
-        volumetric = false; // force stack view
-      }
+      //if (optionsView === 'stack') {
+      //  console.log("DicomReviewIEC: forcing stack view");
+      //  volumetric = false; // force stack view
+      //}
 
       setDetails(details);
-      setVolumetric(volumetric); // still update state
 
       setIsErrored(false);
       let volumeId = `dicom-review-${iec}`;
@@ -206,6 +206,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       setImageIds(imageIds);
 
       setVolumeId(volumeId);
+      setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
 
       try {
@@ -232,11 +233,15 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
           }
 
           dispatch(setTitle("DICOM Volume Review"));
+          dispatch(reset());
+          dispatch(setVisualReviewConfig());
           dispatch(setVolumeConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
         } else {
           await loadStackSegmentation(imageIds, segmentationId);
           dispatch(setTitle("DICOM Stack Review"));
+          dispatch(reset());
+          dispatch(setVisualReviewConfig());
           dispatch(setStackConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
         }
