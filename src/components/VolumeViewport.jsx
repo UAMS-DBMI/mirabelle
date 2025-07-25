@@ -71,8 +71,8 @@ function VolumeViewport({
       wrapper.classList.toggle('expanded')
       wrapper.parentElement.classList.toggle('expanded')
 
-      renderingEngine.resize(true, true)
-      renderingEngine.render()
+      // renderingEngine.resize(true, true)
+      // renderingEngine.render()
     }
 
     wrapper.addEventListener('dblclick', toggleViewportSize)
@@ -95,8 +95,8 @@ function VolumeViewport({
         wrapper.parentElement.classList.remove('expanded');
 
         /* A hack to force-render a 3d viewport */
-        renderingEngine.resize(true, true)
-        renderingEngine.render()
+        // renderingEngine.resize(true, true)
+        // renderingEngine.render()
       }
 
       const viewportInput = {
