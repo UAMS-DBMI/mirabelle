@@ -99,7 +99,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
   const [toolGroup, setToolGroup] = useState();
   const [toolGroup3d, setToolGroup3d] = useState();
-  const [preset3d, setPreset3d] = useState("CT-MIP");
+  const preset3d = useSelector(state => state.options.preset);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
@@ -369,7 +369,9 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
             toolGroup={toolGroup}
             toolGroup3d={toolGroup3d}
             preset3d={preset3d}
-            onPresetChange={setPreset3d}
+            onPresetChange={(value) =>
+              dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
+            }
             renderingEngine={renderingEngine}
           />
         </>

@@ -81,7 +81,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
 
   const [toolGroup, setToolGroup] = useState(null);
   const [toolGroup3d, setToolGroup3d] = useState();
-  const [preset3d, setPreset3d] = useState("MR-Default");
+  const preset3d = useSelector(state => state.options.preset);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
@@ -270,7 +270,9 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
             toolGroup={toolGroup}
             toolGroup3d={toolGroup3d}
             preset3d={preset3d}
-            onPresetChange={setPreset3d}
+            onPresetChange={(value) =>
+              dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
+            }
           />
         </>
         // : null

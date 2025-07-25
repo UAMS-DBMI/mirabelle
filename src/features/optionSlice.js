@@ -11,7 +11,7 @@ const initialState = {
   leftClick: Enums.LeftClickOptions.SELECTION,
   rightClick: Enums.RightClickOptions.ZOOM,
   opacity: 0.3,
-  preset: 'CT-MIP',
+  preset: 'MR-Default',
   loading: false,
 };
 
