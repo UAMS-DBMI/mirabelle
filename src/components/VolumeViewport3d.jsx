@@ -65,8 +65,8 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
       wrapper.parentElement.classList.toggle('expanded')
 
       /* A hack to force-render a 3d viewport */
-      renderingEngine.resize(true, true)
-      renderingEngine.render()
+      // renderingEngine.resize(true, true)
+      // renderingEngine.render()
     }
 
     wrapper.addEventListener('dblclick', toggleViewportSize)

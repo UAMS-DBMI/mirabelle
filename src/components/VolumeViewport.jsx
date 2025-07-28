@@ -75,6 +75,8 @@ function VolumeViewport({
       renderingEngine.render()
     }
 
+    console.log("[VolumeViewport] adding dblclick listener to", wrapper);
+
     wrapper.addEventListener('dblclick', toggleViewportSize)
     return () => {
       wrapper.removeEventListener('dblclick', toggleViewportSize)
@@ -95,8 +97,8 @@ function VolumeViewport({
         wrapper.parentElement.classList.remove('expanded');
 
         /* A hack to force-render a viewport */
-        // renderingEngine.resize(true, true)
-        // renderingEngine.render()
+        renderingEngine.resize(true, true)
+        renderingEngine.render()
       }
 
       const viewportInput = {
