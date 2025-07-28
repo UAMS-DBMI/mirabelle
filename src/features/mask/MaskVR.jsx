@@ -6,60 +6,23 @@ import MaterialButtonSet from '@/components/MaterialButtonSet';
 import MaskIEC from '@/features/mask/MaskIEC';
 import { resetOptions } from '@/features/optionSlice';
 
-import './MaskVR.css';
+import "./MaskVR.css";
 
-export default function MaskVR({ vr, iecs }) {
-	const [iec, setIec] = useState(0);
-	const [offset, setOffset] = useState(null);
-	const dispatch = useDispatch();
+export default function MaskVR({ vr, iec, onNext, onPrevious }) {
+  useHotkeys("tab", onNext);
+  useHotkeys("right", onNext);
+  useHotkeys("left", onPrevious);
 
-
-	// as soon as we get an array of iecs, show the first one
-	useEffect(() => {
-		if (Array.isArray(iecs) && iecs.length) {
-			setOffset(0);
-			setIec(iecs[0]);
-		}
-	}, [iecs]);
-
-	const handleNext = () => {
-		dispatch(resetOptions());
-		let currentOffset = 0;
-		if (offset != null) {
-			currentOffset = offset + 1;
-		}
-		console.log("setting to", currentOffset);
-		dispatch(setLoading(true));
-		setIec(iecs[currentOffset]);
-		setOffset(currentOffset);
-	};
-
-	const handlePrevious = () => {
-		dispatch(resetOptions());
-		let currentOffset = 0;
-		if (offset != null) {
-			currentOffset = offset - 1;
-		}
-		console.log("setting to", currentOffset);
-		dispatch(setLoading(true));
-		setIec(iecs[currentOffset]);
-		setOffset(currentOffset);
-	};
-
-	useHotkeys('tab', handleNext);
-	useHotkeys('right', handleNext);
-	useHotkeys('left', handlePrevious);
-
-	return (
-		<>
-			{iec && (
-				<MaskIEC
-					vr={vr}
-					iec={iec}
-					onNext={handleNext}
-					onPrevious={handlePrevious}
-				/>
-			)}
-		</>
-	);
+  return (
+    <>
+      {iec && (
+        <MaskIEC
+          vr={vr}
+          iec={iec}
+          onNext={onNext}
+          onPrevious={onPrevious}
+        />
+      )}
+    </>
+  );
 }

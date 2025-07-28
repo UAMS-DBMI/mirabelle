@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {
   mode: 'development',  // Set to 'production' or 'development' as needed
@@ -105,6 +106,10 @@ module.exports = {
    plugins: [
       new HtmlWebpackPlugin({
           template: 'src/index.html'
-      })
+      }),
+      new webpack.DefinePlugin({
+        // every `process.env.PUBLIC_URL` in your source becomes "/mira" (or whatever you set)
+        'process.env.PUBLIC_URL': JSON.stringify("/mira"),
+      }),
   ],
 };

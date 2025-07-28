@@ -80,11 +80,14 @@ const router = createBrowserRouter(
           loader: routeMaskIECLoader,
         },
         {
-          path: "mask/vr/:visual_review_instance_id",
+          path: "mask/vr/:vr",
           element: <RouteMaskVR />,
           HydrateFallback: LoadingSpinner,
-          loader: routeMaskVRLoader,
-          errorElement: <ErrorPage />,
+        },
+        {
+          path: "mask/vr/:vr/:iec",
+          element: <RouteMaskVR />,
+          HydrateFallback: LoadingSpinner,
         },
         {
           path: "mask/review/iec/:iec",
