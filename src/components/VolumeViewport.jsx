@@ -71,15 +71,15 @@ function VolumeViewport({
       wrapper.classList.toggle('expanded')
       wrapper.parentElement.classList.toggle('expanded')
 
-      // renderingEngine.resize(true, true)
-      // renderingEngine.render()
+      renderingEngine.resize(true, true)
+      renderingEngine.render()
     }
 
     wrapper.addEventListener('dblclick', toggleViewportSize)
     return () => {
       wrapper.removeEventListener('dblclick', toggleViewportSize)
     }
-  }, [])
+  }, [renderingEngine])
 
   useEffect(() => {
     const setup = async () => {
@@ -94,7 +94,7 @@ function VolumeViewport({
         wrapper.classList.remove('minimized', 'expanded');
         wrapper.parentElement.classList.remove('expanded');
 
-        /* A hack to force-render a 3d viewport */
+        /* A hack to force-render a viewport */
         // renderingEngine.resize(true, true)
         // renderingEngine.render()
       }
