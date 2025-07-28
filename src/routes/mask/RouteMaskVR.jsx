@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 
-import { setOption, resetOptions } from "@/features/optionSlice";
+import { setOption, resetOptions, setLoading } from "@/features/optionSlice";
 import { setMaskerConfig, reset } from "@/features/presentationSlice";
 
 import MaskVR from "@/features/mask/MaskVR";
@@ -21,9 +21,9 @@ export default function RouteMaskVR() {
   const iecList = useSelector((state) => state.options.iecList);
 
   useEffect(() => {
-    dispatch(resetOptions());
-    dispatch(reset());
-    dispatch(setMaskerConfig());
+    // dispatch(resetOptions());
+    // dispatch(reset());
+    // dispatch(setMaskerConfig());
 
     console.log("[RouteMaskVR] useEffect running, vr=", vr, "iec=", iec);
     if (!iecList) {
@@ -63,6 +63,10 @@ export default function RouteMaskVR() {
   // MaskVR to handle the navigation?
   const handleNext = () => {
     if (nextIEC) {
+      dispatch(resetOptions());
+      dispatch(reset());
+      dispatch(setMaskerConfig());
+      dispatch(setLoading(true));
       console.log("Navigating to next IEC:", nextIEC);
       navigate(`/mask/vr/${vr}/${nextIEC}`);
       // window.location.assign(`${PUBLIC_URL}/mask/vr/${vr}/${nextIEC}`);
@@ -73,6 +77,10 @@ export default function RouteMaskVR() {
 
   const handlePrevious = () => {
     if (previousIEC) {
+      dispatch(resetOptions());
+      dispatch(reset());
+      dispatch(setMaskerConfig());
+      dispatch(setLoading(true));
       navigate(`/mask/vr/${vr}/${previousIEC}`);
     } else {
       alert("No previous IEC");
