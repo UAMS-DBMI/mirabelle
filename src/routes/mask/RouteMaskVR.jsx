@@ -63,9 +63,6 @@ export default function RouteMaskVR() {
   // MaskVR to handle the navigation?
   const handleNext = () => {
     if (nextIEC) {
-      dispatch(resetOptions());
-      dispatch(reset());
-      dispatch(setMaskerConfig());
       dispatch(setLoading(true));
       console.log("Navigating to next IEC:", nextIEC);
       navigate(`/mask/vr/${vr}/${nextIEC}`);
@@ -77,9 +74,6 @@ export default function RouteMaskVR() {
 
   const handlePrevious = () => {
     if (previousIEC) {
-      dispatch(resetOptions());
-      dispatch(reset());
-      dispatch(setMaskerConfig());
       dispatch(setLoading(true));
       navigate(`/mask/vr/${vr}/${previousIEC}`);
     } else {
