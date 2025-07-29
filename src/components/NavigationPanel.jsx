@@ -20,7 +20,7 @@ function NavigationPanel({
     <div id="navigation-panel" className="side-panel">
       {/* {currentId && <p>{idLabel}: {currentId}</p>} */}
       <h2 id="title">Navigation</h2>
-      <MaterialButtonSet buttonConfig={navButtons} />
+      <MaterialButtonSet buttonConfig={navButtons} noRemember={true} />
     </div>
   )
 }

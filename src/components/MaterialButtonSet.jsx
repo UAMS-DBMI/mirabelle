@@ -23,44 +23,45 @@
 
     ];
  */
-import React from 'react';
-import { useState } from 'react';
-import MaterialIcon from './MaterialIcon';
+import React from "react";
+import { useState } from "react";
+import MaterialIcon from "./MaterialIcon";
 
-import './MaterialButtonSet.css';
+import "./MaterialButtonSet.css";
 
-
-function MaterialButtonSet({ buttonConfig, initialActiveButton }) {
+function MaterialButtonSet({ buttonConfig, initialActiveButton, noRemember=false }) {
   const [activeButton, setActiveButton] = useState(initialActiveButton);
 
   function buttonClick(item) {
     item.action(); // call the supplied callback
-    setActiveButton(item.name);
+    if (!noRemember) {
+      setActiveButton(item.name);
+    }
   }
 
   function getActiveClass(buttonName) {
     if (buttonName === activeButton) {
-      return 'active';
+      return "active";
     } else {
-      return 'inactive';
+      return "inactive";
     }
   }
 
-    return (
-      <ul>
-        {buttonConfig.map((item, index) => (
-          <li key={index}>
-          <button 
-              title={item.name}
-              onClick={() => buttonClick(item)}
-              className={getActiveClass(item.name)}
+  return (
+    <ul>
+      {buttonConfig.map((item, index) => (
+        <li key={index}>
+          <button
+            title={item.name}
+            onClick={() => buttonClick(item)}
+            className={getActiveClass(item.name)}
           >
-              <MaterialIcon icon={item.icon} />
+            <MaterialIcon icon={item.icon} />
           </button>
-          </li>
-        ))}
-      </ul>
-    )
+        </li>
+      ))}
+    </ul>
+  );
 }
 
-export default MaterialButtonSet
+export default MaterialButtonSet;
