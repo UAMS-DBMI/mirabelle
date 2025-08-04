@@ -15,6 +15,22 @@
   ;
 }
 
+#tools-panel div.mask-filters {
+  @apply
+    flex
+    gap-2
+  ;
+}
+
+#tools-panel div.mask-filters input {
+  @apply w-full;
+}
+
+.mask-filters .noise-control,
+.mask-filters .fill-control {
+  @apply flex flex-wrap items-center flex-1 min-w-0;
+}
+
 #tools-panel div.opacity-control input {
   @apply
     w-full

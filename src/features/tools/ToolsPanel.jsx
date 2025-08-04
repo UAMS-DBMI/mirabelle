@@ -27,6 +27,12 @@ export default function ToolsPanel({
   preset3d,
   renderingEngine
 }) {
+  const [noiseValue, setNoiseValue] = useState(0);
+  const [fillValue, setFillValue] = useState(3);
+
+  const handleNoiseChange = e => setNoiseValue(Number(e.target.value));
+  const handleFillChange = e => setFillValue(Number(e.target.value));
+
   const dispatch = useDispatch();
 
   const presets = useSelector(state => state.presentation.presets);
@@ -95,6 +101,33 @@ export default function ToolsPanel({
               buttonConfig={toolsConfigs.formGroupButtonConfig}
               initialActiveButton={toTitleCase(globalStateValues.form)}
             />
+          </div>
+        }
+        {
+          // globalToolsConfig.filtersToolGroup.visible &&
+          <div className="mask-filters">
+            <div className="noise-control">
+              <p>Noise {noiseValue}:</p>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={noiseValue}
+                onChange={handleNoiseChange}
+              />
+            </div>
+            <div className="fill-control">
+              <p>Fill {fillValue}:</p>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={fillValue}
+                onChange={handleFillChange}
+              />
+            </div>
           </div>
         }
         {
