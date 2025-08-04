@@ -188,7 +188,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       setIsInitialized(true);
       dispatch(setLoading(false));
     };
-
+    setIsInitialized(false);
     initialize();
 
   }, [iec]);
