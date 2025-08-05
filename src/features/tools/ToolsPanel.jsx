@@ -116,7 +116,7 @@ export default function ToolsPanel({
           globalToolsConfig.filterToolGroup.visible &&
           <div className="mask-filters">
             <div className="noise-control">
-              <p>Noise {noise}:</p>
+              <p>Noise: {noise}</p>
               <input
                 type="range"
                 min={0}
@@ -127,7 +127,7 @@ export default function ToolsPanel({
               />
             </div>
             <div className="fill-control">
-              <p>Fill {fill}:</p>
+              <p>Fill: {fill}</p>
               <input
                 type="range"
                 min={0}
@@ -161,7 +161,7 @@ export default function ToolsPanel({
         }
         {opacityToolGroup.visible && (
           <div className="opacity-control">
-            <p>Opacity <span>{opacity.toFixed(1)}:</span></p>
+            <p>Opacity: <span>{opacity.toFixed(1)}</span></p>
             <input
               type="range"
               min={opacityToolGroup.min}
