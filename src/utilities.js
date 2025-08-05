@@ -373,8 +373,11 @@ function parseSegMetadata(arrayBuffer) {
   return { dataset, segments, frames };
 }
 
-function cielabToRGBA([L, a, b]) {
-  // TODO might need to add alpha to the end, should always be 255?
+function cielabToRGBA(color) {
+  if (!color) {
+    return [0, 0, 0, 255]; // Default to black if no color is provided
+  }
+  const [L, a, b] = color;
   return dcmjs.data.Colors.dicomlab2RGB([L, a, b])
     .map(val => Math.round(val * 255));
 }
