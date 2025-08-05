@@ -89,6 +89,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
   const optionsForm = useSelector(state => state.options.form);
   const optionsFunction = useSelector(state => state.options.function);
+  const optionsNoise = useSelector(state => state.options.noise);
+  const optionsFill = useSelector(state => state.options.fill);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
   const [volumeId, setVolumeId] = useState()
@@ -286,6 +288,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     let finalCoords = coords;
     let selectedForm = optionsForm;
     let selectedFunction = optionsFunction;
+    let selectedNoise = optionsNoise;
+    let selectedFill = optionsFill;
 
     let spacing = null
 
@@ -308,7 +312,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     }
 
     console.log(finalCoords, spacing, iec);
-    await submitFinalCoords(finalCoords, spacing, iec, selectedForm, selectedFunction);
+    await submitFinalCoords(finalCoords, spacing, iec, selectedForm, selectedFunction, selectedNoise, selectedFill);
 
     toast.success("Submitted for masking!");
   }

@@ -27,17 +27,26 @@ export default function ToolsPanel({
   preset3d,
   renderingEngine
 }) {
-  const [noiseValue, setNoiseValue] = useState(0);
-  const [fillValue, setFillValue] = useState(3);
-
-  const handleNoiseChange = e => setNoiseValue(Number(e.target.value));
-  const handleFillChange = e => setFillValue(Number(e.target.value));
-
   const dispatch = useDispatch();
 
   const presets = useSelector(state => state.presentation.presets);
   const globalToolsConfig = useSelector(state => state.presentation.toolsConfig);
   const globalStateValues = useSelector(state => state.options);
+
+  // pull filters config + values from Redux
+  // const { filterToolGroup } = globalToolsConfig;
+  const noise = globalStateValues.noise;
+  const fill = globalStateValues.fill;
+
+  const handleNoiseChange = e => {
+    const value = parseInt(e.target.value);
+    dispatch(setOption({ key: 'noise', value }));
+  };
+
+  const handleFillChange = e => {
+    const value = parseInt(e.target.value);
+    dispatch(setOption({ key: 'fill', value }));
+  };
 
   // pull opacity config + value from Redux
   const { opacityToolGroup } = globalToolsConfig;
@@ -104,27 +113,27 @@ export default function ToolsPanel({
           </div>
         }
         {
-          // globalToolsConfig.filtersToolGroup.visible &&
+          globalToolsConfig.filterToolGroup.visible &&
           <div className="mask-filters">
             <div className="noise-control">
-              <p>Noise {noiseValue}:</p>
+              <p>Noise {noise}:</p>
               <input
                 type="range"
                 min={0}
                 max={10}
                 step={1}
-                value={noiseValue}
+                value={noise}
                 onChange={handleNoiseChange}
               />
             </div>
             <div className="fill-control">
-              <p>Fill {fillValue}:</p>
+              <p>Fill {fill}:</p>
               <input
                 type="range"
                 min={0}
                 max={10}
                 step={1}
-                value={fillValue}
+                value={fill}
                 onChange={handleFillChange}
               />
             </div>

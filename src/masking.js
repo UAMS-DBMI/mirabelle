@@ -74,7 +74,7 @@ export async function flagAsNonmaskable(iec) {
 
 export async function setParameters(
   iec,
-  { lr, pa, is, width, height, depth, form, function: maskFunction }
+  { lr, pa, is, width, height, depth, form, function: maskFunction, noise, fill }
 ) {
   // The api expects lr,pa,is to be capitalized
   const body = JSON.stringify({
@@ -85,7 +85,9 @@ export async function setParameters(
     height,
     depth,
     form,
-    function: maskFunction
+    function: maskFunction,
+    noise,
+    fill
   });
   // console.log("setParameters", body);
 
@@ -129,7 +131,7 @@ export async function tests() {
 
 }
 
-export async function submitFinalCoords(coords, spacing, iec, maskForm, maskFunction) {
+export async function submitFinalCoords(coords, spacing, iec, maskForm, maskFunction, maskNoise, maskFill) {
 
   //// single image
   //// iec = 1167702
@@ -197,6 +199,8 @@ export async function submitFinalCoords(coords, spacing, iec, maskForm, maskFunc
     depth: Math.round(dimensionsMM[2]), // Depth (IS)
     form: maskForm,
     function: maskFunction,
+    noise: maskNoise,
+    fill: maskFill,
   };
 
   await setParameters(iec, output);

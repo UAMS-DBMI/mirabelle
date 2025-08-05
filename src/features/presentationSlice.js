@@ -76,6 +76,11 @@ const presentationSlice = createSlice({
           cylinder: false,
         },
       },
+      filterToolGroup: {
+        visible: false,
+        noiseDefaultValue: 0,
+        fillDefaultValue: 3,
+      },          
       leftClickToolGroup: {
         visible: false,
         defaultValue: 'selection',
@@ -198,6 +203,7 @@ const presentationSlice = createSlice({
 
       state.toolsConfig.functionToolGroup.visible = true;
       state.toolsConfig.formToolGroup.visible = true;
+      state.toolsConfig.filterToolGroup.visible = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
       state.toolsConfig.leftClickToolGroup.defaultValue = Enums.LeftClickOptions.SELECTION;

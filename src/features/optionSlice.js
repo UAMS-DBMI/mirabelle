@@ -8,10 +8,12 @@ const initialState = {
   view: Enums.ViewOptions.VOLUME,
   function: Enums.FunctionOptions.MASK,
   form: Enums.FormOptions.CYLINDER,
+  noise: 0,
+  fill: 3,
   leftClick: Enums.LeftClickOptions.SELECTION,
   rightClick: Enums.RightClickOptions.ZOOM,
   opacity: 0.3,
-  preset: 'MR-Default',
+  preset: 'CT-MIP',
   loading: false,
 };
 
