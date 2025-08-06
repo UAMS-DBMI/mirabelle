@@ -35,6 +35,10 @@ const BASE_DEFAULTS = {
   formToolCuboidVisible: false,
   formToolCylinderVisible: false,
 
+  filterToolGroupVisible: false,
+  noiseToolValue: 0,
+  fillToolValue: 3,
+
   leftClickToolGroupVisible: false,
   leftClickToolGroupValue: "selection", // 'selection' or 'windowlevel' or 'crosshairs'
   leftClickToolWindowLevelVisible: false,
@@ -114,6 +118,8 @@ const MASKER_CONFIG = {
   functionToolGroupVisible: true,
 
   formToolGroupVisible: true,
+
+  filterToolGroupVisible: true,
 
   leftClickToolGroupVisible: true,
   leftClickToolGroupValue: "selection",
@@ -214,6 +220,8 @@ const STACK_CONFIG = {
 
   formToolGroupValue: "cuboid",
   formToolCuboidVisible: true,
+
+  filterToolGroupVisible: false,
 };
 
 const VOLUME_CONFIG = {

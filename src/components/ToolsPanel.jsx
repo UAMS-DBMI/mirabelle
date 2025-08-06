@@ -36,6 +36,16 @@ function ToolsPanel({ iec, details }) {
     context.setPresetToolValue(newPreset);
   };
 
+  const handleNoiseChange = e => {
+    const newNoise = parseInt(e.target.value);
+    context.setNoiseToolValue(newNoise);
+  };
+  
+  const handleFillChange = e => {
+    const newFill = parseInt(e.target.value);
+    context.setFillToolValue(newFill);
+  };
+
   async function handleOnNext() {
     const vr = details.visual_review_instance_id;
 
@@ -181,6 +191,35 @@ function ToolsPanel({ iec, details }) {
           </>
         )}
 
+        
+        {/*Filters*/}
+        {context.filterToolGroupVisible && (
+        <div>
+          <li className="pt-2 dark:bg-opacity-5 rounded-lg">
+            Noise {context.noiseToolValue}:
+            <input
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={context.noiseToolValue}
+              onChange={handleNoiseChange}
+            />
+          </li>
+          <li className="pt-2 dark:bg-opacity-5 rounded-lg">
+            Fill {context.fillToolValue}:
+            <input
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={context.fillToolValue}
+              onChange={handleFillChange}
+            />
+          </li>
+        </div>
+        )}     
+
         {/*Left-Click Group*/}
         {context.leftClickToolGroupVisible && (
           <>
@@ -255,7 +294,7 @@ function ToolsPanel({ iec, details }) {
         {/*Opacity*/}
         {context.opacityToolVisible && (
           <li className="pt-2 dark:bg-opacity-5 rounded-lg">
-            Opacity:
+            Opacity {context.opacityToolValue}:
             <input
               className="w-full cursor-pointer"
               type="range"
@@ -265,7 +304,6 @@ function ToolsPanel({ iec, details }) {
               value={context.opacityToolValue}
               onChange={handleOpacityChange}
             />
-            <span>{context.opacityToolValue}</span>
           </li>
         )}
 

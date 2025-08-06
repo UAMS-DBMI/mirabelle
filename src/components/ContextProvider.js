@@ -15,6 +15,9 @@ export default function ContextProvider({ children, initialLayout = "" }) {
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [rightPanelVisible, setRightPanelVisible] = useState(true);
 
+  const [noise, setNoise] = useState(0);
+  const [fill, setFill] = useState(3);  
+
   return (
     <Context.Provider
       value={{
@@ -40,6 +43,10 @@ export default function ContextProvider({ children, initialLayout = "" }) {
         setLeftPanelVisible,
         rightPanelVisible,
         setRightPanelVisible,
+        noise,
+        setNoise,
+        fill,
+        setFill
       }}
     >
       {children}

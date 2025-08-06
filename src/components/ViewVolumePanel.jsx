@@ -1411,6 +1411,16 @@ function ViewVolumePanel({ volumeName, files, iec }) {
         context.setFormToolGroupValue(context.formToolGroupValue);
       }
 
+      // Reset Noise
+      if (context.noiseToolVisible) {
+        context.setNoiseToolValue(context.noiseToolValue);
+      }
+
+      // Reset Fill
+      if (context.fillToolVisible) {
+        context.setFillToolValue(context.fillToolValue);
+      }
+
       // Reset left click
       if (context.leftClickToolGroupVisible) {
         context.setLeftClickToolGroupValue(context.leftClickToolGroupValue);
@@ -1526,9 +1536,11 @@ function ViewVolumePanel({ volumeName, files, iec }) {
     }
     const maskForm = context.formToolGroupValue;
     const maskFunction = context.functionToolGroupValue;
+    const maskNoise = context.noiseToolValue;
+    const maskFill = context.fillToolValue;
     const volume = cornerstone.cache.getVolume(volumeId);
     const spacing = volume.spacing;
-    await submitFinalCoords(coords, spacing, iec, maskForm, maskFunction);
+    await submitFinalCoords(coords, spacing, iec, maskForm, maskFunction, maskNoise, maskFill);
     context.showToast("Submitted for masking!");
   }
   async function handleMarkAccepted() {
