@@ -33,6 +33,7 @@ export default function VolumeView({
   preset3d,
   toolGroup,
   toolGroup3d,
+  modality,
   // onToggleLeftPanel,
   // onToggleRightPanel,
 }) {
@@ -150,6 +151,7 @@ export default function VolumeView({
         segmentationId={segmentationId}
         orientation="CORONAL"
         preset3d={preset3d}
+        modality={modality}
       />
       <VolumeViewport
         key="coronal2d"

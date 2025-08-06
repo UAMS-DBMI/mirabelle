@@ -243,6 +243,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
         preset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
+        modality={details.modality}
         onToggleLeftPanel={handleToggleLeft}
         onToggleRightPanel={handleToggleRight}
       />

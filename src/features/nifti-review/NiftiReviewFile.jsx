@@ -252,6 +252,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       preset3d={preset3d}
       toolGroup={toolGroup}
       toolGroup3d={toolGroup3d}
+      modality={null}
       onToggleLeftPanel={handleToggleLeft}
       onToggleRightPanel={handleToggleRight}
     />

@@ -174,6 +174,8 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       let iecList = null;
       let segBaseIEC = null;
       let segBaseDetails = null;
+      let segBaseModality = modality;
+
       if (modality === 'SEG') {
         isSeg = true;
         iecList = await getOtherIECsForFOR(iec);
@@ -181,6 +183,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
           segBaseIEC = iecList[0].image_equivalence_class_id;
           segBaseDetails = await getDicomDetails(segBaseIEC);
           volumetric = segBaseDetails.volumetric;
+          segBaseModality = segBaseDetails.modality;
         }
       }
       setIsSeg(isSeg)
@@ -190,7 +193,12 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       //  volumetric = false; // force stack view
       //}
 
-      setDetails(details);
+      const finalDetails = { ...details };
+      if (isSeg && segBaseDetails) {
+        finalDetails.segBaseModality = segBaseModality;
+      }
+
+      setDetails(finalDetails);
 
       setIsErrored(false);
       let volumeId = `dicom-review-${iec}`;
@@ -319,6 +327,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
         preset3d={preset3d}
         toolGroup={toolGroup}
         toolGroup3d={toolGroup3d}
+        modality={details.segBaseModality || details.modality}
         onToggleLeftPanel={handleToggleLeft}
         onToggleRightPanel={handleToggleRight}
       />
