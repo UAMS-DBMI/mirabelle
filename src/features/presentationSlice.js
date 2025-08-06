@@ -303,6 +303,7 @@ const presentationSlice = createSlice({
       state.toolsConfig.formToolGroup.visibility.cuboid = true;
 
       state.buttonConfig.masker.visibility.expand = false;
+      state.toolsConfig.filterToolGroup.visible = false;
 
       return state;
     },
