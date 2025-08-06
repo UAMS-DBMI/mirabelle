@@ -40,7 +40,7 @@ function ToolsPanel({ iec, details }) {
     const newNoise = parseInt(e.target.value);
     context.setNoiseToolValue(newNoise);
   };
-  
+
   const handleFillChange = e => {
     const newFill = parseInt(e.target.value);
     context.setFillToolValue(newFill);
@@ -191,34 +191,34 @@ function ToolsPanel({ iec, details }) {
           </>
         )}
 
-        
+
         {/*Filters*/}
         {context.filterToolGroupVisible && (
-        <div>
-          <li className="pt-2 dark:bg-opacity-5 rounded-lg">
-            Noise {context.noiseToolValue}:
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={1}
-              value={context.noiseToolValue}
-              onChange={handleNoiseChange}
-            />
-          </li>
-          <li className="pt-2 dark:bg-opacity-5 rounded-lg">
-            Fill {context.fillToolValue}:
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={1}
-              value={context.fillToolValue}
-              onChange={handleFillChange}
-            />
-          </li>
-        </div>
-        )}     
+          <div className="flex gap-2 pb-4">
+            <li className="flex flex-wrap flex-1 min-w-0">
+              Noise {context.noiseToolValue}:
+              <input className="w-full"
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={context.noiseToolValue}
+                onChange={handleNoiseChange}
+              />
+            </li>
+            <li className="flex flex-wrap flex-1 min-w-0">
+              Fill {context.fillToolValue}:
+              <input className="w-full"
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={context.fillToolValue}
+                onChange={handleFillChange}
+              />
+            </li>
+          </div>
+        )}
 
         {/*Left-Click Group*/}
         {context.leftClickToolGroupVisible && (
