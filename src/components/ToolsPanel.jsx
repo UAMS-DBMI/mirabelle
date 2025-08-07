@@ -196,7 +196,7 @@ function ToolsPanel({ iec, details }) {
         {context.filterToolGroupVisible && (
           <div className="flex gap-2 pb-4">
             <li className="flex flex-wrap flex-1 min-w-0">
-              Noise {context.noiseToolValue}:
+              Noise: {context.noiseToolValue}
               <input className="w-full"
                 type="range"
                 min={0}
@@ -207,7 +207,7 @@ function ToolsPanel({ iec, details }) {
               />
             </li>
             <li className="flex flex-wrap flex-1 min-w-0">
-              Fill {context.fillToolValue}:
+              Fill: {context.fillToolValue}
               <input className="w-full"
                 type="range"
                 min={0}
@@ -294,7 +294,7 @@ function ToolsPanel({ iec, details }) {
         {/*Opacity*/}
         {context.opacityToolVisible && (
           <li className="pt-2 dark:bg-opacity-5 rounded-lg">
-            Opacity {context.opacityToolValue}:
+            Opacity: {context.opacityToolValue}
             <input
               className="w-full cursor-pointer"
               type="range"
