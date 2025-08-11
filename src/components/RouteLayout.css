@@ -25,6 +25,11 @@
     ;
 }
 
+.side-panel .wrapper {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none;/* Firefox */
+}
+
 .side-panel h2#title {
     @apply 
         /* border-2 */
