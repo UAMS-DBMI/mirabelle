@@ -25,9 +25,38 @@
     ;
 }
 
+html.windows .side-panel .wrapper {
+    @apply pl-[1rem] mx-[-1rem];
+}
+
+/* make the track & thumb transparent by default */
 .side-panel .wrapper {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none;/* Firefox */
+    @apply overflow-y-scroll gap-3 flex flex-col rounded-lg;
+    scrollbar-color: transparent transparent;
+}
+
+.side-panel .wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.side-panel .wrapper::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 4px;
+    transition: background-color 0.2s, background 0.2s;
+}
+
+/* on hover–show both track & thumb */
+.side-panel .wrapper:hover {
+    /* Firefox */
+    scrollbar-color: rgba(0, 0, 0, 0.4) transparent;
+}
+
+.side-panel .wrapper:hover::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.side-panel .wrapper:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.4);
 }
 
 .side-panel h2#title {
@@ -40,16 +69,6 @@
         rounded-lg
         font-bold
         text-center
-    ; 
-}
-
-.side-panel .wrapper {
-    @apply  
-        overflow-y-auto 
-        gap-3
-        flex
-        flex-col
-        rounded-lg
     ; 
 }
 

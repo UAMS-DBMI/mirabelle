@@ -151,6 +151,10 @@ const router = createBrowserRouter(
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
+if (typeof navigator !== 'undefined' && navigator.userAgent.includes('Windows')) {
+    document.documentElement.classList.add('windows');
+}
+
 root.render(
   <Provider store={store}>
     <EnableCornerstone>
