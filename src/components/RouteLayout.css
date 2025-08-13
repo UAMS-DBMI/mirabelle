@@ -59,6 +59,12 @@ html.windows .side-panel .wrapper {
     background-color: rgba(0, 0, 0, 0.4);
 }
 
+@-moz-document url-prefix() {
+    html.windows .side-panel .wrapper {
+        padding-right: 1rem;
+    }
+}
+
 .side-panel h2#title {
     @apply 
         /* border-2 */
