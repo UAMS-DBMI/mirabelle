@@ -29,6 +29,10 @@ html.windows .side-panel .wrapper {
     @apply pl-[1rem] mx-[-1rem];
 }
 
+html:not(.windows) .side-panel .wrapper {
+    @apply px-[1rem] mx-[-1rem];
+}
+
 /* make the track & thumb transparent by default */
 .side-panel .wrapper {
     @apply overflow-y-scroll gap-3 flex flex-col rounded-lg;
