@@ -1,17 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useDispatch } from 'react-redux';
-import { setLoading } from '@/features/optionSlice';
+import { setLoading, resetOptions, setOption } from '@/features/optionSlice';
 import MaterialButtonSet from '@/components/MaterialButtonSet';
 import MaskIEC from '@/features/mask/MaskIEC';
-import { resetOptions } from '@/features/optionSlice';
 
 import "./MaskVR.css";
 
 export default function MaskVR({ vr, iec, onNext, onPrevious }) {
-  useHotkeys("tab", onNext);
-  useHotkeys("right", onNext);
-  useHotkeys("left", onPrevious);
+  const dispatch = useDispatch();
+  useHotkeys("tab", handleNext);
+  useHotkeys("right", handleNext);
+  useHotkeys("left", handlePrevious);
+
+  function handleNext() {
+    // Reset preset to force recalculation for next IEC
+    dispatch(setOption({ key: 'preset', value: null }));
+    onNext();
+  }
+
+  function handlePrevious() {
+    // Reset preset to force recalculation for previous IEC
+    dispatch(setOption({ key: 'preset', value: null }));
+    onPrevious();
+  }
 
   return (
     <>
@@ -19,8 +31,8 @@ export default function MaskVR({ vr, iec, onNext, onPrevious }) {
         <MaskIEC
           vr={vr}
           iec={iec}
-          onNext={onNext}
-          onPrevious={onPrevious}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
         />
       )}
     </>
