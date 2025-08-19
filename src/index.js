@@ -96,10 +96,14 @@ const router = createBrowserRouter(
           loader: routeMaskReviewIECLoader,
         },
         {
-          path: "mask/review/vr/:visual_review_instance_id",
+          path: "mask/review/vr/:vr",
           element: <RouteMaskReviewVR />,
           HydrateFallback: LoadingSpinner,
-          loader: routeMaskerReviewVRLoader,
+        },
+        {
+          path: "mask/review/vr/:vr/:iec",
+          element: <RouteMaskReviewVR />,
+          HydrateFallback: LoadingSpinner,
         },
         {
           path: "review/nifti/file/:fileId",

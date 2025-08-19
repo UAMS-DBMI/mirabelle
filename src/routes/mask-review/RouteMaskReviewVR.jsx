@@ -1,33 +1,79 @@
-import React, { useEffect } from 'react';
-import { useLoaderData } from 'react-router-dom';
-import { useDispatch } from 'react-redux'
-import { resetOptions } from '@/features/optionSlice';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 
-import MaskReviewVR from '@/features/mask-review/MaskReviewVR';
+import { getIECsForVRAwaitingReview } from "@/utilities";
+import { resetOptions, setLoading } from "@/features/optionSlice";
+import { setMaskerReviewConfig, reset } from "@/features/presentationSlice";
+import MaskReviewVR from "@/features/mask-review/MaskReviewVR";
 
-import { getIECsForVRAwaitingReview } from '@/utilities';
-
-import { setMaskerReviewConfig, reset } from '@/features/presentationSlice'
-
-import './RouteMaskReviewVR.css';
-
-export async function loader({ params }) {
-  const iecs = await getIECsForVRAwaitingReview(params.visual_review_instance_id);
-
-  return { vr: params.visual_review_instance_id, iecs };
-}
+import "./RouteMaskReviewVR.css";
 
 export default function RouteMaskReviewVR() {
-  const { vr, iecs } = useLoaderData();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { vr, iec } = useParams();
+
+  const [iecList, setIecList] = useState(null);
 
   useEffect(() => {
     dispatch(resetOptions());
     dispatch(reset());
     dispatch(setMaskerReviewConfig());
-  }, []);
+    dispatch(setLoading(true));
 
-  return (
-    <MaskReviewVR vr={vr} iecs={iecs} />
-  );
+    if (!iecList) {
+      getIECsForVRAwaitingReview(vr).then((iecs) => {
+        // this should trigger a re-run of this effect
+        setIecList(iecs);
+      });
+    } else {
+      if (iec === undefined) {
+        console.log("No iec provided, navigating to first IEC.");
+        navigate(`/mask/review/vr/${vr}/${iecList[0]}`);
+      } else {
+        console.log("[RouteMaskReviewVR] useEffect running, vr=", vr, "iec=", iec);
+      }
+    }
+  }, [vr, iec, iecList]);
+
+  // calculate the next and previous IECs
+  let offset = null;
+  let nextIEC = null;
+  let previousIEC = null;
+
+  if (iecList && iec) {
+    const iecNumber = parseInt(iec);
+    offset = iecList.indexOf(iecNumber);
+    const nextOffset = offset + 1;
+    const previousOffset = offset - 1;
+
+    if (nextOffset < iecList.length) {
+      nextIEC = iecList[nextOffset];
+    }
+
+    if (previousOffset >= 0) {
+      previousIEC = iecList[previousOffset];
+    }
+  }
+
+  const handleNext = () => {
+    if (nextIEC) {
+      console.log("Navigating to next IEC:", nextIEC);
+      navigate(`/mask/review/vr/${vr}/${nextIEC}`);
+      // window.location.assign(`${PUBLIC_URL}/mask/review/vr/${vr}/${nextIEC}`);
+    } else {
+      alert("No next IEC");
+    }
+  };
+
+  const handlePrevious = () => {
+    if (previousIEC) {
+      navigate(`/mask/review/vr/${vr}/${previousIEC}`);
+    } else {
+      alert("No previous IEC");
+    }
+  };
+
+  return <MaskReviewVR vr={vr} iec={iec} onNext={handleNext} onPrevious={handlePrevious} />;
 }

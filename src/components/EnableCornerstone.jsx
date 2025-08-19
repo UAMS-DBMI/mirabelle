@@ -47,6 +47,8 @@ function EnableCornerstone({ children }) {
       window.polyseg = polySeg;
       window.cornerstoneDicomImageLoader = cornerstoneDicomImageLoader;
 
+      new cornerstone.RenderingEngine("re1");
+
       setIsInitialized(true);
     };
 

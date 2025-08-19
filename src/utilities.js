@@ -3,6 +3,7 @@ import * as cornerstone from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import * as cornerstoneAdapters from "@cornerstonejs/adapters";
 import createImageIdsAndCacheMetaData from './lib/createImageIdsAndCacheMetaData';
+import { eventTarget, triggerEvent } from '@cornerstonejs/core';
 
 const { volumeLoader, imageLoader, metaData } = cornerstone;
 const { Enums: csToolsEnums, segmentation: csToolsSegmentation, } = cornerstoneTools;
@@ -163,7 +164,6 @@ export async function getFiles(iec) {
  * Get the file list for an IEC, or the reviewfiles list
  */
 export async function getIECInfo(iec, mask_review=false) {
-
 	let response
 
 	if (mask_review) {
@@ -190,7 +190,32 @@ export async function getIECInfo(iec, mask_review=false) {
 			}
 		}
 	}
+
+  frames = decimateFrames(frames);
+
 	return { volumetric, frames };
+}
+
+function decimateFrames(imageIds, maxFrames = 2000) {
+  // Decimate Z if too many frames
+  let usedImageIds = imageIds;
+  if (Array.isArray(imageIds) && imageIds.length > maxFrames) {
+    const step = Math.ceil(imageIds.length / maxFrames);
+    const decimated = [];
+    for (let i = 0; i < imageIds.length; i += step) {
+      decimated.push(imageIds[i]);
+    }
+    // Ensure last slice is included
+    if (decimated[decimated.length - 1] !== imageIds[imageIds.length - 1]) {
+      decimated.push(imageIds[imageIds.length - 1]);
+    }
+    usedImageIds = decimated;
+    console.warn(
+      `Decimating volume along Z: ${imageIds.length} -> ${usedImageIds.length} frames (step=${step})`
+    );
+  }
+
+  return usedImageIds;
 }
 
 export async function getIECsForVR(visual_review_id) {
@@ -266,51 +291,80 @@ export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentation
   }
 
   // Set the volume to load
-  await volume.load();
+  volume.load(async () => {
 
-  csToolsSegmentation.removeAllSegmentations();
-  csToolsSegmentation.removeAllSegmentationRepresentations();
 
-  // Create a segmentation of the same resolution as the source data for the CT volume
-  volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
-    volumeId: segmentationId,
-  });
+    csToolsSegmentation.removeAllSegmentations();
+    csToolsSegmentation.removeAllSegmentationRepresentations();
 
-  csToolsSegmentation.addSegmentations([
-    {
-      segmentationId,
-      representation: {
-        // The type of segmentation
-        type: csToolsEnums.SegmentationRepresentations.Labelmap,
-        // The actual segmentation data, in the case of labelmap this is a
-        // reference to the source volume of the segmentation.
-        data: {
-          volumeId: segmentationId,
+    // Create a segmentation of the same resolution as the source data for the CT volume
+    await volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
+      volumeId: segmentationId,
+    });
+
+    csToolsSegmentation.addSegmentations([
+      {
+        segmentationId,
+        representation: {
+          // The type of segmentation
+          type: csToolsEnums.SegmentationRepresentations.Labelmap,
+          // The actual segmentation data, in the case of labelmap this is a
+          // reference to the source volume of the segmentation.
+          data: {
+            volumeId: segmentationId,
+          },
         },
       },
-    },
-  ]);
+    ]);
 
+    triggerEvent(eventTarget, 'VolumeReallyLoaded', {
+      volumeId,
+      segmentationId,
+    });
+
+    console.log("Volume loaded:", volumeId);
+  });
   return volume;
 }
 
 
+/**
+ * This is a version of loadVolume that returns a Promise that resolves
+ * only when the volume is fully loaded. 
+ * 
+ * This would allow you to `await loadVolumeAsync(...)` and pause until
+ * the volume is loaded.
+ */
+export function loadVolumeAsync(imageIds, volumeId, segmentationId, callback=null) {
+  return new Promise((resolve) => {
+    loadVolume(imageIds, volumeId, segmentationId, (result) => {
+      resolve(result);
+    });
+  });
+}
 
-export async function loadVolume(imageIds, volumeId, segmentationId) {
+/**
+ * Load a volume via WADO-URI
+ * 
+ * @param {Array<string>} imageIds 
+ * @param {string} volumeId 
+ * @param {string} segmentationId 
+ * @param {function} callback 
+ * @returns 
+ */
+export async function loadVolume(imageIds, volumeId, segmentationId, callback = null) {
 
   let volume = cornerstone.cache.getVolume(volumeId);
   if (!volume) {
-    console.log("Volume didn't already exist, creating it");
+    console.log("Volume didn't already exist, creating it:", volumeId);
     volume = await volumeLoader.createAndCacheVolume(volumeId, {
-      imageIds,
-    })
+      imageIds
+    });
   } else {
     console.log("Volume already existed, not creating it");
-    cornerstone.cache.removeVolumeLoadObject(segmentationId);
   }
 
-  // Set the volume to load
-  await volume.load();
+  await volume.load(callback);
 
   return volume;
 }
@@ -509,4 +563,82 @@ export function fetchFileAsArrayBuffer(fileId) {
       }
       return response.arrayBuffer();
     });
-} 
+}
+
+/**
+ * Converts IJK (index) coordinates to World (physical) coordinates
+ * @param {Array} ijkCoords - Array of [i, j, k] coordinates
+ * @param {Object} volume - Volume object containing dimensions, origin, spacing, and direction
+ * @returns {Array} World coordinates [x, y, z] in physical space
+ */
+export function ijkToWorld(ijkCoords, volume) {
+  const [i, j, k] = ijkCoords;
+  const { origin, spacing, direction } = volume;
+  
+  // Convert the flat 9-element direction array to a 3x3 matrix
+  const directionMatrix = [
+    [direction[0], direction[1], direction[2]],
+    [direction[3], direction[4], direction[5]],
+    [direction[6], direction[7], direction[8]]
+  ];
+  
+  // Scale by spacing first
+  const scaledCoords = [
+    i * spacing[0],
+    j * spacing[1], 
+    k * spacing[2]
+  ];
+  
+  // Apply direction matrix transformation
+  const worldCoords = [
+    directionMatrix[0][0] * scaledCoords[0] + directionMatrix[0][1] * scaledCoords[1] + directionMatrix[0][2] * scaledCoords[2] + origin[0],
+    directionMatrix[1][0] * scaledCoords[0] + directionMatrix[1][1] * scaledCoords[1] + directionMatrix[1][2] * scaledCoords[2] + origin[1],
+    directionMatrix[2][0] * scaledCoords[0] + directionMatrix[2][1] * scaledCoords[1] + directionMatrix[2][2] * scaledCoords[2] + origin[2]
+  ];
+  
+  return worldCoords;
+}
+
+/**
+ * Converts World (physical) coordinates to IJK (index) coordinates
+ * @param {Array} worldCoords - Array of [x, y, z] world coordinates
+ * @param {Object} volume - Volume object containing dimensions, origin, spacing, and direction
+ * @returns {Array} IJK coordinates [i, j, k] in index space
+ */
+export function worldToIjk(worldCoords, volume) {
+  const [x, y, z] = worldCoords;
+  const { origin, spacing, direction } = volume;
+  
+  // Convert the flat 9-element direction array to a 3x3 matrix
+  const directionMatrix = [
+    [direction[0], direction[1], direction[2]],
+    [direction[3], direction[4], direction[5]],
+    [direction[6], direction[7], direction[8]]
+  ];
+  
+  // Subtract origin first
+  const translatedCoords = [
+    x - origin[0],
+    y - origin[1],
+    z - origin[2]
+  ];
+  
+  // Apply inverse direction matrix transformation
+  // For orthogonal matrices, inverse = transpose
+  const physicalCoords = [
+    directionMatrix[0][0] * translatedCoords[0] + directionMatrix[1][0] * translatedCoords[1] + directionMatrix[2][0] * translatedCoords[2],
+    directionMatrix[0][1] * translatedCoords[0] + directionMatrix[1][1] * translatedCoords[1] + directionMatrix[2][1] * translatedCoords[2],
+    directionMatrix[0][2] * translatedCoords[0] + directionMatrix[1][2] * translatedCoords[1] + directionMatrix[2][2] * translatedCoords[2]
+  ];
+  
+  // Scale by inverse spacing
+  const ijkCoords = [
+    physicalCoords[0] / spacing[0],
+    physicalCoords[1] / spacing[1],
+    physicalCoords[2] / spacing[2]
+  ];
+  
+  return ijkCoords;
+}
+window.worldToIjk = worldToIjk;
+window.ijkToWorld = ijkToWorld;

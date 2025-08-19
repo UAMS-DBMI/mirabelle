@@ -60,6 +60,7 @@ function StackViewport({
         }
       );
 
+
       const viewportInput = {
         viewportId,
         type: Enums.ViewportType.STACK,

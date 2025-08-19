@@ -188,6 +188,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       setIsInitialized(true);
       dispatch(setLoading(false));
     };
+
     setIsInitialized(false);
     initialize();
 
@@ -232,7 +233,8 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   // short-circuit if not loaded yet
 
   if (!isInitialized) {
-    return <LoadingSpinner />
+    // return <LoadingSpinner />
+    return;
   }
 
   if (volumetric) {

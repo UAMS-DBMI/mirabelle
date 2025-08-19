@@ -1,19 +1,17 @@
+import React from "react";
+import MaterialButtonSet from "@/components/MaterialButtonSet";
 
-import React from 'react';
-import MaterialButtonSet from '@/components/MaterialButtonSet';
-
-import './NavigationPanel.css';
+import "./NavigationPanel.css";
 
 function NavigationPanel({
-  onNext = () => { },
-  onPrevious = () => { },
+  onNext = () => {},
+  onPrevious = () => {},
   currentId,
-  idLabel = 'IEC',
+  idLabel = "IEC",
 }) {
-
   const navButtons = [
-    { name: 'Next', icon: 'arrow_forward', action: onNext },
-    { name: 'Previous', icon: 'arrow_back', action: onPrevious },
+    { name: "Next", icon: "arrow_forward", action: onNext },
+    { name: "Previous", icon: "arrow_back", action: onPrevious },
   ];
 
   return (
@@ -22,7 +20,7 @@ function NavigationPanel({
       <h2 id="title">Navigation</h2>
       <MaterialButtonSet buttonConfig={navButtons} noRemember={true} />
     </div>
-  )
+  );
 }
 
-export default NavigationPanel
+export default NavigationPanel;

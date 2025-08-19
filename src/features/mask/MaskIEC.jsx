@@ -23,6 +23,7 @@ import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import {
   expandSegTo3D,
+  expandSegTo3DInWorldSpace,
   getCoordsForStackSeg,
   isSegFlat,
   loadIECVolumeAndSegmentation,
@@ -164,7 +165,9 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       let volumeId = `mask-${iec}`;
       let segmentationId = `mask-${iec}-seg`;
 
-      const imageIds = await getImageIdsFromIEC(iec);
+      const { frames } = await getIECInfo(iec);
+      const imageIds = frames;
+
       setImageIds(imageIds);
 
       setVolumeId(volumeId);
@@ -207,6 +210,12 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
     initialize();
 
+    return () => {
+      // Make sure we disable drawing of the volume
+      // when we leave, so the next one doesn't attempt to draw
+      // before it exists
+      setIsInitialized(false);
+    };
   }, [iec]);
 
   async function handleOperationsAction(action) {

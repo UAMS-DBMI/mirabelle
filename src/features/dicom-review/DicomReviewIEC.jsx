@@ -28,10 +28,12 @@ import {
   getImageIdsFromIEC,
   loadStackSegmentation,
   loadVolume,
+  loadVolumeAsync,
   loadVolumeSegmentation,
   loadSEGSegmentation,
   getFiles,
   fetchFileAsArrayBuffer,
+  getIECInfo
 } from "@/utilities";
 import { getDicomDetails, setDicomStatus, setMaskingFlag } from '@/visualreview';
 
@@ -207,9 +209,11 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
       let imageIds = [];
 
       if (!isSeg) {
-        imageIds = await getImageIdsFromIEC(iec);
+        const { frames } = await getIECInfo(iec);
+        imageIds = frames;
       } else {
-        imageIds = await getImageIdsFromIEC(segBaseIEC);
+        const { frames } = await getIECInfo(segBaseIEC);
+        imageIds = frames;
       }
       setImageIds(imageIds);
 
@@ -219,12 +223,20 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
 
       try {
         if (volumetric) {
-          //await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
-          await loadVolume(imageIds, volumeId, segmentationId);
-
           if (!isSeg) {
-            await loadVolumeSegmentation(imageIds, volumeId, segmentationId);
+            // Load the volume directly if it's not a seg. No need to
+            // pass a callback, we don't care about when it finishes
+            await loadVolume(imageIds, volumeId, segmentationId);
+
           } else {
+            const loadingId = toast.loading("Loading volume for SEG...");
+            // this version of loadVolume only resolves when the volume
+            // has been fully loaded. 
+            // TODO: We should instead use the normal version and provide
+            // a callback that will load the segmentation. Currently
+            // this doens't work because segMetadata is being passed
+            // to some components and it will break without it.
+            await loadVolumeAsync(imageIds, volumeId, segmentationId);
 
             const segFileIds = await getFiles(iec);
             if (segFileIds.length > 1) {
@@ -238,6 +250,8 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
             // in the segment list are used for React keys, so make sure
             // the segmentIndex is unique (handled in loadSEGSegmentation)
             setSegMetadata(segSegments.segments);
+
+            toast.dismiss(loadingId);
           }
 
           dispatch(setTitle("DICOM Volume Review"));
@@ -246,7 +260,8 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
           dispatch(setVolumeConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
         } else {
-          await loadStackSegmentation(imageIds, segmentationId);
+          // await loadVolumeAsync(imageIds, volumeId, segmentationId);
+          // await loadStackSegmentation(imageIds, segmentationId);
           dispatch(setTitle("DICOM Stack Review"));
           dispatch(reset());
           dispatch(setVisualReviewConfig());
@@ -269,6 +284,11 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
 
     initialize();
 
+    // Return initialized to false when unmounting
+    // so we don't try to draw the next volume before it's loaded!
+    return () => {
+      setIsInitialized(false);
+    };
   }, [iec]);
 
   useHotkeys('g', () => handleOperationsAction('good'));

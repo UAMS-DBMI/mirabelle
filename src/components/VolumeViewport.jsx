@@ -13,6 +13,11 @@ import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core"
 import './VolumeViewport.css';
 import { re } from 'mathjs';
 
+import { eventTarget } from '@cornerstonejs/core';
+
+const { Events } = Enums;
+
+
 const {
   PanTool,
   WindowLevelTool,
@@ -30,6 +35,7 @@ const { segmentation: segmentationUtils } = cstUtils;
 const { ViewportType } = Enums;
 
 
+window.eventTarget = eventTarget;
 
 function VolumeViewport({
   viewportId,
@@ -59,6 +65,9 @@ function VolumeViewport({
   if (orientation == 'CORONAL') {
     realOrientation = Enums.OrientationAxis.CORONAL;
   }
+  const segmentationIds = segmentation.state
+    .getSegmentations()
+    .map((seg) => seg.segmentationId);
 
   useEffect(() => {
     const wrapper = elementRef.current
@@ -101,6 +110,14 @@ function VolumeViewport({
         renderingEngine.render()
       }
 
+
+      // elementRef.current.addEventListener(
+      //   cornerstone.Enums.Events.VOLUME_LOADED,
+      //   (evt) => {
+      //     console.log("Volume rendered:", evt.detail);
+      //   }
+      // );
+
       const viewportInput = {
         viewportId,
         type: Enums.ViewportType.ORTHOGRAPHIC,
@@ -120,15 +137,28 @@ function VolumeViewport({
       // Get the volume viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
 
+      // TODO: this might arrive with no segmentation id, I think?
+      eventTarget.addEventListener('VolumeReallyLoaded', (evt) => {
+        const segmentationId = evt.detail.segmentationId;
+        segmentation.addLabelmapRepresentationToViewport(
+          viewportId, [
+            { segmentationId },
+          ],
+        );
+        console.log("VolumeReallyLoaded event received, segmentationId:", segmentationId, viewportId);
+        console.log(segmentation.state.getViewportSegmentationRepresentations(viewportId))
+      });
+
       toolGroup.addViewport(viewportId, renderingEngine.id);
 
       // Set the volume on the viewport and it's default properties
       viewport.setVolumes([{ volumeId }])
 
-      // Apply all active segmentations to the viewport
+      // // Apply all active segmentations to the viewport
       const segmentationIds = segmentation.state
         .getSegmentations()
-        .map((seg) => seg.segmentationId);
+        .map((seg) => seg.segmentationId)
+        .filter((segmentationId) => !segmentationId.startsWith('mask-'));
 
       await segmentation.addLabelmapRepresentationToViewportMap({
         [viewportId]: segmentationIds.map((segmentationId) => ({
