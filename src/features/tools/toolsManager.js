@@ -133,7 +133,20 @@ export default function useToolsManager({
     toolGroup.addTool(RectangleScissorsTool.toolName);
     toolGroup.addTool(StackScrollTool.toolName);
     toolGroup.addTool(WindowLevelTool.toolName);
-    toolGroup.addTool(CrosshairsTool.toolName);
+    console.log(console.log(toolGroup));
+
+    function getReferenceLineColor(viewportId) {
+
+      return {'axial2d': 'rgb(200, 0, 0)',
+          'sagittal2d': 'rgb(200,200,0)',
+          'coronal2d': 'rgb(0,200,0)'
+      }[viewportId];
+    }
+
+    toolGroup.addTool(CrosshairsTool.toolName, {
+      getReferenceLineColor,
+    });
+    
     toolGroup.addTool(PanTool.toolName);
     toolGroup.addTool(ZoomTool.toolName);
 
