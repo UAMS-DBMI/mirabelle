@@ -15,12 +15,14 @@ export default function MaskVR({ vr, iec, onNext, onPrevious }) {
 
   function handleNext() {
     // Reset preset to force recalculation for next IEC
+    dispatch(resetOptions());
     dispatch(setOption({ key: 'preset', value: null }));
     onNext();
   }
 
   function handlePrevious() {
     // Reset preset to force recalculation for previous IEC
+    dispatch(resetOptions());
     dispatch(setOption({ key: 'preset', value: null }));
     onPrevious();
   }
