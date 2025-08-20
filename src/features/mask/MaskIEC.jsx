@@ -341,7 +341,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     );
   }
   if (!isInitialized) {
-    return <LoadingSpinner />
+    // display nothing; a loading spinner will be handled elsewhere
+    return <></>
   }
 
   if (volumetric) {

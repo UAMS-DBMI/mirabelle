@@ -31,7 +31,7 @@ export default function RouteDicomReviewIEC() {
     dispatch(resetOptions());
     dispatch(reset());
     dispatch(setVisualReviewConfig());
-  });
+  }, []);
 
   return (
     <DicomReviewIEC iec={iec} />

@@ -336,7 +336,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
     );
   }
   if (!isInitialized) {
-    return <LoadingSpinner />
+    return;
   }
 
   if (volumetric) {
