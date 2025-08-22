@@ -30,12 +30,12 @@
     "webpack-dev-server": "^5.2.1"
   },
   "dependencies": {
-    "@cornerstonejs/adapters": "^3.17.0",
-    "@cornerstonejs/core": "^3.17.0",
-    "@cornerstonejs/dicom-image-loader": "^3.17.0",
-    "@cornerstonejs/nifti-volume-loader": "^3.17.0",
-    "@cornerstonejs/polymorphic-segmentation": "^3.17.0",
-    "@cornerstonejs/tools": "^3.17.0",
+    "@cornerstonejs/adapters": "^3.33.4",
+    "@cornerstonejs/core": "^3.33.4",
+    "@cornerstonejs/dicom-image-loader": "^3.33.4",
+    "@cornerstonejs/nifti-volume-loader": "^3.33.4",
+    "@cornerstonejs/polymorphic-segmentation": "^3.33.4",
+    "@cornerstonejs/tools": "^3.33.4",
     "@icr/polyseg-wasm": "^0.4.0",
     "@itk-wasm/morphological-contour-interpolation": "^1.1.0",
     "@reduxjs/toolkit": "^2.8.2",

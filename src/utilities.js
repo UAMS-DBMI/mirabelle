@@ -287,7 +287,6 @@ export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentation
     })
   } else {
     console.log("Volume already existed, not creating it");
-    cornerstone.cache.removeVolumeLoadObject(segmentationId);
   }
 
   // Set the volume to load

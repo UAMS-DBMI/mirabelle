@@ -92,19 +92,19 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
         console.log('No valid image values found, defaulting to MR');
         return 'MR';
       }
-      
+
       values.sort((a, b) => a - b);
       const min = values[0];
       const max = values[values.length - 1];
       const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
       const range = max - min;
-      
+
       // Calculate some additional statistics for better detection
       const negativeCount = values.filter(v => v < 0).length;
       const negativePercentage = negativeCount / values.length;
-      
+
       console.log(`Image data analysis - Range: ${min}-${max} (${range}), Mean: ${mean.toFixed(2)}, Negative: ${(negativePercentage * 100).toFixed(1)}%`);
-      
+
       // CT characteristics: 
       // - Has significant negative values (air ~-1000 HU)
       // - Wide range including high positive values (bone 400-3000+ HU)
@@ -113,7 +113,7 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
         console.log('Detected CT based on Hounsfield Unit characteristics');
         return 'CT';
       }
-      
+
       // PET characteristics:
       // - Typically all positive values (SUV units)
       // - Narrow range, usually 0-50 SUV, rarely exceeds 100
@@ -122,7 +122,7 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
         console.log('Detected PET based on SUV-like characteristics');
         return 'PT';
       }
-      
+
       // MR characteristics:
       // - Arbitrary positive intensities (sequence dependent)
       // - Usually 0 to several thousand
@@ -135,21 +135,21 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
           return 'MR';
         }
       }
-      
+
       // Edge cases and additional heuristics
-      
+
       // Very high dynamic range suggests CT with contrast or metal artifacts
       if (range > 5000) {
         console.log('Detected CT based on very high dynamic range');
         return 'CT';
       }
-      
+
       // Very low range with positive values suggests PET
       if (min >= 0 && range < 50 && max < 50) {
         console.log('Detected PET based on low dynamic range');
         return 'PT';
       }
-      
+
       // Default fallback based on most common characteristics
       if (negativePercentage > 0.01) {
         console.log('Defaulting to CT due to presence of negative values');
@@ -158,7 +158,7 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
         console.log('Defaulting to MR for positive-only intensity range');
         return 'MR';
       }
-      
+
     } catch (error) {
       console.warn('Error analyzing image data for modality detection:', error);
       return 'MR'; // Safe default
@@ -169,7 +169,7 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
   const getDefaultPresetForModality = (modality, currentPreset) => {
     // If a preset is already explicitly set, use it
     if (currentPreset && currentPreset !== 'CT-MIP') return currentPreset;
-    
+
     switch (modality?.toUpperCase()) {
       case 'PT':
       case 'PET':
@@ -266,6 +266,9 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
     }
 
     setup()
+    return () => {
+      segmentation.removeAllSegmentationRepresentations();
+    };
   }, [elementRef, volumeId]);
 
   // Update scalar opacity

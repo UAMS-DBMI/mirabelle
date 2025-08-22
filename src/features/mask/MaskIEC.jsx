@@ -163,7 +163,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
       setIsErrored(false);
       let volumeId = `mask-${iec}`;
-      let segmentationId = `mask-${iec}-seg`;
+      // append a random number 
+      let segmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
       const { frames } = await getIECInfo(iec);
       const imageIds = frames;
