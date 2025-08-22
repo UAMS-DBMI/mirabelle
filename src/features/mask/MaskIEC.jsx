@@ -277,13 +277,22 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     toast.success("Expanded selection!");
   }
   function handleClear() {
-    const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
-    const { dimensions, voxelManager } = segmentationVolume;
+    if (volumetric) {
+      const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
+      const { dimensions, voxelManager } = segmentationVolume;
 
-    let scalarData = voxelManager.getCompleteScalarDataArray();
-    scalarData.fill(0);
-    voxelManager.setCompleteScalarDataArray(scalarData);
-    voxelManager.setBounds([[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]]);
+      let scalarData = voxelManager.getCompleteScalarDataArray();
+      scalarData.fill(0);
+      voxelManager.setCompleteScalarDataArray(scalarData);
+      voxelManager.setBounds([[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]]);
+    } else {
+      const imageIds = segmentation.getLabelmapImageIds(segmentationId);
+      imageIds.forEach((imgId) => {
+        const img = cornerstone.cache.getImage(imgId);
+        const pixelData = img.getPixelData();
+        if (pixelData) pixelData.fill(0);
+      });
+    }
 
     //flag data as updated so it will redraw
     cornerstoneTools.segmentation
