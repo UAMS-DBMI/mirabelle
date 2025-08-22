@@ -399,6 +399,8 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
   csToolsSegmentation.removeAllSegmentations();
   csToolsSegmentation.removeAllSegmentationRepresentations();
 
+  await Promise.all(cornerstone.imageLoader.loadAndCacheImages(imageIds));
+
   // Create a segmentation of the same resolution as the source data for the CT volume
   const segImages = await imageLoader.createAndCacheDerivedLabelmapImages(imageIds);
 
