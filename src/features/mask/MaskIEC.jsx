@@ -283,6 +283,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     let scalarData = voxelManager.getCompleteScalarDataArray();
     scalarData.fill(0);
     voxelManager.setCompleteScalarDataArray(scalarData);
+    voxelManager.setBounds([[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]]);
 
     //flag data as updated so it will redraw
     cornerstoneTools.segmentation

@@ -39,6 +39,7 @@ export function expandSegTo3D(segmentationId) {
     }
   }
 	voxelManager.setCompleteScalarDataArray(scalarData);
+  voxelManager.setBounds([[imin, imax], [jmin, jmax], [kmin, kmax]]);
 
 	return {
 		i: { min: imin, max: imax },
