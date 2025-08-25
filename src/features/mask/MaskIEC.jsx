@@ -261,6 +261,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     viewports.forEach(async (item) => {
       let viewportId = item.id;
       if (viewportId.startsWith("coronal3d")) {
+        console.log("[MaskIEC] Adding surface representation to", viewportId);
         await segmentation.addSegmentationRepresentations(
           viewportId, [
           {
@@ -278,13 +279,41 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   }
   function handleClear() {
     if (volumetric) {
-      const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
-      const { dimensions, voxelManager } = segmentationVolume;
+      // Delete the current segmentation and add a new one (and activate it)
+      // using a new randomly-named segmentation ID. This gets around a bug
+      // with the 3d viewport not rendering after clearing a segmentation. 
+      // Note: this does not prevent the error in updateSurfaceData for the
+      // previous segmentation, however. 
+      cornerstoneTools.segmentation.removeSegmentation(segmentationId);
+      let newSegmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
-      let scalarData = voxelManager.getCompleteScalarDataArray();
-      scalarData.fill(0);
-      voxelManager.setCompleteScalarDataArray(scalarData);
-      voxelManager.setBounds([[Infinity, -Infinity], [Infinity, -Infinity], [Infinity, -Infinity]]);
+      volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
+        volumeId: newSegmentationId,
+      });
+
+      cornerstoneTools.segmentation.addSegmentations([
+        {
+          segmentationId: newSegmentationId,
+          representation: {
+            // The type of segmentation
+            type: csToolsEnums.SegmentationRepresentations.Labelmap,
+            // The actual segmentation data, in the case of labelmap this is a
+            // reference to the source volume of the segmentation.
+            data: {
+              volumeId: newSegmentationId,
+            },
+          },
+        },
+      ]);
+
+      // triggering this event will cause the viewports to automatically 
+      // add a representation for the new segmentation
+      cornerstone.triggerEvent(cornerstone.eventTarget, 'VolumeReallyLoaded', {
+        volumeId, 
+        segmentationId: newSegmentationId
+      });
+
+      setSegmentationId(newSegmentationId);
     } else {
       const imageIds = segmentation.getLabelmapImageIds(segmentationId);
       imageIds.forEach((imgId) => {
@@ -292,12 +321,13 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         const pixelData = img.getPixelData();
         if (pixelData) pixelData.fill(0);
       });
+
+      // flag data as updated so it will redraw
+      cornerstoneTools.segmentation
+        .triggerSegmentationEvents
+        .triggerSegmentationDataModified(segmentationId);
     }
 
-    //flag data as updated so it will redraw
-    cornerstoneTools.segmentation
-      .triggerSegmentationEvents
-      .triggerSegmentationDataModified(segmentationId);
 
     setExpanded(false);
   }

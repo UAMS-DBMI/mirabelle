@@ -288,6 +288,8 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious }) {
     // so we don't try to draw the next volume before it's loaded!
     return () => {
       setIsInitialized(false);
+      cornerstoneTools.segmentation.removeAllSegmentations();
+      cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };
   }, [iec]);
 
