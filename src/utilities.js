@@ -113,38 +113,40 @@ export function calculateDistance(point1, point2) {
 export function isSegFlat(segmentationId) {
   const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
 	const { dimensions, voxelManager } = segmentationVolume;
-	const scalarData = voxelManager.getCompleteScalarDataArray();
 
-  const [x_size, y_size, z_size] = dimensions;
+  const bounds = voxelManager.getBoundsIJK();
 
-  const xSet = new Set();
-  const ySet = new Set();
-  const zSet = new Set();
-
-  for (let z = 0; z < z_size; z++) {
-    for (let y = 0; y < y_size; y++) {
-      for (let x = 0; x < x_size; x++) {
-        // offset into the array
-        let offset = z * x_size * y_size + y * x_size + x;
-
-        if (scalarData[offset] === 1) {
-          xSet.add(x);
-          ySet.add(y);
-          zSet.add(z);
-        }
-      }
-    }
-  }
-
-  const isFlat = xSet.size === 1 || ySet.size === 1 || zSet.size === 1;
-
-  if (xSet.size === 0 && ySet.size === 0 && zSet.size === 0) {
-    // empty segmentation, same as flat for our purposes
-    return true;
-  }
-
-  return isFlat;
+  const { flat } = isFlat(bounds);
+  console.log("isSegFlat: segmentationId=", segmentationId, "bounds=", bounds, "flat=", flat);
+  return flat;
 }
+
+function isFlat(bounds, eps = 1e-6) {
+  const [[imin, imax], [jmin, jmax], [kmin, kmax]] = bounds;
+
+  // Normalize (handle reversed min/max)
+  const iExtent = Math.abs(imax - imin);
+  const jExtent = Math.abs(jmax - jmin);
+  const kExtent = Math.abs(kmax - kmin);
+
+  const extents = [iExtent, jExtent, kExtent];
+
+  const zeroI = iExtent <= eps;
+  const zeroJ = jExtent <= eps;
+  const zeroK = kExtent <= eps;
+
+  let plane = null;
+  if (zeroI && !zeroJ && !zeroK) plane = 'i';
+  else if (!zeroI && zeroJ && !zeroK) plane = 'j';
+  else if (!zeroI && !zeroJ && zeroK) plane = 'k';
+  else if (zeroI || zeroJ || zeroK) {
+    // Degenerate cases (line or point): still "flat"
+    plane = zeroI ? 'i' : zeroJ ? 'j' : 'k';
+  }
+
+  return { flat: zeroI || zeroJ || zeroK, plane, extents };
+}
+
 
 export async function getUsername() {
 	const response = await fetch(`/papi/v1/other/testme`);

@@ -298,6 +298,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     cornerstoneTools.segmentation
       .triggerSegmentationEvents
       .triggerSegmentationDataModified(segmentationId);
+
+    setExpanded(false);
   }
   async function handleAccept() {
     if (volumetric && !expanded) {
