@@ -137,16 +137,15 @@ function VolumeViewport({
       // Get the volume viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
 
-      // TODO: this might arrive with no segmentation id, I think?
       eventTarget.addEventListener('VolumeReallyLoaded', (evt) => {
         const segmentationId = evt.detail.segmentationId;
-        segmentation.addLabelmapRepresentationToViewport(
-          viewportId, [
-            { segmentationId },
-          ],
-        );
-        console.log("VolumeReallyLoaded event received, segmentationId:", segmentationId, viewportId);
-        console.log(segmentation.state.getViewportSegmentationRepresentations(viewportId))
+        if (segmentationId !== undefined) {
+          segmentation.addLabelmapRepresentationToViewport(
+            viewportId, [
+              { segmentationId },
+            ],
+          );
+        }
       });
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
