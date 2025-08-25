@@ -116,8 +116,14 @@ export function isSegFlat(segmentationId) {
 
   const bounds = voxelManager.getBoundsIJK();
 
+  if (bounds[0][0] == 0 && bounds[0][1] == dimensions[0] - 1 &&
+      bounds[1][0] == 0 && bounds[1][1] == dimensions[1] - 1 &&
+      bounds[2][0] == 0 && bounds[2][1] == dimensions[2] - 1) {
+    // if bounds covers the entire volume, the user has not drawn
+    // into the segmentation yet, and so we consider that to be flat as well
+    return true;
+  }
   const { flat } = isFlat(bounds);
-  console.log("isSegFlat: segmentationId=", segmentationId, "bounds=", bounds, "flat=", flat);
   return flat;
 }
 
