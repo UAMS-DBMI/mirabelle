@@ -9,7 +9,7 @@ export let loaded = { loaded: false };
 
 
 
-export async function getDetails(iec) {
+export async function getMaskingDetails(iec) {
 
   const response = await fetch(`/papi/v1/masking/${iec}`);
   const details = await response.json();

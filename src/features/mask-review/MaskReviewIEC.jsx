@@ -26,6 +26,7 @@ import {
   getIECInfo,
 } from '@/utilities';
 import { getDicomDetails } from '@/visualreview';
+import { getMaskingDetails } from '@/masking.js';
 
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { VolumeView } from '@/features/volume-view';
@@ -47,13 +48,17 @@ const {
   segmentation
 } = cornerstoneTools;
 
-function transformDetails(details) {
+function transformDetails(details, maskingDetails) {
+
+  const maskingParams = JSON.parse(maskingDetails.masking_parameters);
 
   return {
     'IEC': details.image_equivalence_class_id,
     'Images in IEC': details.file_count,
-    'Processing Status': details.processing_status,
+    //'Processing Status': details.processing_status,
     'Review Status': details.review_status,
+    'Masking Status': maskingDetails.masking_status,
+    'Masking Filters': `Noise: ${maskingParams.noise}  ●  Fill: ${maskingParams.fill}`,
     'Modality': details.modality,
     'Patient ID': details.patient_id,
     'Series Instance UID': details.series_instance_uid,
@@ -95,6 +100,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
+  const [maskingDetails, setMaskingDetails] = useState(true);
 
   let viewer;
 
@@ -141,8 +147,10 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
     const initialize = async () => {
       const details = await getDicomDetails(iec);
+      const maskingDetails = await getMaskingDetails(iec);
       const { volumetric } = details;
       setDetails(details);
+      setMaskingDetails(maskingDetails);
 
       setIsErrored(false);
       let volumeId = `mask-review-${iec}`;
@@ -292,7 +300,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       }
       rightPanel={
         // showRightPanel ?
-        <DetailsPanel details={transformDetails(details)} />
+        <DetailsPanel details={transformDetails(details, maskingDetails)} />
         // : null
       }
       showLeftPanel={showLeftPanel}

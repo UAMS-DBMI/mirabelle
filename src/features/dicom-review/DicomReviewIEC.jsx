@@ -66,7 +66,7 @@ function transformDetails(details, imageId) {
   let ret = {
     'IEC': details.image_equivalence_class_id,
     'Images in IEC': details.file_count,
-    'Processing Status': details.processing_status,
+    //'Processing Status': details.processing_status,
     'Review Status': details.review_status,
     'Modality': details.modality,
     'Patient ID': details.patient_id,
