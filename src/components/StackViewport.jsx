@@ -100,7 +100,6 @@ function StackViewport({
 
   return (
     <>
-      {!initialized && <LoadingSpinner />}
       <div
         ref={elementRef}
         onContextMenu={(e) => e.preventDefault()}
