@@ -59,14 +59,15 @@ const {
 function transformDetails(details, maskingDetails) {
 
   const maskingParams = JSON.parse(maskingDetails.masking_parameters);
+  const maskingFilters = maskingParams?.noise !== undefined ? `Noise: ${maskingParams?.noise} ● Fill: ${maskingParams?.fill}` : '';
 
   return {
     'IEC': details.image_equivalence_class_id,
     'Images in IEC': details.file_count,
     //'Processing Status': details.processing_status,
     'Review Status': details.review_status,
-    'Masking Status': maskingDetails.masking_status,
-    'Masking Filters': `Noise: ${maskingParams.noise}  ● Fill: ${maskingParams.fill}`,
+    'Masking Status': maskingDetails?.masking_status,
+    'Masking Filters': maskingFilters,
     'Modality': details.modality,
     'Patient ID': details.patient_id,
     'Series Instance UID': details.series_instance_uid,
