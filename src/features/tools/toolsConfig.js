@@ -54,7 +54,7 @@ export default function useToolsConfigs({ manager }) {
       action: () => manager.switchFunctionMode(Enums.FunctionOptions.BLACKOUT),
     }),
     ...maybe(globalToolsConfig.functionToolGroup.visibility.mask, {
-      name: "Slice Removal",
+      name: "Slice Remove",
       icon: "content_cut",
       action: () => manager.switchFunctionMode(Enums.FunctionOptions.SLICE_REMOVE),
     }),

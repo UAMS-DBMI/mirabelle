@@ -27,7 +27,9 @@ const optionSlice = createSlice({
     },
     resetOptions: (state) => {
       Object.keys(state).forEach(key => {
-        state[key] = initialState[key];
+        if (key !== 'function' && key !== 'form') {
+          state[key] = initialState[key];
+        }
       });
     },
     setTitle: (state, action) => {

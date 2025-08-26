@@ -183,8 +183,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
           dispatch(setMaskerConfig());
           dispatch(setVolumeConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-          dispatch(setOption({ key: "function", value: Enums.FunctionOptions.MASK }));
-          dispatch(setOption({ key: "form", value: Enums.FormOptions.CYLINDER }));
+          // dispatch(setOption({ key: "function", value: Enums.FunctionOptions.MASK }));
+          // dispatch(setOption({ key: "form", value: Enums.FormOptions.CYLINDER }));
         } else {
           await loadStackSegmentation(imageIds, segmentationId);
           dispatch(setTitle("Mask Stack"));
@@ -309,7 +309,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       // triggering this event will cause the viewports to automatically 
       // add a representation for the new segmentation
       cornerstone.triggerEvent(cornerstone.eventTarget, 'VolumeReallyLoaded', {
-        volumeId, 
+        volumeId,
         segmentationId: newSegmentationId
       });
 
