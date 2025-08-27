@@ -17,7 +17,7 @@ export default function RouteDicomReviewVR() {
 
   const [iecList, setIecList] = useState(null);
 
-useEffect(() => {
+  useEffect(() => {
     dispatch(resetOptions());
     dispatch(reset());
     dispatch(setVisualReviewConfig());
@@ -62,7 +62,6 @@ useEffect(() => {
     if (nextIEC) {
       console.log("Navigating to next IEC:", nextIEC);
       navigate(`/review/dicom/vr/${vr}/${nextIEC}`);
-      // window.location.assign(`${PUBLIC_URL}/dicom/review/vr/${vr}/${nextIEC}`);
     } else {
       toast.error("No next IEC available.");
     }

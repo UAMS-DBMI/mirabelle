@@ -4,23 +4,16 @@ import { useDispatch, useSelector } from 'react-redux'
 
 import DicomReviewIEC from '@/features/dicom-review/DicomReviewIEC';
 
-//import { getDicomDetails } from '@/visualreview.js';
-
 import { setVisualReviewConfig, reset } from '@/features/presentationSlice'
 import { resetOptions } from '@/features/optionSlice';
 
 import './RouteDicomReviewIEC.css';
 
 export async function loader({ params }) {
-
-  //const details = await getDicomDetails(params.iec);
-  //return { details, iec: params.iec };
-
   return { iec: params.iec };
 }
 
 export default function RouteDicomReviewIEC() {
-
   const dispatch = useDispatch();
   const viewState = useSelector(state => state.options.view);
 

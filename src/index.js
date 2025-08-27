@@ -106,17 +106,21 @@ const router = createBrowserRouter(
           HydrateFallback: LoadingSpinner,
         },
         {
-          path: "review/nifti/file/:fileId",
+          path: "review/nifti/file/:file",
           element: <RouteNiftiReviewFile />,
           HydrateFallback: LoadingSpinner,
           loader: routeNiftiReviewFileLoader,
         },
         {
-          path: "review/nifti/vr/:nifti_visual_review_instance_id",
+          path: "review/nifti/vr/:vr",
           element: <RouteNiftiReviewVR />,
           HydrateFallback: LoadingSpinner,
-          loader: routeNiftiReviewVRLoader,
         },
+        {
+          path: "review/nifti/vr/:vr/:file",
+          element: <RouteNiftiReviewVR />,
+          HydrateFallback: LoadingSpinner,
+        },        
         {
           path: "review/dicom/iec/:iec",
           element: <RouteDicomReviewIEC />,

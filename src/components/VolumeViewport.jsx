@@ -2,21 +2,20 @@
  * Simple volume display panel. Assumes the volume has already
  * been created and loaded into the cache. Accepts volumeId as a prop
  **/
-import React, { useState, useEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { setOption } from '@/features/optionSlice';
+import React, { useState, useEffect, useRef } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { setOption } from "@/features/optionSlice";
 
-import * as cornerstone from '@cornerstonejs/core';
-import * as cornerstoneTools from '@cornerstonejs/tools';
-import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core"
+import * as cornerstone from "@cornerstonejs/core";
+import * as cornerstoneTools from "@cornerstonejs/tools";
+import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 
-import './VolumeViewport.css';
-import { re } from 'mathjs';
+import "./VolumeViewport.css";
+import { re } from "mathjs";
 
-import { eventTarget } from '@cornerstonejs/core';
+import { eventTarget } from "@cornerstonejs/core";
 
 const { Events } = Enums;
-
 
 const {
   PanTool,
@@ -34,7 +33,6 @@ const { segmentation: segmentationUtils } = cstUtils;
 
 const { ViewportType } = Enums;
 
-
 window.eventTarget = eventTarget;
 
 function VolumeViewport({
@@ -44,9 +42,9 @@ function VolumeViewport({
   toolGroup,
   volumeId,
   orientation,
-  segmentationId
+  segmentationId,
 }) {
-  const viewMode = useSelector(state => state.options.view);
+  const viewMode = useSelector((state) => state.options.view);
   const [initialized, setInitialized] = useState(false);
   const dispatch = useDispatch();
 
@@ -56,13 +54,13 @@ function VolumeViewport({
   window.re = renderingEngine;
 
   let realOrientation = Enums.OrientationAxis.ACQUISITION;
-  if (orientation == 'SAGITTAL') {
+  if (orientation == "SAGITTAL") {
     realOrientation = Enums.OrientationAxis.SAGITTAL;
   }
-  if (orientation == 'AXIAL') {
+  if (orientation == "AXIAL") {
     realOrientation = Enums.OrientationAxis.AXIAL;
   }
-  if (orientation == 'CORONAL') {
+  if (orientation == "CORONAL") {
     realOrientation = Enums.OrientationAxis.CORONAL;
   }
   const segmentationIds = segmentation.state
@@ -70,27 +68,27 @@ function VolumeViewport({
     .map((seg) => seg.segmentationId);
 
   useEffect(() => {
-    const wrapper = elementRef.current
-    if (!wrapper || !renderingEngine) return
+    const wrapper = elementRef.current;
+    if (!wrapper || !renderingEngine) return;
 
     function toggleViewportSize() {
       Array.from(wrapper.parentNode.children)
-        .filter(child => child !== wrapper)
-        .forEach(child => child.classList.toggle('minimized'))
-      wrapper.classList.toggle('expanded')
-      wrapper.parentElement.classList.toggle('expanded')
+        .filter((child) => child !== wrapper)
+        .forEach((child) => child.classList.toggle("minimized"));
+      wrapper.classList.toggle("expanded");
+      wrapper.parentElement.classList.toggle("expanded");
 
-      renderingEngine.resize(true, true)
-      renderingEngine.render()
+      renderingEngine.resize(true, true);
+      renderingEngine.render();
     }
 
     console.log("[VolumeViewport] adding dblclick listener to", wrapper);
 
-    wrapper.addEventListener('dblclick', toggleViewportSize)
+    wrapper.addEventListener("dblclick", toggleViewportSize);
     return () => {
-      wrapper.removeEventListener('dblclick', toggleViewportSize)
-    }
-  }, [renderingEngine])
+      wrapper.removeEventListener("dblclick", toggleViewportSize);
+    };
+  }, [renderingEngine]);
 
   useEffect(() => {
     const setup = async () => {
@@ -100,16 +98,15 @@ function VolumeViewport({
       const wrapper = elementRef.current;
       if (wrapper && wrapper.parentNode) {
         Array.from(wrapper.parentNode.children).forEach((child) => {
-          child.classList.remove('minimized', 'expanded');
+          child.classList.remove("minimized", "expanded");
         });
-        wrapper.classList.remove('minimized', 'expanded');
-        wrapper.parentElement.classList.remove('expanded');
+        wrapper.classList.remove("minimized", "expanded");
+        wrapper.parentElement.classList.remove("expanded");
 
         /* A hack to force-render a viewport */
-        renderingEngine.resize(true, true)
-        renderingEngine.render()
+        renderingEngine.resize(true, true);
+        renderingEngine.render();
       }
-
 
       // elementRef.current.addEventListener(
       //   cornerstone.Enums.Events.VOLUME_LOADED,
@@ -125,7 +122,7 @@ function VolumeViewport({
         defaultOptions: {
           orientation: realOrientation,
         },
-      }
+      };
 
       renderingEngine.enableElement(viewportInput);
 
@@ -137,27 +134,25 @@ function VolumeViewport({
       // Get the volume viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
 
-      eventTarget.addEventListener('VolumeReallyLoaded', (evt) => {
+      eventTarget.addEventListener("VolumeReallyLoaded", (evt) => {
         const segmentationId = evt.detail.segmentationId;
         if (segmentationId !== undefined) {
-          segmentation.addLabelmapRepresentationToViewport(
-            viewportId, [
-              { segmentationId },
-            ],
-          );
+          segmentation.addLabelmapRepresentationToViewport(viewportId, [
+            { segmentationId },
+          ]);
         }
       });
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 
       // Set the volume on the viewport and it's default properties
-      viewport.setVolumes([{ volumeId }])
+      viewport.setVolumes([{ volumeId }]);
 
       // // Apply all active segmentations to the viewport
       const segmentationIds = segmentation.state
         .getSegmentations()
         .map((seg) => seg.segmentationId)
-        .filter((segmentationId) => !segmentationId.startsWith('mask-'));
+        .filter((segmentationId) => !segmentationId.startsWith("mask-"));
 
       await segmentation.addLabelmapRepresentationToViewportMap({
         [viewportId]: segmentationIds.map((segmentationId) => ({
@@ -166,15 +161,15 @@ function VolumeViewport({
       });
 
       // Render the image
-      viewport.render()
+      viewport.render();
 
       dispatch(setOption({ key: "viewport", value: viewportId }));
 
       setInitialized(true);
-    }
+    };
 
-    setup()
-  }, [elementRef, volumeId])
+    setup();
+  }, [elementRef, volumeId]);
 
   useEffect(() => {
     // Don't attempt to reset during initialization, as global
@@ -185,16 +180,18 @@ function VolumeViewport({
     const volume = cornerstone.cache.getVolume(volumeId);
     const volDimensions = volume.dimensions;
 
-    if (viewMode === 'projection') {
+    if (viewMode === "projection") {
       const volSlab = Math.sqrt(
         volDimensions[0] * volDimensions[0] +
-        volDimensions[1] * volDimensions[1] +
-        volDimensions[2] * volDimensions[2]
+          volDimensions[1] * volDimensions[1] +
+          volDimensions[2] * volDimensions[2]
       );
 
-      viewport.setBlendMode(cornerstone.Enums.BlendModes.MAXIMUM_INTENSITY_BLEND);
+      viewport.setBlendMode(
+        cornerstone.Enums.BlendModes.MAXIMUM_INTENSITY_BLEND
+      );
       viewport.setSlabThickness(volSlab);
-    } else if (viewMode === 'volume') {
+    } else if (viewMode === "volume") {
       console.log("Resetting viewport to default properties:", viewportId);
       viewport.resetProperties();
       viewport.resetToDefaultProperties();
@@ -212,7 +209,7 @@ function VolumeViewport({
         className="volume-viewport viewport"
       ></div>
     </>
-  )
+  );
 }
 
 export default VolumeViewport;

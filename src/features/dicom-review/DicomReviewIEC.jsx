@@ -13,7 +13,7 @@ import {
   reset,
 } from '@/features/presentationSlice';
 
-import { setTitle, setLoading, setOption, resetOptions } from '@/features/optionSlice';
+import { setTitle, setLoading, setOption } from '@/features/optionSlice';
 import toast from 'react-hot-toast';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { wadouri } from "@cornerstonejs/dicom-image-loader"

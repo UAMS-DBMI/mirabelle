@@ -1,21 +1,21 @@
-import React, { useEffect } from 'react';
-import { useLoaderData } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux'
-import { resetOptions } from '@/features/optionSlice';
+import React, { useEffect } from "react";
+import { useLoaderData } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { resetOptions } from "@/features/optionSlice";
 
-import NiftiReviewFile from '@/features/nifti-review/NiftiReviewFile';
+import NiftiReviewFile from "@/features/nifti-review/NiftiReviewFile";
 
-import { setVisualReviewConfig, reset } from '@/features/presentationSlice'
+import { setVisualReviewConfig, reset } from "@/features/presentationSlice";
 
-import './RouteNiftiReviewFile.css';
+import "./RouteNiftiReviewFile.css";
 
 export async function loader({ params }) {
-  return { file: params.fileId };
+  return { file: params.file };
 }
 
 export default function RouteNiftiReviewFile() {
   const dispatch = useDispatch();
-  const viewState = useSelector(state => state.options.view);
+  const viewState = useSelector((state) => state.options.view);
 
   let { file } = useLoaderData();
 
@@ -25,7 +25,5 @@ export default function RouteNiftiReviewFile() {
     dispatch(setVisualReviewConfig());
   }, []);
 
-  return (
-    <NiftiReviewFile file={file} />
-  );
+  return <NiftiReviewFile file={file} />;
 }

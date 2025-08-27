@@ -1,7 +1,7 @@
-import React from 'react';
+import React from "react";
 
-import { useState, useEffect, useLayoutEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useState, useEffect, useLayoutEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 
 import {
   Enums,
@@ -11,56 +11,57 @@ import {
   toggleLeftPanel,
   toggleRightPanel,
   reset,
-} from '@/features/presentationSlice';
+} from "@/features/presentationSlice";
 
-import { setTitle, setLoading, setOption } from '@/features/optionSlice';
-import toast from 'react-hot-toast';
-import { useHotkeys } from 'react-hotkeys-hook';
+import { setTitle, setLoading, setOption } from "@/features/optionSlice";
+import toast from "react-hot-toast";
+import { useHotkeys } from "react-hotkeys-hook";
 
 import {
   Enums as NiftiEnums,
   createNiftiImageIdsAndCacheMetadata,
-} from '@cornerstonejs/nifti-volume-loader';
-import { volumeLoader } from '@cornerstonejs/core';
+} from "@cornerstonejs/nifti-volume-loader";
+import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
-import * as cornerstoneTools from '@cornerstonejs/tools';
-import { toAbsoluteURL } from '@/utilities';
-import { getNiftiDetails, setNiftiStatus } from '@/visualreview';
+import * as cornerstoneTools from "@cornerstonejs/tools";
+import { toAbsoluteURL } from "@/utilities";
+import { getNiftiDetails, setNiftiStatus } from "@/visualreview";
 
-import Header from '@/components/Header';
+import Header from "@/components/Header";
 
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { VolumeView } from '@/features/volume-view';
-import { ToolsPanel } from '@/features/tools';
-import OperationsPanel from '@/components/OperationsPanel';
-import NavigationPanel from '@/components/NavigationPanel';
-import { DetailsPanel } from '@/features/details';
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { VolumeView } from "@/features/volume-view";
+import { ToolsPanel } from "@/features/tools";
+import OperationsPanel from "@/components/OperationsPanel";
+import NavigationPanel from "@/components/NavigationPanel";
+import { DetailsPanel } from "@/features/details";
+import ErrorPanel from '@/components/ErrorPanel';
 
-import { Context } from '@/components/Context.js';
-import RouteLayout from '@/components/RouteLayout';
+import { Context } from "@/components/Context.js";
+import RouteLayout from "@/components/RouteLayout";
 
-import './NiftiReviewFile.css';
+import "./NiftiReviewFile.css";
 
 const {
   ToolGroupManager,
   TrackballRotateTool,
   Enums: csToolsEnums,
-  segmentation
+  segmentation,
 } = cornerstoneTools;
 
 function transformDetails(details) {
-
   return {
-    'File ID': details.file_id,
-    'Import File Name': details.import_name,
-    'Import File Path': details.import_path,
-    'Posda File Path': details.posda_path,
-    'download_path': details.download_path,
-    'download_name': details.import_name,
-  }
+    "File ID": details.file_id,
+    "Import File Name": details.import_name,
+    "Import File Path": details.import_path,
+    "Posda File Path": details.posda_path,
+    download_path: details.download_path,
+    download_name: details.import_name,
+  };
 }
 
 export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
+  console.log("[NiftiReviewFile] rendering, file:", file);
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -69,21 +70,23 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
 
   const dispatch = useDispatch();
 
-  const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
-  const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
-  console.log("showLeftPanel:", showLeftPanel, "showRightPanel:", showRightPanel);
+  const showLeftPanel = useSelector((s) => s.presentation.panelConfig.open.left);
+  const showRightPanel = useSelector((s) => s.presentation.panelConfig.open.right);
+  console.log("NiftiReviewFile: showLeftPanel:", showLeftPanel, "showRightPanel:", showRightPanel);
   const handleToggleLeft = () => dispatch(toggleLeftPanel());
   const handleToggleRight = () => dispatch(toggleRightPanel());
 
+  const optionsView = useSelector(state => state.options.view);
+  const currentImageId = useSelector(state => state.options.currentImageId);  
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
   const [volumeId, setVolumeId] = useState();
   const [segmentationId, setSegmentationId] = useState();
-  const [imageIds, setImageIds] = useState()
+  const [imageIds, setImageIds] = useState();
 
   const [toolGroup, setToolGroup] = useState(null);
   const [toolGroup3d, setToolGroup3d] = useState();
-  const preset3d = useSelector(state => state.options.preset);
+  const preset3d = useSelector((state) => state.options.preset);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
@@ -96,12 +99,13 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
 
   // Fire a resize event whenever the right and left panels toggle
   useEffect(() => {
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
   }, [showLeftPanel, showRightPanel]);
 
   useLayoutEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {
+      console.log("Creating new rendering engine");
       setRenderingEngine(new cornerstone.RenderingEngine("re1"));
     }
 
@@ -118,8 +122,8 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
 
     // Teardown function
     return () => {
-      ToolGroupManager.destroyToolGroup("toolGroup2d")
-      ToolGroupManager.destroyToolGroup("toolGroup3d")
+      ToolGroupManager.destroyToolGroup("toolGroup2d");
+      ToolGroupManager.destroyToolGroup("toolGroup3d");
       // Do not delete the RenderingEngine here, it needs
       // to stay, for now
     };
@@ -128,14 +132,15 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
   useEffect(() => {
     console.log("NiftiReviewFile useEffect[file]:", file);
 
-    const initializeVolume = async () => {
+    const initialize = async () => {
+      const details = await getNiftiDetails(file);
+      setDetails(details);      
+
       setIsErrored(false);
       let volumeId = `vol-${file}`;
       let segmentationId = `vol-${file}-seg`;
 
       try {
-        const details = await getNiftiDetails(file);
-        setDetails(details);
 
         if (details.download_path === undefined) {
           setError(true);
@@ -148,6 +153,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
         }
         const url = toAbsoluteURL(rel_url);
         const imageIds = await createNiftiImageIdsAndCacheMetadata({ url });
+        setImageIds(imageIds);
         let volume = cornerstone.cache.getVolume(volumeId);
         if (!volume) {
           volume = await volumeLoader.createAndCacheVolume(volumeId, {
@@ -157,11 +163,10 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
         try {
           volume.load();
         } catch (error) {
-          console.log("exiting initialize early")
+          console.log("exiting initialize early");
           console.log(error);
           return;
         }
-
       } catch (error) {
         console.log(error);
         // TODO: set an isError status here and display an error message?
@@ -181,13 +186,13 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       dispatch(setNiftiConfig());
 
       dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-      dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
+      dispatch(setOption({key: "leftClick",value: Enums.LeftClickOptions.WINDOW_LEVEL,}));
       dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
 
       dispatch(setLoading(false));
     };
 
-    initializeVolume();
+    initialize();
 
     // Return initialized to false when unmounting
     // so we don't try to draw the next volume before it's loaded!
@@ -196,14 +201,13 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };
-
   }, [file]);
 
-  useHotkeys('g', () => handleOperationsAction('good'));
-  useHotkeys('b', () => handleOperationsAction('bad'));
-  useHotkeys('l', () => handleOperationsAction('blank'));
-  useHotkeys('s', () => handleOperationsAction('scout'));
-  useHotkeys('o', () => handleOperationsAction('other'));
+  useHotkeys("g", () => handleOperationsAction("good"));
+  useHotkeys("b", () => handleOperationsAction("bad"));
+  useHotkeys("l", () => handleOperationsAction("blank"));
+  useHotkeys("s", () => handleOperationsAction("scout"));
+  useHotkeys("o", () => handleOperationsAction("other"));
 
   async function handleOperationsAction(action) {
     switch (action) {
@@ -235,18 +239,14 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
   // short-circuit if not loaded yet
   if (isErrored) {
     return (
-      <>
-        <div>There was an error loading this File :(</div>
-        <p>{errorMessage.message}</p>
-      </>
+      <ErrorPanel error={errorMessage.message} />
     );
   }
   if (!isInitialized) {
-    return
+    return;
   }
 
-  console.log(">>>>> about to pass volumeId=", volumeId);
-  viewer =
+  viewer = (
     <VolumeView
       volumeId={volumeId}
       segmentationId={segmentationId}
@@ -257,27 +257,27 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       onToggleLeftPanel={handleToggleLeft}
       onToggleRightPanel={handleToggleRight}
     />
-
+  );
 
   return (
     <RouteLayout
       leftPanel={
         // showLeftPanel ?
         <>
-          {vr &&
+          {vr && (
             <NavigationPanel
               onNext={onNext}
               onPrevious={onPrevious}
               currentId={file}
-              idLabel='File'
+              idLabel="File"
             />
-          }
+          )}
           <ToolsPanel
             toolGroup={toolGroup}
             toolGroup3d={toolGroup3d}
             preset3d={preset3d}
-            onPresetChange={(value) =>
-              dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
+            onPresetChange={(value) => 
+              dispatch(setOption({ key: "preset", value })) // ← dispatch changes
             }
           />
         </>
@@ -286,9 +286,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       middlePanel={
         <>
           {viewer}
-          <OperationsPanel
-            onAction={handleOperationsAction}
-          />
+          <OperationsPanel onAction={handleOperationsAction} />
         </>
       }
       rightPanel={
