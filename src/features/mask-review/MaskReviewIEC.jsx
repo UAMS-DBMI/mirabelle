@@ -26,7 +26,7 @@ import {
   getIECInfo,
 } from '@/utilities';
 import { getDicomDetails } from '@/visualreview';
-import { getMaskingDetails } from '@/masking.js';
+import { getMaskingDetails, setMaskingStatus } from '@/masking.js';
 
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { VolumeView } from '@/features/volume-view';
@@ -203,36 +203,28 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   }, [iec]);
 
-  useHotkeys('a', () => handleAction('accept mask'));
-  useHotkeys('r', () => handleAction('reject mask'));
-  useHotkeys('s', () => handleAction('skip mask'));
-  useHotkeys('n', () => handleAction('nonmaskable mask'));
+  useHotkeys('a', () => handleOperationAction('accept mask'));
+  useHotkeys('r', () => handleOperationAction('reject mask'));
+  useHotkeys('s', () => handleOperationAction('skip mask'));
+  useHotkeys('n', () => handleOperationAction('nonmaskable mask'));
 
-  function handleAcceptMask() {
-    toast.success("Mask accepted!");
-  }
-  function handleRejectMask() {
-    toast.success("Mask rejected!");
-  }
-  function handleSkipMask() {
-    toast.success("Mask skipped!");
-  }
-  function handleNonMaskable() {
-    toast.success("Image is not maskable!");
-  }
-  function handleAction(action) {
+  async function handleOperationAction(action) {
     switch (action) {
       case 'accept mask':
-        handleAcceptMask();
+        await setMaskingStatus(iec, action);
+        toast.success("Mask accepted!");
         break;
       case 'reject mask':
-        handleRejectMask();
+        await setMaskingStatus(iec, action);
+        toast.success("Mask rejected!");
         break;
       case 'skip mask':
-        handleSkipMask();
+        await setMaskingStatus(iec, action);
+        toast.success("Mask skipped!");
         break;
       case 'nonmaskable mask':
-        handleNonMaskable();
+        await setMaskingStatus(iec, action);
+        toast.success("Image is not maskable!");
         break;
       default:
         console.warn(`Unknown action: ${action}`);
@@ -296,7 +288,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       middlePanel={
         <>
           {viewer}
-          <OperationsPanel onAction={handleAction} />
+          <OperationsPanel onAction={handleOperationAction} />
         </>
       }
       rightPanel={

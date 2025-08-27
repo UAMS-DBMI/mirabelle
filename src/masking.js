@@ -7,8 +7,6 @@ import * as math from 'mathjs';
 // TODO experiment for singleton value
 export let loaded = { loaded: false };
 
-
-
 export async function getMaskingDetails(iec) {
 
   const response = await fetch(`/papi/v1/masking/${iec}`);
@@ -16,6 +14,7 @@ export async function getMaskingDetails(iec) {
 
   return details;
 }
+
 export async function flagForMasking(iec) {
   const response = await fetch(
     `/papi/v1/masking/${iec}/mask`,
@@ -27,50 +26,42 @@ export async function flagForMasking(iec) {
 
   return details;
 }
-export async function flagAsAccepted(iec) {
-  const response = await fetch(
-    `/papi/v1/masking/${iec}/accept`,
-    {
-      method: "POST",
-    }
-  );
-  const details = await response.json();
 
-  return details;
-}
-export async function flagAsRejected(iec) {
-  const response = await fetch(
-    `/papi/v1/masking/${iec}/reject`,
-    {
-      method: "POST",
-    }
-  );
-  const details = await response.json();
+export async function setMaskingStatus(iec, status) {
 
-  return details;
-}
-export async function flagAsSkipped(iec) {
-  const response = await fetch(
-    `/papi/v1/masking/${iec}/skip`,
-    {
-      method: "POST",
-    }
-  );
-  const details = await response.json();
+  let url = ''
+  switch (status) {
+    case 'accept mask':
+      url = `/papi/v1/masking/${iec}/accept`;
+      break;
+    case 'reject mask':
+      url = `/papi/v1/masking/${iec}/reject`;
+      break;
+    case 'skip mask':
+      url = `/papi/v1/masking/${iec}/skip`;
+      break;
+    case 'nonmaskable mask':
+      url = `/papi/v1/masking/${iec}/nonmaskable`;
+      break;
+    default:
+      console.warn(`Unknown status: ${status}`);
+  }
 
-  return details;
-}
-export async function flagAsNonmaskable(iec) {
-  const response = await fetch(
-    `/papi/v1/masking/${iec}/nonmaskable`,
-    {
-      method: "POST",
-    }
-  );
-  const details = await response.json();
 
-  return details;
+	const response = await fetch(
+		url,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+		}
+	);
+	const details = await response.json();
+
+	return details;
 }
+
 
 export async function setParameters(
   iec,
