@@ -140,3 +140,8 @@ body::-webkit-scrollbar {
          py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none 
          dark:focus:ring-blue-800;
 }
+
+/* input of type range should have an accent color of green */
+input[type="range"] {
+  accent-color: green;
+}
