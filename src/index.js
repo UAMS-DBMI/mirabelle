@@ -124,11 +124,15 @@ const router = createBrowserRouter(
           loader: routeDicomReviewIECLoader,
         },
         {
-          path: "review/dicom/vr/:visual_review_instance_id",
+          path: "review/dicom/vr/:vr",
           element: <RouteDicomReviewVR />,
           HydrateFallback: LoadingSpinner,
-          loader: routeDicomReviewVRLoader,
         },
+        {
+          path: "review/dicom/vr/:vr/:iec",
+          element: <RouteDicomReviewVR />,
+          HydrateFallback: LoadingSpinner,
+        },        
         {
           path: "dump/:file_id",
           element: <RouteDump />,

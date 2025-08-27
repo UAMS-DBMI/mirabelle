@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useDispatch } from 'react-redux';
-import { setLoading, resetOptions, setOption } from '@/features/optionSlice';
-import MaterialButtonSet from '@/components/MaterialButtonSet';
+import { resetOptions, setOption } from '@/features/optionSlice';
 import MaskIEC from '@/features/mask/MaskIEC';
 
 import "./MaskVR.css";

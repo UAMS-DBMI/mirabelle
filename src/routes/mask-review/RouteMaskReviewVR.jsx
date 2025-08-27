@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import toast from 'react-hot-toast';
 
 import { getIECsForVRAwaitingReview } from "@/utilities";
 import { resetOptions, setLoading } from "@/features/optionSlice";
@@ -63,7 +64,7 @@ export default function RouteMaskReviewVR() {
       navigate(`/mask/review/vr/${vr}/${nextIEC}`);
       // window.location.assign(`${PUBLIC_URL}/mask/review/vr/${vr}/${nextIEC}`);
     } else {
-      alert("No next IEC");
+      toast.error("No next IEC available.");
     }
   };
 
@@ -71,7 +72,7 @@ export default function RouteMaskReviewVR() {
     if (previousIEC) {
       navigate(`/mask/review/vr/${vr}/${previousIEC}`);
     } else {
-      alert("No previous IEC");
+      toast.error("No previous IEC available.");
     }
   };
 
