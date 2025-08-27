@@ -258,11 +258,6 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
 
       // Render the image
       viewport.render()
-
-      const actor = viewport.getDefaultActor().actor;
-      const mapper = actor.getMapper();
-      mapper.setMaximumSamplesPerRay(10000);
-
     }
 
     setup()
