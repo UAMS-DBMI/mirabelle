@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
 import {
@@ -99,7 +99,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
     window.dispatchEvent(new Event('resize'));
   }, [showLeftPanel, showRightPanel]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {
       setRenderingEngine(new cornerstone.RenderingEngine("re1"));
@@ -108,7 +108,6 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
     let toolGroup = ToolGroupManager.createToolGroup("toolGroup2d");
     let toolGroup3d = ToolGroupManager.createToolGroup("toolGroup3d");
 
-    setRenderingEngine(renderingEngine);
     setToolGroup(toolGroup);
     setToolGroup3d(toolGroup3d);
 
@@ -156,18 +155,12 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
           });
         }
         try {
-          await volume.load();
+          volume.load();
         } catch (error) {
+          console.log("exiting initialize early")
           console.log(error);
           return;
         }
-
-        cornerstone.cache.getVolumes().forEach((v) => {
-          if (v.volumeId !== volumeId) {
-            cornerstone.cache.removeVolumeLoadObject(v.volumeId);
-          }
-
-        });
 
       } catch (error) {
         console.log(error);
@@ -195,6 +188,14 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
     };
 
     initializeVolume();
+
+    // Return initialized to false when unmounting
+    // so we don't try to draw the next volume before it's loaded!
+    return () => {
+      setIsInitialized(false);
+      cornerstoneTools.segmentation.removeAllSegmentations();
+      cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
+    };
 
   }, [file]);
 
@@ -241,7 +242,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
     );
   }
   if (!isInitialized) {
-    return <LoadingSpinner />
+    return
   }
 
   console.log(">>>>> about to pass volumeId=", volumeId);
