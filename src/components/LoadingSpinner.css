@@ -1,1 +1,13 @@
 /* LoadingSpinner.css */
+
+#overlay #loading-spinner {
+  @apply flex flex-col items-center justify-center p-4;
+}
+
+#overlay #loading-spinner #spinner {
+  @apply animate-spin h-8 w-8 border-4 border-b-black border-r-black border-t-transparent border-l-transparent rounded-full dark:border-b-white dark:border-r-white;
+}
+
+#overlay #loading-spinner #description {
+  @apply mt-2 text-black dark:text-white;
+}
