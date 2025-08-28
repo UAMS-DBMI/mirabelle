@@ -244,6 +244,8 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       // when we leave, so the next one doesn't attempt to draw
       // before it exists
       setIsInitialized(false);
+      cornerstoneTools.segmentation.removeAllSegmentations();
+      cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };
   }, [iec]);
 
