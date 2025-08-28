@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 
 import VolumeViewport from "@/components/VolumeViewport";
 import VolumeViewport3d from "@/components/VolumeViewport3d";
+import MaybeVolumeViewport3d from "@/components/MaybeVolumeViewport3d";
 import { ToolsPanel } from "@/features/tools";
 import useRendererResize from "@/hooks/useRendererResize";
 import { get3dViewports } from "@/utilities";

@@ -134,6 +134,25 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   }, [showLeftPanel, showRightPanel]);
 
   useEffect(() => {
+    const callback = (evt) => {
+      // trigger a new event, to enable segmentation drawing
+      console.log("[callback] AllowSegmentationDrawing firing...");
+      cornerstone.triggerEvent(cornerstone.eventTarget, 'AllowSegmentationDrawing', {
+        volumeId,
+      });
+    };
+
+    // TODO: these string based event names need to be collected into
+    // a library and accessed as enums
+    cornerstone.eventTarget.addEventListener('VolumeReallyLoaded', callback);
+
+    // cleanup the callback
+    return () => {
+      cornerstone.eventTarget.removeEventListener('VolumeReallyLoaded', callback);
+    };
+  }, []);
+
+  useEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
     if (renderingEngine === undefined) {
       console.log("Creating new rendering engine");

@@ -206,7 +206,7 @@ const presentationSlice = createSlice({
       state.toolsConfig.filterToolGroup.visible = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
-      state.toolsConfig.leftClickToolGroup.defaultValue = Enums.LeftClickOptions.SELECTION;
+      state.toolsConfig.leftClickToolGroup.defaultValue = Enums.LeftClickOptions.WINDOW_LEVEL;
       state.toolsConfig.leftClickToolGroup.visibility.windowLevel = true;
       state.toolsConfig.leftClickToolGroup.visibility.rectangleScissors = true;
 

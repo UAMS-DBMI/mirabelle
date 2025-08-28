@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setOption } from '@/features/optionSlice';
+import { Enums } from '@/features/presentationSlice'
 
 import * as cornerstoneTools from '@cornerstonejs/tools';
 
@@ -70,6 +71,10 @@ export default function ToolsPanel({
     renderingEngine,
   });
   const toolsConfigs = useToolsConfigs({ manager });
+
+  cornerstone.eventTarget.addEventListener('AllowSegmentationDrawing', () => {
+    manager.switchLeftClickMode(Enums.LeftClickOptions.SELECTION);
+  });
 
   const handlePresetChange = (event) => {
     const newPreset = event.target.value;
