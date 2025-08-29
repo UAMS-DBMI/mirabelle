@@ -58,7 +58,7 @@ export default function StackView({
 
     setRenderingEngine(renderingEngine);
 
-    cornerstone.triggerEvent(cornerstone.eventTarget, 'AllowSegmentationDrawing', {});
+    cornerstone.triggerEvent(cornerstone.eventTarget, 'VolumeReallyLoaded', {});
 
     // Teardown function
     return () => {

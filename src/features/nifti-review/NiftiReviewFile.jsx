@@ -127,7 +127,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       // Do not delete the RenderingEngine here, it needs
       // to stay, for now
     };
-  }, [iec]);
+  }, [file]);
 
   useEffect(() => {
     console.log("NiftiReviewFile useEffect[file]:", file);
