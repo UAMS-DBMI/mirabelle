@@ -280,14 +280,19 @@ export async function loadIECVolumeAndSegmentation(iec, volumeId, segmentationId
 }
 
 export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentationId) {
-
+  let loadedFromCache = true;
   let volume = cornerstone.cache.getVolume(volumeId);
   if (!volume) {
     console.log("Volume didn't already exist, creating it");
     volume = await volumeLoader.createAndCacheVolume(volumeId, {
       imageIds,
-    })
+    });
+    loadedFromCache = false;
   } else {
+    // triggerEvent(eventTarget, 'VolumeReallyLoaded', {
+    //   volumeId,
+    //   segmentationId,
+    // });
     console.log("Volume already existed, not creating it");
   }
 
@@ -317,7 +322,9 @@ export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentation
         },
       },
     ]);
-
+    if (loadedFromCache) {
+      await new Promise((r) => setTimeout(r, 300));
+    }
     triggerEvent(eventTarget, 'VolumeReallyLoaded', {
       volumeId,
       segmentationId,
@@ -354,7 +361,6 @@ export function loadVolumeAsync(imageIds, volumeId, segmentationId, callback=nul
  * @returns 
  */
 export async function loadVolume(imageIds, volumeId, segmentationId, callback = null) {
-
   let volume = cornerstone.cache.getVolume(volumeId);
   if (!volume) {
     console.log("Volume didn't already exist, creating it:", volumeId);
@@ -362,6 +368,7 @@ export async function loadVolume(imageIds, volumeId, segmentationId, callback = 
       imageIds
     });
   } else {
+    
     console.log("Volume already existed, not creating it");
   }
 

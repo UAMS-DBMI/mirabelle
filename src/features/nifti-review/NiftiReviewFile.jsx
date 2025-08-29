@@ -77,7 +77,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
   const handleToggleRight = () => dispatch(toggleRightPanel());
 
   const optionsView = useSelector(state => state.options.view);
-  const currentImageId = useSelector(state => state.options.currentImageId);  
+  const currentImageId = useSelector(state => state.options.currentImageId);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
   const [volumeId, setVolumeId] = useState();
@@ -127,14 +127,14 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       // Do not delete the RenderingEngine here, it needs
       // to stay, for now
     };
-  }, []);
+  }, [iec]);
 
   useEffect(() => {
     console.log("NiftiReviewFile useEffect[file]:", file);
 
     const initialize = async () => {
       const details = await getNiftiDetails(file);
-      setDetails(details);      
+      setDetails(details);
 
       setIsErrored(false);
       let volumeId = `vol-${file}`;
@@ -186,7 +186,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       dispatch(setNiftiConfig());
 
       dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-      dispatch(setOption({key: "leftClick",value: Enums.LeftClickOptions.WINDOW_LEVEL,}));
+      dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL, }));
       dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
 
       dispatch(setLoading(false));
@@ -276,7 +276,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
             toolGroup={toolGroup}
             toolGroup3d={toolGroup3d}
             preset3d={preset3d}
-            onPresetChange={(value) => 
+            onPresetChange={(value) =>
               dispatch(setOption({ key: "preset", value })) // ← dispatch changes
             }
           />

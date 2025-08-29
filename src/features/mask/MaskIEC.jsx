@@ -177,7 +177,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       // Do not delete the RenderingEngine here, it needs
       // to stay, for now
     };
-  }, []);
+  }, [iec]);
 
   useLayoutEffect(() => {
     console.log("MaskIEC useEffect[iec]:", iec);

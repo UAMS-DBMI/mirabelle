@@ -105,7 +105,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   let viewer;
 
-  
+
   /**
    * Setup the RenderingEngine and ToolGroup
    */
@@ -140,7 +140,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       // Do not delete the RenderingEngine here, it needs
       // to stay, for now
     };
-  }, []);
+  }, [iec]);
 
   // Load the volume into the cache
   useEffect(() => {

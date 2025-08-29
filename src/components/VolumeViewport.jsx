@@ -183,8 +183,8 @@ function VolumeViewport({
     if (viewMode === "projection") {
       const volSlab = Math.sqrt(
         volDimensions[0] * volDimensions[0] +
-          volDimensions[1] * volDimensions[1] +
-          volDimensions[2] * volDimensions[2]
+        volDimensions[1] * volDimensions[1] +
+        volDimensions[2] * volDimensions[2]
       );
 
       viewport.setBlendMode(
