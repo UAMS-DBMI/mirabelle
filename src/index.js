@@ -1,6 +1,7 @@
 /**
  * This is the true entrypoint of the program.
  */
+console.log("Current commit:", __COMMIT_HASH__);
 
 import React from "react";
 import ReactDOM from "react-dom/client";
