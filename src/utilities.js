@@ -10,7 +10,6 @@ const { Enums: csToolsEnums, segmentation: csToolsSegmentation, } = cornerstoneT
 const { Cornerstone3D } = cornerstoneAdapters.adaptersSEG;
 
 import dcmjs from 'dcmjs';
-window.dcmjs = dcmjs; // Make dcmjs globally available
 
 export function expandSegTo3D(segmentationId) {
 	const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
@@ -47,7 +46,6 @@ export function expandSegTo3D(segmentationId) {
 		k: { min: kmin, max: kmax },
 	};
 }
-window.expandSegTo3D = expandSegTo3D;
 
 export function getCoordsForStackSeg(imageIds) {
 
@@ -650,5 +648,3 @@ export function worldToIjk(worldCoords, volume) {
   
   return ijkCoords;
 }
-window.worldToIjk = worldToIjk;
-window.ijkToWorld = ijkToWorld;
