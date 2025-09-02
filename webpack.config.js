@@ -1,10 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
-const { execSync } = require("child_process");
-
-// Get the short commit SHA
-const commitHash = execSync("git rev-parse --short HEAD").toString().trim();
 
 module.exports = {
   mode: 'development',  // Set to 'production' or 'development' as needed
@@ -116,7 +112,7 @@ module.exports = {
         'process.env.PUBLIC_URL': JSON.stringify("/mira"),
       }),
       new webpack.DefinePlugin({
-        __COMMIT_HASH__: JSON.stringify(commitHash),
+        __COMMIT_HASH__: JSON.stringify(process.env.MIRABELLE_COMMIT || 'unknown'),
       }),
   ],
 };
