@@ -10,7 +10,7 @@ export const Enums = {
   FunctionOptions: Object.freeze({
     MASK: 'mask',
     BLACKOUT: 'blackout',
-    SLICE_REMOVE: 'slice_remove',
+    SLICE_REMOVE: 'sliceremove',
   }),
   FormOptions: Object.freeze({
     CUBOID: 'cuboid',
@@ -61,7 +61,7 @@ const presentationSlice = createSlice({
       },
       functionToolGroup: {
         visible: false,
-        defaultValue: 'mask',
+        defaultValue: 'blackout',
         visibility: {
           mask: false,
           blackout: false,
@@ -70,7 +70,7 @@ const presentationSlice = createSlice({
       },
       formToolGroup: {
         visible: false,
-        defaultValue: 'cylinder',
+        defaultValue: 'cuboid',
         visibility: {
           cuboid: false,
           cylinder: false,
@@ -316,12 +316,12 @@ const presentationSlice = createSlice({
       state.toolsConfig.viewToolGroup.visibility.projection = true;
       state.toolsConfig.viewToolGroup.visibility.stack = false;
 
-      state.toolsConfig.functionToolGroup.defaultValue = Enums.FunctionOptions.MASK;
+      state.toolsConfig.functionToolGroup.defaultValue = Enums.FunctionOptions.BLACKOUT;
       state.toolsConfig.functionToolGroup.visibility.mask = true;
       state.toolsConfig.functionToolGroup.visibility.blackout = true;
       state.toolsConfig.functionToolGroup.visibility.sliceRemove = true;
 
-      state.toolsConfig.formToolGroup.defaultValue = Enums.FormOptions.CYLINDER;
+      state.toolsConfig.formToolGroup.defaultValue = Enums.FormOptions.CUBOID;
       state.toolsConfig.formToolGroup.visibility.cuboid = true;
       state.toolsConfig.formToolGroup.visibility.cylinder = true;
 
