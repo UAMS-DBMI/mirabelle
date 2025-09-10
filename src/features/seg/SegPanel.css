@@ -3,7 +3,7 @@
 }
 
 #seg-panel ul {
-    @apply overflow-y-auto gap-1;
+    @apply overflow-y-scroll gap-1;
 }
 
 #seg-panel div.seg-color {
