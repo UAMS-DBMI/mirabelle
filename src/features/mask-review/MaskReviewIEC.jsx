@@ -52,6 +52,7 @@ function transformDetails(details, maskingDetails) {
 
   const maskingParams = JSON.parse(maskingDetails.masking_parameters);
   const maskingFilters = maskingParams?.noise !== undefined ? `Noise: ${maskingParams?.noise} ● Fill: ${maskingParams?.fill}` : '';
+  const maskingFunction = maskingParams?.function !== undefined ? `${maskingParams?.function === 'sliceremove' ? 'slice-remove' : maskingParams?.function} ● ${maskingParams?.form}` : '';
 
   return {
     'IEC': details.image_equivalence_class_id,
@@ -59,6 +60,7 @@ function transformDetails(details, maskingDetails) {
     //'Processing Status': details.processing_status,
     'Review Status': details.review_status,
     'Masking Status': maskingDetails?.masking_status,
+    'Masking Function': maskingFunction,
     'Masking Filters': maskingFilters,
     'Modality': details.modality,
     'Patient ID': details.patient_id,
