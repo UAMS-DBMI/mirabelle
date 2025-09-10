@@ -53,7 +53,7 @@ export default function useToolsConfigs({ manager }) {
       icon: "imagesearch_roller",
       action: () => manager.switchFunctionMode(Enums.FunctionOptions.BLACKOUT),
     }),
-    ...maybe(globalToolsConfig.functionToolGroup.visibility.mask, {
+    ...maybe(globalToolsConfig.functionToolGroup.visibility.sliceRemove, {
       name: "Slice Remove",
       icon: "content_cut",
       action: () => manager.switchFunctionMode(Enums.FunctionOptions.SLICE_REMOVE),
