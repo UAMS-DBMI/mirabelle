@@ -10,7 +10,7 @@ export const Enums = {
   FunctionOptions: Object.freeze({
     MASK: 'mask',
     BLACKOUT: 'blackout',
-    SLICE_REMOVE: 'sliceremove',
+    SLICE_REMOVE: 'slice_remove',
   }),
   FormOptions: Object.freeze({
     CUBOID: 'cuboid',

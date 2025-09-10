@@ -76,7 +76,7 @@ export async function setParameters(
     height,
     depth,
     form,
-    function: maskFunction,
+    function: maskFunction === 'slice_remove' ? 'sliceremove' : maskFunction,
     noise,
     fill
   });
