@@ -33,7 +33,7 @@ import {
   loadStackSegmentation,
 } from '@/utilities';
 import { getDicomDetails } from '@/visualreview';
-import { getMaskingDetails } from '@/masking.js';
+import { getMaskingDetails, setMaskingStatus } from '@/masking.js';
 import { submitFinalCoords } from '@/masking';
 
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -121,12 +121,6 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   let viewer;
 
   // console.log("MaskIEC renderingEngine:", renderingEngine);
-
-  useHotkeys('e', handleExpand);
-  useHotkeys('c', handleClear);
-  useHotkeys('a', handleAccept);
-  useHotkeys('s', handleSkip);
-  useHotkeys('n', handleNonMaskable);
 
   // Fire a resize event whenever the right and left panels toggle
   useEffect(() => {
@@ -249,7 +243,13 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     };
   }, [iec]);
 
-  async function handleOperationsAction(action) {
+  useHotkeys('e', () => handleOperationAction('expand'));
+  useHotkeys('c', () => handleOperationAction('clear'));
+  useHotkeys('a', () => handleOperationAction('accept'));
+  useHotkeys('s', () => handleOperationAction('skip mask'));
+  useHotkeys('n', () => handleOperationAction('nonmaskable mask'));
+
+  async function handleOperationAction(action) {
     switch (action) {
       case "expand":
         await handleExpand();
@@ -260,16 +260,19 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       case "accept":
         await handleAccept();
         break;
-      case "skip":
-        await handleSkip();
+      case "skip mask":
+        await setMaskingStatus(iec, action);
+        toast.success("Mask skipped!"); 
         break;
-      case "nonMaskable":
-        await handleNonMaskable();
+      case "nonmaskable mask":
+        await setMaskingStatus(iec, action);
+        toast.success("Image is not maskable!");  
         break;
       default:
         console.log("Unknown action:", action);
     }
   }
+
   async function handleExpand() {
     if (!expanded && isSegFlat(segmentationId)) {
       alert("Cannot expand a flat selection! You must draw in at least two planes.");
@@ -307,6 +310,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     setCoords(coords);
     toast.success("Expanded selection!");
   }
+
   function handleClear() {
     if (volumetric) {
       // Delete the current segmentation and add a new one (and activate it)
@@ -361,6 +365,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
     setExpanded(false);
   }
+
   async function handleAccept() {
     if (volumetric && !expanded) {
       alert("You must Expand Selection first!");
@@ -399,13 +404,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     toast.success("Submitted for masking!");
   }
 
-  function handleSkip() {
-    return
-  }
-
-  function handleNonMaskable() {
-    return
-  }
+  
 
   // short-circuit if not loaded yet
   if (isErrored) {
@@ -471,7 +470,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         <>
           {viewer}
           <OperationsPanel
-            onAction={handleOperationsAction}
+            onAction={handleOperationAction}
           />
         </>
       }
