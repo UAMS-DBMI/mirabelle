@@ -218,6 +218,17 @@ function decimateFrames(imageIds, maxFrames = 2000) {
   return usedImageIds;
 }
 
+// TODO: This and the next function should be renamed to better reflect
+// what they do and when they should be used!
+export async function getIECsForVR_nonmasking(visual_review_id) {
+
+	const response = await fetch(
+		`/papi/v1/visualreviews/${visual_review_id}/iecs`);
+	const details = await response.json();
+
+	return details;
+}
+
 export async function getIECsForVR(visual_review_id) {
 
 	const response = await fetch(
@@ -295,14 +306,12 @@ export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentation
   }
 
   // Set the volume to load
-  volume.load(async () => {
-
-
+  volume.load(() => {
     csToolsSegmentation.removeAllSegmentations();
     csToolsSegmentation.removeAllSegmentationRepresentations();
 
     // Create a segmentation of the same resolution as the source data for the CT volume
-    await volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
+    volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
       volumeId: segmentationId,
     });
 
@@ -320,9 +329,9 @@ export async function loadVolumeAndSegmentation(imageIds, volumeId, segmentation
         },
       },
     ]);
-    if (loadedFromCache) {
-      await new Promise((r) => setTimeout(r, 300));
-    }
+    // if (loadedFromCache) {
+    //   await new Promise((r) => setTimeout(r, 300));
+    // }
     triggerEvent(eventTarget, 'VolumeReallyLoaded', {
       volumeId,
       segmentationId,
@@ -370,7 +379,7 @@ export async function loadVolume(imageIds, volumeId, segmentationId, callback = 
     console.log("Volume already existed, not creating it");
   }
 
-  await volume.load(callback);
+  volume.load(callback);
 
   return volume;
 }
@@ -406,7 +415,7 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
   csToolsSegmentation.removeAllSegmentations();
   csToolsSegmentation.removeAllSegmentationRepresentations();
 
-  await Promise.all(cornerstone.imageLoader.loadAndCacheImages(imageIds));
+  const results = await Promise.allSettled(cornerstone.imageLoader.loadAndCacheImages(imageIds));
 
   // Create a segmentation of the same resolution as the source data for the CT volume
   const segImages = await imageLoader.createAndCacheDerivedLabelmapImages(imageIds);

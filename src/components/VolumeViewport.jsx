@@ -135,6 +135,7 @@ function VolumeViewport({
       const viewport = renderingEngine.getViewport(viewportId);
 
       eventTarget.addEventListener("VolumeReallyLoaded", (evt) => {
+        console.log("[VolumeViewport] VolumeReallyLoaded event caught");
         const segmentationId = evt.detail.segmentationId;
         if (segmentationId !== undefined) {
           segmentation.addLabelmapRepresentationToViewport(viewportId, [
