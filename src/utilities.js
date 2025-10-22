@@ -182,7 +182,7 @@ export async function getIECInfo(iec, mask_review=false) {
 		for (let file of fileInfo.frames) {
 			//console.log(file);
 			for (let i = 0; i < file.num_of_frames; i++) {
-				if (frames.num_of_frames > 1) {
+        if (file.num_of_frames > 1) {
 					frames.push(`wadouri:/papi/v1/files/${file.file_id}/data?frame=${i}`);
 				} else {
 					frames.push(`wadouri:/papi/v1/files/${file.file_id}/data`);
