@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import toast from 'react-hot-toast';
 
-import { getIECsForVRAwaitingReview } from "@/utilities";
+import { getIECsForMaskReviewVR } from "@/utilities";
 import { resetOptions, setLoading } from "@/features/optionSlice";
 import { setMaskerReviewConfig, reset } from "@/features/presentationSlice";
 import MaskReviewVR from "@/features/mask-review/MaskReviewVR";
@@ -24,7 +24,7 @@ export default function RouteMaskReviewVR() {
     dispatch(setLoading(true));
 
     if (!iecList) {
-      getIECsForVRAwaitingReview(vr).then((iecs) => {
+      getIECsForMaskReviewVR(vr).then((iecs) => {
         // this should trigger a re-run of this effect
         setIecList(iecs);
       });

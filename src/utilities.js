@@ -218,9 +218,7 @@ function decimateFrames(imageIds, maxFrames = 2000) {
   return usedImageIds;
 }
 
-// TODO: This and the next function should be renamed to better reflect
-// what they do and when they should be used!
-export async function getIECsForVR_nonmasking(visual_review_id) {
+export async function getIECsForDicomVR(visual_review_id) {
 
 	const response = await fetch(
 		`/papi/v1/visualreviews/${visual_review_id}/iecs`);
@@ -229,7 +227,7 @@ export async function getIECsForVR_nonmasking(visual_review_id) {
 	return details;
 }
 
-export async function getIECsForVR(visual_review_id) {
+export async function getIECsForMaskVR(visual_review_id) {
 
 	const response = await fetch(
 		`/papi/v1/masking/visualreview/${visual_review_id}`);
@@ -237,7 +235,8 @@ export async function getIECsForVR(visual_review_id) {
 
 	return details;
 }
-export async function getIECsForVRAwaitingReview(visual_review_id) {
+
+export async function getIECsForMaskReviewVR(visual_review_id) {
 
 	const response = await fetch(
 		`/papi/v1/masking/visualreview/${visual_review_id}?awaiting_review=true`);

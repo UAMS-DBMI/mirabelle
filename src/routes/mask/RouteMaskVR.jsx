@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import MaskVR from "@/features/mask/MaskVR";
 import { setOption, resetOptions, setLoading } from "@/features/optionSlice";
 import { setMaskerConfig, reset } from "@/features/presentationSlice";
-import { getIECsForVR } from "@/utilities";
+import { getIECsForMaskVR } from "@/utilities";
 
 import "./RouteMaskVR.css";
 
@@ -28,7 +28,7 @@ export default function RouteMaskVR() {
     console.log("[RouteMaskVR] useEffect running, vr=", vr, "iec=", iec);
     if (!iecList) {
       console.log("[RouteMaskVR] No iecList found, fetching IECs for VR:", vr);
-      getIECsForVR(vr).then((iecs) => {
+      getIECsForMaskVR(vr).then((iecs) => {
         setIecList(iecs);
       });
     } else {

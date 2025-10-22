@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from 'react-redux'
 import toast from 'react-hot-toast';
 
-import { getIECsForVR_nonmasking } from '@/utilities';
+import { getIECsForDicomVR } from '@/utilities';
 import { resetOptions, setLoading } from "@/features/optionSlice";
 import { setVisualReviewConfig, reset } from "@/features/presentationSlice";
 import DicomReviewVR from '@/features/dicom-review/DicomReviewVR';
@@ -24,7 +24,7 @@ export default function RouteDicomReviewVR() {
     dispatch(setLoading(true));
 
     if (!iecList) {
-      getIECsForVR_nonmasking(vr).then((iecs) => {
+      getIECsForDicomVR(vr).then((iecs) => {
         // this should trigger a re-run of this effect
         setIecList(iecs);
       });
