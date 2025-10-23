@@ -30,6 +30,7 @@ export default function DicomReviewVR({ vr, iec, onNext, onPrevious }) {
     <>
       {iec && (
         <DicomReviewIEC
+          routeName="dicom-review-vr"
           vr={vr}
           iec={iec}
           onNext={handleNext}

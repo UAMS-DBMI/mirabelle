@@ -61,7 +61,7 @@ function transformDetails(details) {
   };
 }
 
-export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
+export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeName }) {
   console.log("[NiftiReviewFile] rendering, file:", file);
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
@@ -238,8 +238,8 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
   }
 
   async function handleFilterAction(action) {
-    let a='a';
-  }  
+    let a = 'a';
+  }
 
   // short-circuit if not loaded yet
   if (isErrored) {
@@ -266,6 +266,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
 
   return (
     <RouteLayout
+      routeName={routeName}
       leftPanel={
         // showLeftPanel ?
         <>
@@ -290,11 +291,11 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       }
       middlePanel={
         <>
-          {vr && 
-            <FilterPanel 
+          {/* {vr &&
+            <FilterPanel
               onAction={handleFilterAction}
             />
-          }        
+          } */}
           {viewer}
           <OperationsPanel onAction={handleOperationsAction} />
         </>

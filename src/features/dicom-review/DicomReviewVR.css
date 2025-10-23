@@ -1,0 +1,3 @@
+#main.dicom-review-vr #middle-panel {
+    @apply grid-rows-[auto,1fr,auto];
+}

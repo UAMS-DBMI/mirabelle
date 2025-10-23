@@ -11,7 +11,8 @@ function RouteLayout({
     middlePanel,
     rightPanel,
     showLeftPanel,
-    showRightPanel
+    showRightPanel,
+    routeName,
 }) {
 
     const leftPanelVisibility = useSelector(s => s.presentation.panelConfig.visibility.left);
@@ -26,7 +27,7 @@ function RouteLayout({
     }
 
     return (
-        <div id="main" className={columnsClass}>
+        <div id="main" className={`${routeName} ${columnsClass}`}>
             {/* <div id="top-panel">
                 {topPanel}
             </div> */}

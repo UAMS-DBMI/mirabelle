@@ -13,23 +13,24 @@ export default function NiftiReviewVR({ vr, file, onNext, onPrevious }) {
   useHotkeys("left", handlePrevious);
 
   function handleNext() {
-	// Reset preset to force recalculation for next IEC
-	dispatch(resetOptions());
-	dispatch(setOption({ key: "preset", value: null }));
-	onNext();
+    // Reset preset to force recalculation for next IEC
+    dispatch(resetOptions());
+    dispatch(setOption({ key: "preset", value: null }));
+    onNext();
   }
 
   function handlePrevious() {
-	// Reset preset to force recalculation for previous IEC
-	dispatch(resetOptions());
-	dispatch(setOption({ key: "preset", value: null }));
-	onPrevious();
+    // Reset preset to force recalculation for previous IEC
+    dispatch(resetOptions());
+    dispatch(setOption({ key: "preset", value: null }));
+    onPrevious();
   }
 
   return (
     <>
       {file && (
         <NiftiReviewFile
+          // routeName="nifti-review-vr"
           vr={vr}
           file={file}
           onNext={handleNext}
