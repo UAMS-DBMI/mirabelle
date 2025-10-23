@@ -1,0 +1,50 @@
+#filter-panel {
+	@apply
+		
+		flex
+		gap-3
+		w-full
+		justify-center
+		bg-blue-100
+		dark:bg-blue-900
+		rounded-lg
+		p-2
+        self-start;
+}
+
+#filter-panel label {
+	@apply
+		flex 
+        items-center 
+        space-x-1
+}
+
+#filter-panel select {
+	@apply
+		rounded-md 
+        border 
+        border-gray-300 
+        h-8 
+        px-2
+}
+
+#filter-panel input {
+	@apply
+		rounded-md 
+        border 
+        border-gray-300 
+        h-8 
+        px-2
+}
+
+#filter-panel button {
+	@apply
+		bg-blue-500 
+        text-white 
+        rounded-md 
+        px-4 
+        h-8 
+        flex 
+        items-center 
+        justify-center
+}

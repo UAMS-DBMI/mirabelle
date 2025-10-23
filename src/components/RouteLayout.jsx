@@ -6,6 +6,7 @@ import './RouteLayout.css';
 import TestError from './TestError';
 
 function RouteLayout({
+    // topPanel,
     leftPanel,
     middlePanel,
     rightPanel,
@@ -26,6 +27,9 @@ function RouteLayout({
 
     return (
         <div id="main" className={columnsClass}>
+            {/* <div id="top-panel">
+                {topPanel}
+            </div> */}
             {leftPanelVisibility && (
                 <div
                     id="left-panel"

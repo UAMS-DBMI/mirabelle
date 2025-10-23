@@ -145,6 +145,22 @@ const presentationSlice = createSlice({
         },
       },
     },
+    // Filter Panel Configuration
+    filterConfig: {
+      visible: false,
+      visibility: {
+        type: false,
+        vr: false,
+        iec: false,
+        file: false,
+        series: false,
+        timepoint: false,
+        maskingStatus: false,
+        reviewStatus: false,
+        processingStatus: false,
+        dicomType: false,          
+      },
+    },    
 
     maximumIntensityProjection: false,
 
@@ -222,6 +238,11 @@ const presentationSlice = createSlice({
       state.buttonConfig.maskerReview.visibility.skip = true;
       state.buttonConfig.maskerReview.visibility.nonMaskable = true;
 
+      state.filterConfig.visible = true;
+      state.filterConfig.visibility.vr = true;
+      state.filterConfig.visibility.iec = true;
+      state.filterConfig.visibility.maskingStatus = true;
+
       return state;
     },
 
@@ -287,6 +308,13 @@ const presentationSlice = createSlice({
       state.buttonConfig.visualReview.visibility.other = true;
       state.buttonConfig.visualReview.visibility.flag = true;
 
+      state.filterConfig.visible = true;
+      state.filterConfig.visibility.vr = true;
+      state.filterConfig.visibility.iec = true;
+      state.filterConfig.visibility.reviewStatus = true;
+      //state.filterConfig.visibility.processingStatus = true;
+      state.filterConfig.visibility.dicomType = true;
+
       return state;
     },
 
@@ -345,6 +373,11 @@ const presentationSlice = createSlice({
       // Set open state for left and right panels
       state.panelConfig.open.left = true;
       state.panelConfig.open.right = true;
+
+      state.filterConfig.visibility.iec = false;
+      state.filterConfig.visibility.file = true;
+      state.filterConfig.visibility.processingStatus = false;
+      state.filterConfig.visibility.dicomType = false;      
 
       return state;
     },

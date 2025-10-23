@@ -34,6 +34,7 @@ import { VolumeView } from "@/features/volume-view";
 import { ToolsPanel } from "@/features/tools";
 import OperationsPanel from "@/components/OperationsPanel";
 import NavigationPanel from "@/components/NavigationPanel";
+import FilterPanel from '@/components/FilterPanel';
 import { DetailsPanel } from "@/features/details";
 import ErrorPanel from '@/components/ErrorPanel';
 
@@ -236,6 +237,10 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
     }
   }
 
+  async function handleFilterAction(action) {
+    let a='a';
+  }  
+
   // short-circuit if not loaded yet
   if (isErrored) {
     return (
@@ -285,6 +290,11 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious }) {
       }
       middlePanel={
         <>
+          {vr && 
+            <FilterPanel 
+              onAction={handleFilterAction}
+            />
+          }        
           {viewer}
           <OperationsPanel onAction={handleOperationsAction} />
         </>

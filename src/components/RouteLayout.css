@@ -10,6 +10,14 @@
     ;
 }
 
+/* #main top-panel {
+    @apply
+        grid
+        grid-rows-[1fr,auto]
+        gap-2
+    ;
+} */
+
 .side-panel {
     @apply
         flex
