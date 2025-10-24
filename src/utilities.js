@@ -227,6 +227,59 @@ export async function getIECsForDicomVR(visual_review_id) {
 	return details;
 }
 
+export async function getFilteredIECsForDicomVR(
+  visual_review_id,
+  review_status = "*",
+  dicom_file_type = "*",
+  processing_status = "*"
+) {
+  // Accept 'All' from URL/UI and translate to '*' for the API
+  const mapAllToStar = (v) => (v == null || v === '' || v === 'All' ? '*' : v);
+  // Special-case review status: 'Unreviewed' must be null in the API payload
+  const mapReviewStatus = (v) => {
+    if (v === 'Unreviewed') return null;
+    return mapAllToStar(v);
+  };
+  const _review_status = mapReviewStatus(review_status);
+  const _dicom_file_type = mapAllToStar(dicom_file_type);
+  const _processing_status = mapAllToStar(processing_status);
+
+  const payload = {
+    dicom_file_type: _dicom_file_type,
+    processing_status: _processing_status,
+    review_status: _review_status,
+  };
+
+  const response = await fetch(
+    `/papi/v1/visualreviews/${visual_review_id}/filter`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`getFilteredIECsForDicomVR failed: ${response.status} ${text}`);
+  }
+
+  const details = await response.json();
+  return details;
+}
+
+export async function getValuesForDicomVR(visual_review_id) {
+
+	const response = await fetch(
+		`/papi/v1/visualreviews/${visual_review_id}/values`);
+	const details = await response.json();
+
+	return details;
+}
+
 export async function getIECsForMaskVR(visual_review_id) {
 
 	const response = await fetch(

@@ -2,6 +2,7 @@ import React from 'react';
 
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 
 import {
   Enums,
@@ -86,7 +87,7 @@ function transformDetails(details, imageId) {
 }
 
 
-export default function DicomReviewIEC({ iec, vr, onNext, onPrevious, routeName }) {
+export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicomTypeOptions, onNext, onPrevious, routeName }) {
   console.log("[DicomReviewIEC] rendering, iec:", iec);
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
@@ -95,6 +96,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious, routeName 
   // const toggleRightPanel = () => setShowRightPanel(v => !v);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
   const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
@@ -167,6 +169,7 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious, routeName 
   }, [iec]);
 
   useLayoutEffect(() => {
+    if (!iec) return; // nothing to load when IEC is not selected
     console.log("DicomReviewIEC useEffect[iec]:", iec);
 
     const initialize = async () => {
@@ -332,8 +335,8 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious, routeName 
     }
   }
 
-  async function handleFilterAction(action) {
-    let a = 'a';
+  async function handleFilterAction({ reviewStatus: newStatus, dicomType: newType }) {
+    navigate(`/review/dicom/vr/${vr}/*/${newStatus || 'All'}/${newType || 'All'}`);
   }
 
   // short-circuit if not loaded yet
@@ -342,8 +345,58 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious, routeName 
       <ErrorPanel error={errorMessage.message} />
     );
   }
+  // When IEC is not selected yet, render full app with controls and message
+  if (!iec) {
+    return (
+      <RouteLayout
+        routeName={routeName}
+        leftPanel={
+          <>
+            {vr &&
+              <NavigationPanel
+                onNext={onNext}
+                onPrevious={onPrevious}
+                currentId={iec}
+                idLabel='IEC'
+              />
+            }
+            {toolGroup && (
+              <ToolsPanel
+                toolGroup={toolGroup}
+                toolGroup3d={toolGroup3d}
+                preset3d={preset3d}
+                onPresetChange={(value) =>
+                  dispatch(setOption({ key: 'preset', value }))
+                }
+              />
+            )}
+          </>
+        }
+        middlePanel={
+          <>
+            {vr &&
+              <FilterPanel
+                vr={vr}
+                reviewStatus={reviewStatus}
+                dicomType={dicomType}
+                dicomTypeOptions={dicomTypeOptions}
+                onAction={({ reviewStatus: s, dicomType: t }) => navigate([ '/review', 'dicom', 'vr', vr, '*', (s || 'All'), (t || 'All') ].join('/'))}
+              />
+            }
+            <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
+              No IECs were found for the selected filters.
+            </div>
+          </>
+        }
+        rightPanel={<div className="side-panel"><div className="wrapper" /></div>}
+        showLeftPanel={showLeftPanel}
+        showRightPanel={true}
+      />
+    );
+  }
+
   if (!isInitialized) {
-    return;
+    return null;
   }
 
   if (volumetric) {
@@ -388,21 +441,27 @@ export default function DicomReviewIEC({ iec, vr, onNext, onPrevious, routeName 
               idLabel='IEC'
             />
           }
-          <ToolsPanel
-            toolGroup={toolGroup}
-            toolGroup3d={toolGroup3d}
-            preset3d={preset3d}
-            onPresetChange={(value) =>
-              dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
-            }
-          />
+          {toolGroup && (
+            <ToolsPanel
+              toolGroup={toolGroup}
+              toolGroup3d={toolGroup3d}
+              preset3d={preset3d}
+              onPresetChange={(value) =>
+                dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
+              }
+            />
+          )}
         </>
         // : null
       }
       middlePanel={
         <>
-          {vr &&
+          {vr && 
             <FilterPanel
+              vr={vr}
+              reviewStatus={reviewStatus}
+              dicomType={dicomType}
+              dicomTypeOptions={dicomTypeOptions}
               onAction={handleFilterAction}
             />
           }

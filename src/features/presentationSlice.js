@@ -239,8 +239,6 @@ const presentationSlice = createSlice({
       state.buttonConfig.maskerReview.visibility.nonMaskable = true;
 
       state.filterConfig.visible = true;
-      state.filterConfig.visibility.vr = true;
-      state.filterConfig.visibility.iec = true;
       state.filterConfig.visibility.maskingStatus = true;
 
       return state;
@@ -273,6 +271,9 @@ const presentationSlice = createSlice({
       state.buttonConfig.maskerReview.visibility.rejected = true;
       state.buttonConfig.maskerReview.visibility.skip = true;
       state.buttonConfig.maskerReview.visibility.nonMaskable = true;
+
+      state.filterConfig.visible = true;
+      state.filterConfig.visibility.maskingStatus = true;      
 
       return state;
     },
@@ -309,8 +310,6 @@ const presentationSlice = createSlice({
       state.buttonConfig.visualReview.visibility.flag = true;
 
       state.filterConfig.visible = true;
-      state.filterConfig.visibility.vr = true;
-      state.filterConfig.visibility.iec = true;
       state.filterConfig.visibility.reviewStatus = true;
       //state.filterConfig.visibility.processingStatus = true;
       state.filterConfig.visibility.dicomType = true;

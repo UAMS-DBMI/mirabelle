@@ -6,7 +6,7 @@ import DicomReviewIEC from "@/features/dicom-review/DicomReviewIEC";
 
 import "./DicomReviewVR.css";
 
-export default function DicomReviewVR({ vr, iec, onNext, onPrevious }) {
+export default function DicomReviewVR({ vr, iec, noIecs, reviewStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
   useHotkeys("right", handleNext);
@@ -26,17 +26,17 @@ export default function DicomReviewVR({ vr, iec, onNext, onPrevious }) {
     onPrevious();
   }
 
+  // When there are no IECs or IEC isn't selected yet, show a message in the middle panel
   return (
-    <>
-      {iec && (
-        <DicomReviewIEC
-          routeName="dicom-review-vr"
-          vr={vr}
-          iec={iec}
-          onNext={handleNext}
-          onPrevious={handlePrevious}
-        />
-      )}
-    </>
+    <DicomReviewIEC
+      routeName="dicom-review-vr"
+      vr={vr}
+      iec={iec}
+      reviewStatus={reviewStatus}
+      dicomType={dicomType}
+      dicomTypeOptions={dicomTypeOptions}
+      onNext={handleNext}
+      onPrevious={handlePrevious}
+    />
   );
 }
