@@ -16,6 +16,7 @@ import {
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
 import { useHotkeys } from 'react-hotkeys-hook';
 import toast from 'react-hot-toast';
+import { useSearchParams } from "react-router-dom";
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
 import * as cornerstone from "@cornerstonejs/core";
@@ -81,6 +82,8 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   // const toggleRightPanel = () => setShowRightPanel(v => !v);
 
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const force_decimate = searchParams.get("decimate");
 
   const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
   const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
@@ -159,7 +162,12 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       let volumeId = `mask-review-${iec}`;
       //let segmentationId = `mask-review-${iec}-seg`;
 
-      const { frames } = await getIECInfo(iec, true);
+      let decimate_count = 2000; // default decimation frame limit
+      if (force_decimate) {
+        console.log("Forcing decimation of volume for IEC", iec, "to", force_decimate);
+        decimate_count = parseInt(force_decimate);
+      }
+      const { frames } = await getIECInfo(iec, true, decimate_count);
       setImageIds(frames);
 
       setVolumeId(volumeId);
