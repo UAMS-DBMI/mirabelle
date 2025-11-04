@@ -4,6 +4,7 @@ import * as cornerstoneTools from '@cornerstonejs/tools';
 import * as cornerstoneAdapters from "@cornerstonejs/adapters";
 import createImageIdsAndCacheMetaData from './lib/createImageIdsAndCacheMetaData';
 import { eventTarget, triggerEvent } from '@cornerstonejs/core';
+import { useSearchParams } from "react-router-dom";
 
 const { volumeLoader, imageLoader, metaData } = cornerstone;
 const { Enums: csToolsEnums, segmentation: csToolsSegmentation, } = cornerstoneTools;
@@ -163,7 +164,7 @@ export async function getFiles(iec) {
 /**
  * Get the file list for an IEC, or the reviewfiles list
  */
-export async function getIECInfo(iec, mask_review=false) {
+export async function getIECInfo(iec, mask_review=false, decimate_count=2000) {
 	let response
 
 	if (mask_review) {
@@ -191,7 +192,7 @@ export async function getIECInfo(iec, mask_review=false) {
 		}
 	}
 
-  frames = decimateFrames(frames);
+  frames = decimateFrames(frames, decimate_count);
 
 	return { volumetric, frames };
 }
