@@ -327,6 +327,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
         toast.success("Status set to Other!");
         break;
       case "flag":
+        await setDicomStatus(iec, "Flagged");
         await setMaskingFlag(iec);
         toast.success("Flagged for Masking!");
         break;
