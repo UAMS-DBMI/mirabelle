@@ -215,22 +215,27 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
       case "good":
         await setNiftiStatus(file, "Good");
         toast.success("Status set to Good!");
+        onNext();
         break;
       case "bad":
         await setNiftiStatus(file, "Bad");
         toast.success("Status set to Bad!");
+        onNext();
         break;
       case "blank":
         await setNiftiStatus(file, "Blank");
         toast.success("Status set to Blank!");
+        onNext();
         break;
       case "scout":
         await setNiftiStatus(file, "Scout");
         toast.success("Status set to Scout!");
+        onNext();
         break;
       case "other":
         await setNiftiStatus(file, "Other");
         toast.success("Status set to Other!");
+        onNext();
         break;
       default:
         console.log("Unknown action:", action);

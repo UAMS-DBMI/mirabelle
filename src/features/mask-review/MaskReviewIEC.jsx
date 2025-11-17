@@ -223,18 +223,22 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       case 'accept mask':
         await setMaskingStatus(iec, action);
         toast.success("Mask accepted!");
+        onNext();
         break;
       case 'reject mask':
         await setMaskingStatus(iec, action);
         toast.success("Mask rejected!");
+        onNext();
         break;
       case 'skip mask':
         await setMaskingStatus(iec, action);
         toast.success("Mask skipped!");
+        onNext();
         break;
       case 'nonmaskable mask':
         await setMaskingStatus(iec, action);
         toast.success("Image is not maskable!");
+        onNext();
         break;
       default:
         console.warn(`Unknown action: ${action}`);

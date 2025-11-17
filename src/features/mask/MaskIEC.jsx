@@ -269,14 +269,17 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         break;
       case "accept":
         await handleAccept();
+        onNext();
         break;
       case "skip mask":
         await setMaskingStatus(iec, action);
         toast.success("Mask skipped!"); 
+        onNext();
         break;
       case "nonmaskable mask":
         await setMaskingStatus(iec, action);
-        toast.success("Image is not maskable!");  
+        toast.success("Image is not maskable!"); 
+        onNext(); 
         break;
       default:
         console.log("Unknown action:", action);

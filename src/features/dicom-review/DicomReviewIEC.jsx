@@ -309,27 +309,33 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
       case "good":
         await setDicomStatus(iec, "Good");
         toast.success("Status set to Good!");
+        onNext();
         break;
       case "bad":
         await setDicomStatus(iec, "Bad");
         toast.success("Status set to Bad!");
+        onNext();
         break;
       case "blank":
         await setDicomStatus(iec, "Blank");
         toast.success("Status set to Blank!");
+        onNext();
         break;
       case "scout":
         await setDicomStatus(iec, "Scout");
         toast.success("Status set to Scout!");
+        onNext();
         break;
       case "other":
         await setDicomStatus(iec, "Other");
         toast.success("Status set to Other!");
+        onNext();
         break;
       case "flag":
         await setDicomStatus(iec, "Flagged");
         await setMaskingFlag(iec);
         toast.success("Flagged for Masking!");
+        onNext();
         break;
       default:
         console.log("Unknown action:", action);
