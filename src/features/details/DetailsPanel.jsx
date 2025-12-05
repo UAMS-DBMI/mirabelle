@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useSelector } from 'react-redux';
+import quinceLogo from "@/assets/quince-small-logo.svg";
 
 import './DetailsPanel.css';
+import { re } from 'mathjs';
 
 function downloadFile(details) {
   // Fetch the file from the path specified in details["path"]
@@ -41,18 +43,40 @@ export default function DetailsPanel({ details }) {
 
   const handleDownload = 'File ID' in details ? downloadFile : download;
 
+  function handleOpenInQuince(iec) {
+    const url = `https://tcia-posda-rh-1.ad.uams.edu/viewer/iec/${iec}`;
+    window.open(url, "_blank");
+  }
+
   return (
     <div id="details-panel" className="side-panel">
       <h2 id="title">Details</h2>
       <div className="wrapper">
         {Object.entries(details)
           .filter(([key]) => !ignoredKeys.includes(key))
-          .map(([key, value]) => (
-            <div key={key} className="detail-item">
-              <p id="key">{key}:</p>
-              <p id="value">{value}</p>
-            </div>
-          ))}
+          .map(([key, value]) => {
+            const isIEC = String(key).toLowerCase() === "iec";
+            return (
+              <div key={key} className="detail-item">
+                <p id="key">{key}:</p>
+                {isIEC ? (
+                  <p id="value" className="detail-value-with-action">
+                    <span className="detail-iec-value">{value}</span>
+                    <button
+                      type="button"
+                      className="quince-button"
+                      title="Open in Quince"
+                      onClick={() => handleOpenInQuince(value)}
+                    >
+                      <img src={quinceLogo} alt="Quince Logo" />
+                    </button>
+                  </p>
+                ) : (
+                  <p id="value">{value}</p>
+                )}
+              </div>
+            );
+          })}
       </div>
       <button
         id="download"
