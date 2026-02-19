@@ -51,6 +51,10 @@ const {
 } = cornerstoneTools;
 
 function transformDetails(details) {
+  if (!details) {
+    return {};
+  }
+
   return {
     "File ID": details.file_id,
     "Import File Name": details.import_name,
@@ -94,7 +98,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
   const [errorMessage, setErrorMessage] = useState();
 
   const [volumetric, setVolumetric] = useState(true);
-  const [details, setDetails] = useState(true);
+  const [details, setDetails] = useState({});
 
   let viewer;
 
@@ -134,17 +138,19 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
     console.log("NiftiReviewFile useEffect[file]:", file);
 
     const initialize = async () => {
-      const details = await getNiftiDetails(file);
-      setDetails(details);
-
       setIsErrored(false);
       let volumeId = `vol-${file}`;
       let segmentationId = `vol-${file}-seg`;
 
       try {
+        const details = await getNiftiDetails(file);
+        setDetails(details);
 
         if (details.download_path === undefined) {
-          setError(true);
+          const missingPathError = new Error("No downloadable NIfTI file was found for this record.");
+          setErrorMessage(missingPathError);
+          setIsErrored(true);
+          dispatch(setLoading(false));
           return;
         }
 
@@ -173,6 +179,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
         // TODO: set an isError status here and display an error message?
         setErrorMessage(error);
         setIsErrored(true);
+        dispatch(setLoading(false));
         return;
       }
 
@@ -246,17 +253,14 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
     let a = 'a';
   }
 
-  // short-circuit if not loaded yet
-  if (isErrored) {
-    return (
-      <ErrorPanel error={errorMessage.message} />
-    );
-  }
-  if (!isInitialized) {
+  // short-circuit while loading, but keep layout available for handled errors
+  if (!isInitialized && !isErrored) {
     return;
   }
 
-  viewer = (
+  viewer = isErrored ? (
+    <ErrorPanel error={errorMessage?.message || "Failed to load this image."} />
+  ) : (
     <VolumeView
       volumeId={volumeId}
       segmentationId={segmentationId}

@@ -37,7 +37,8 @@ export default function RouteNiftiReviewVR() {
           "[RouteNiftiReviewVR] useEffect running, vr=",
           vr,
           "file=",
-          file
+          file,
+          fileList
         );
       }
     }
