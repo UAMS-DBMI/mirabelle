@@ -9,23 +9,23 @@ importers:
   .:
     dependencies:
       '@cornerstonejs/adapters':
-        specifier: ^3.17.0
-        version: 3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@cornerstonejs/tools@3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3))
+        specifier: ^3.33.4
+        version: 3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@cornerstonejs/tools@3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3))
       '@cornerstonejs/core':
-        specifier: ^3.17.0
-        version: 3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
+        specifier: ^3.33.4
+        version: 3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
       '@cornerstonejs/dicom-image-loader':
-        specifier: ^3.17.0
-        version: 3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(dicom-parser@1.8.21)
+        specifier: ^3.33.4
+        version: 3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(dicom-parser@1.8.21)
       '@cornerstonejs/nifti-volume-loader':
-        specifier: ^3.17.0
-        version: 3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))
+        specifier: ^3.33.4
+        version: 3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))
       '@cornerstonejs/polymorphic-segmentation':
-        specifier: ^3.17.0
-        version: 3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@cornerstonejs/tools@3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))
+        specifier: ^3.33.4
+        version: 3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@cornerstonejs/tools@3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))
       '@cornerstonejs/tools':
-        specifier: ^3.17.0
-        version: 3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3)
+        specifier: ^3.33.4
+        version: 3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3)
       '@icr/polyseg-wasm':
         specifier: ^0.4.0
         version: 0.4.0
@@ -157,6 +157,10 @@ packages:
     resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/code-frame@7.29.0':
+    resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/compat-data@7.28.0':
     resolution: {integrity: sha512-60X7qkglvrap8mn1lh2ebxXdZYtUcpd7gsmy9kLaBJ4i/WdY8PqTSdxyA8qraikqKQK5C1KRBKXqznrVapyNaw==}
     engines: {node: '>=6.9.0'}
@@ -260,6 +264,10 @@ packages:
 
   '@babel/helper-validator-identifier@7.27.1':
     resolution: {integrity: sha512-D2hP9eA+Sqx1kBZgzxZh0y1trbuU+JoDkiEwqhQ36nodYqJwyEIhPSdMNd7lOm/4io72luTPWH20Yda0xOuUow==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/helper-validator-identifier@7.28.5':
+    resolution: {integrity: sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-validator-option@7.27.1':
@@ -702,6 +710,10 @@ packages:
     resolution: {integrity: sha512-VtPOkrdPHZsKc/clNqyi9WUA8TINkZ4cGk63UUE3u4pmB2k+ZMQRDuIOagv8UVd6j7k0T3+RRIb7beKTebNbcw==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/runtime@7.28.6':
+    resolution: {integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/template@7.27.2':
     resolution: {integrity: sha512-LPDZ85aEJyYSd18/DkjNh4/y1ntkE5KwUHWTiqgRxruuZL2F1yuHligVHLvcHY2vMHXttKFpJn6LwfI7cw7ODw==}
     engines: {node: '>=6.9.0'}
@@ -718,11 +730,11 @@ packages:
     resolution: {integrity: sha512-ruv7Ae4J5dUYULmeXw1gmb7rYRz57OWCPM57pHojnLq/3Z1CK2lNSLTCVjxVk1F/TZHwOZZrOWi0ur95BbLxNQ==}
     engines: {node: '>=6.9.0'}
 
-  '@cornerstonejs/adapters@3.32.12':
-    resolution: {integrity: sha512-dC33XemAmrSQF4qWtyBSjM7m+ecqgZ6QPjO3Mt8Z7zqU9PVzz5CUKUQaRzatByASnRNYweePrZkcvDCcdpBKaQ==}
+  '@cornerstonejs/adapters@3.33.5':
+    resolution: {integrity: sha512-4LpGbF8U0TjegxsJ2ZAUclgo0rKRrYzsKi26jELh7UqySxFcqo4IIsEsSduBrjWOOCGLCu0VjebFnGHTxjJfMg==}
     peerDependencies:
-      '@cornerstonejs/core': ^3.32.12
-      '@cornerstonejs/tools': ^3.32.12
+      '@cornerstonejs/core': ^3.33.5
+      '@cornerstonejs/tools': ^3.33.5
 
   '@cornerstonejs/codec-charls@1.2.3':
     resolution: {integrity: sha512-qKUe6DN0dnGzhhfZLYhH9UZacMcudjxcaLXCrpxJImT/M/PQvZCT2rllu6VGJbWKJWG+dMVV2zmmleZcdJ7/cA==}
@@ -740,31 +752,31 @@ packages:
     resolution: {integrity: sha512-qvP4q4JDib7mi9r7LqKOwqz7YZ8gjtDX4ZCezeYf8+eb7MBXCz5uXAMeVF3yz9Axw4XiIMdB/pqXkm8tqCl13w==}
     engines: {node: '>=0.14'}
 
-  '@cornerstonejs/core@3.32.12':
-    resolution: {integrity: sha512-JU3NyRHrPEMuKnH0pNmFyVroY+uafa9o2wml7/QgXgByJRKrK9ocBEZP0pE4U0YeNqwfV+UJIEUPMjHhBkWClg==}
+  '@cornerstonejs/core@3.33.5':
+    resolution: {integrity: sha512-xraUNcRoV4btqFAa/qf4lJaYWOd5vcmDPxgXJHqBmHHqnz6tmjbI4Lruw84ot6z53WovKcf58Feu4NZleMqFdA==}
 
-  '@cornerstonejs/dicom-image-loader@3.32.12':
-    resolution: {integrity: sha512-8tsL+IFz6H5VNho+tsjWge8g10brDqp0l3WMjUZ+uNSccc/o4ARrVsDvDFSzRQyMRh5aVp8YCGu4Rotd/p2ryg==}
+  '@cornerstonejs/dicom-image-loader@3.33.5':
+    resolution: {integrity: sha512-+6RBLeiGbH05UOLpYBRaJKaN6hDzDlDkq48XLkq7V+XookK04H5cTqAUsOoPMsR6d0vF4YGnpDPNnUt9UOKS4g==}
     peerDependencies:
-      '@cornerstonejs/core': ^3.32.12
+      '@cornerstonejs/core': ^3.33.5
       dicom-parser: ^1.8.9
 
-  '@cornerstonejs/nifti-volume-loader@3.32.12':
-    resolution: {integrity: sha512-tNLJytFJ4M5nSDD9pxspwZog+6KKTyfED/LMwlImNDmhDfxBlLEGa9NbZExyC8tMeVk8Ms+q2JPnK2g5ovM6/g==}
+  '@cornerstonejs/nifti-volume-loader@3.33.5':
+    resolution: {integrity: sha512-MblY7yiPnKWsclSKoTxv/SuKBNLKKZ73/4McLnaB7PJ70+XGmkstLacUa8Oxs3J7652PP3A4VF+VTSiIfC7vaA==}
     peerDependencies:
-      '@cornerstonejs/core': ^3.32.12
+      '@cornerstonejs/core': ^3.33.5
 
-  '@cornerstonejs/polymorphic-segmentation@3.32.12':
-    resolution: {integrity: sha512-W7eeYDCd5CwJdQexamM8f9tSFx9Tcy6Z19r2z0Ioodw+vHK7+okqNPv72KfZPa7QHNBC7E+VH9CzbFmZqywp7w==}
+  '@cornerstonejs/polymorphic-segmentation@3.33.5':
+    resolution: {integrity: sha512-PJkj6J6wHGx+V6a8NdAc+xwHjDURLYUbpCgUuSK53LxArjgoBtjgkh67LHk8N49gQHmd5n7LgyVmeYRd08ClTw==}
     peerDependencies:
-      '@cornerstonejs/core': ^3.32.12
-      '@cornerstonejs/tools': ^3.32.12
+      '@cornerstonejs/core': ^3.33.5
+      '@cornerstonejs/tools': ^3.33.5
       '@kitware/vtk.js': 32.12.1
 
-  '@cornerstonejs/tools@3.32.12':
-    resolution: {integrity: sha512-IRzEeDhlZyTrLixvryLHMayvZN2xUc708SO6Rm7qa+2QWtSMzB/c5tLLyW6koux4EEVeP5CYKk3jelgbFbj9fQ==}
+  '@cornerstonejs/tools@3.33.5':
+    resolution: {integrity: sha512-+mM2pvmvGetREmbf2Q+E4cWbiSHyOv7vNqGHr6SwAtxGLRiEKsI4So7uwWNKVSun6+nUqtsCFlVmkehEcDFSlw==}
     peerDependencies:
-      '@cornerstonejs/core': ^3.32.12
+      '@cornerstonejs/core': ^3.33.5
       '@kitware/vtk.js': 32.12.1
       '@types/d3-array': ^3.0.4
       '@types/d3-interpolate': ^3.0.1
@@ -1751,11 +1763,8 @@ packages:
     resolution: {integrity: sha512-QOSvevhslijgYwRx6Rv7zKdMF8lbRmx+uQGx2+vDc+KI/eBnsy9kit5aj23AgGu3pa4t9AgwbnXWqS+iOY+2aA==}
     engines: {node: '>= 6'}
 
-  caniuse-lite@1.0.30001707:
-    resolution: {integrity: sha512-3qtRjw/HQSMlDWf+X79N206fepf4SOOU6SQLMaq/0KkZLmSjPxAkBOQQ+FxbHKfHmYLZFfdWsO3KA90ceHPSnw==}
-
-  caniuse-lite@1.0.30001735:
-    resolution: {integrity: sha512-EV/laoX7Wq2J9TQlyIXRxTJqIw4sxfXS4OYgudGxBYRuTv0q7AM6yMEpU/Vo1I94thg9U6EZ2NfZx9GJq83u7w==}
+  caniuse-lite@1.0.30001769:
+    resolution: {integrity: sha512-BCfFL1sHijQlBGWBMuJyhZUhzo7wer5sVj9hqekB/7xn0Ypy+pER/edCYQm4exbXj4WiySGp40P8UuTh6w1srg==}
 
   cborg@4.2.9:
     resolution: {integrity: sha512-HG8GprGhfzkbzDAIQApqYcN1BJAyf8vDQbzclAwaqrm3ATFnB7ygiWLr+YID+GBdfTJ+yHtzPi06218xULpZrg==}
@@ -2433,7 +2442,7 @@ packages:
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
@@ -4256,6 +4265,12 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
+  '@babel/code-frame@7.29.0':
+    dependencies:
+      '@babel/helper-validator-identifier': 7.28.5
+      js-tokens: 4.0.0
+      picocolors: 1.1.1
+
   '@babel/compat-data@7.28.0': {}
 
   '@babel/core@7.28.3':
@@ -4403,6 +4418,8 @@ snapshots:
   '@babel/helper-validator-identifier@7.25.9': {}
 
   '@babel/helper-validator-identifier@7.27.1': {}
+
+  '@babel/helper-validator-identifier@7.28.5': {}
 
   '@babel/helper-validator-option@7.27.1': {}
 
@@ -4957,6 +4974,8 @@ snapshots:
     dependencies:
       regenerator-runtime: 0.14.1
 
+  '@babel/runtime@7.28.6': {}
+
   '@babel/template@7.27.2':
     dependencies:
       '@babel/code-frame': 7.27.1
@@ -4985,11 +5004,11 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@cornerstonejs/adapters@3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@cornerstonejs/tools@3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3))':
+  '@cornerstonejs/adapters@3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@cornerstonejs/tools@3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3))':
     dependencies:
       '@babel/runtime-corejs2': 7.28.3
-      '@cornerstonejs/core': 3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
-      '@cornerstonejs/tools': 3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3)
+      '@cornerstonejs/core': 3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
+      '@cornerstonejs/tools': 3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3)
       buffer: 6.0.3
       dcmjs: 0.43.1
       gl-matrix: 3.4.3
@@ -5003,7 +5022,7 @@ snapshots:
 
   '@cornerstonejs/codec-openjph@2.4.7': {}
 
-  '@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)':
+  '@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)':
     dependencies:
       '@kitware/vtk.js': 32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
       comlink: 4.4.2
@@ -5015,34 +5034,34 @@ snapshots:
       - webpack
       - wslink
 
-  '@cornerstonejs/dicom-image-loader@3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(dicom-parser@1.8.21)':
+  '@cornerstonejs/dicom-image-loader@3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(dicom-parser@1.8.21)':
     dependencies:
       '@cornerstonejs/codec-charls': 1.2.3
       '@cornerstonejs/codec-libjpeg-turbo-8bit': 1.2.2
       '@cornerstonejs/codec-openjpeg': 1.2.4
       '@cornerstonejs/codec-openjph': 2.4.7
-      '@cornerstonejs/core': 3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
+      '@cornerstonejs/core': 3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
       comlink: 4.4.2
       dicom-parser: 1.8.21
       jpeg-lossless-decoder-js: 2.1.2
       pako: 2.1.0
       uuid: 9.0.1
 
-  '@cornerstonejs/nifti-volume-loader@3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))':
+  '@cornerstonejs/nifti-volume-loader@3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))':
     dependencies:
-      '@cornerstonejs/core': 3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
+      '@cornerstonejs/core': 3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
       nifti-reader-js: 0.6.9
 
-  '@cornerstonejs/polymorphic-segmentation@3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@cornerstonejs/tools@3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))':
+  '@cornerstonejs/polymorphic-segmentation@3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@cornerstonejs/tools@3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))':
     dependencies:
-      '@cornerstonejs/core': 3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
-      '@cornerstonejs/tools': 3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3)
+      '@cornerstonejs/core': 3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
+      '@cornerstonejs/tools': 3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3)
       '@icr/polyseg-wasm': 0.4.0
       '@kitware/vtk.js': 32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
 
-  '@cornerstonejs/tools@3.32.12(@cornerstonejs/core@3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3)':
+  '@cornerstonejs/tools@3.33.5(@cornerstonejs/core@3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@kitware/vtk.js@32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3))(@types/d3-array@3.2.1)(@types/d3-interpolate@3.0.4)(d3-array@3.2.4)(d3-interpolate@3.0.1)(gl-matrix@3.4.3)':
     dependencies:
-      '@cornerstonejs/core': 3.32.12(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
+      '@cornerstonejs/core': 3.33.5(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
       '@kitware/vtk.js': 32.12.1(@babel/preset-env@7.28.3(@babel/core@7.28.3))(autoprefixer@10.4.21(postcss@8.5.6))(webpack@5.101.3)(wslink@2.3.3)
       '@types/d3-array': 3.2.1
       '@types/d3-interpolate': 3.0.4
@@ -5445,8 +5464,8 @@ snapshots:
 
   '@testing-library/dom@10.4.1':
     dependencies:
-      '@babel/code-frame': 7.26.2
-      '@babel/runtime': 7.27.0
+      '@babel/code-frame': 7.29.0
+      '@babel/runtime': 7.28.6
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       dom-accessibility-api: 0.5.16
@@ -5841,7 +5860,7 @@ snapshots:
   autoprefixer@10.4.21(postcss@8.5.6):
     dependencies:
       browserslist: 4.24.4
-      caniuse-lite: 1.0.30001707
+      caniuse-lite: 1.0.30001769
       fraction.js: 4.3.7
       normalize-range: 0.1.2
       picocolors: 1.1.1
@@ -5942,14 +5961,14 @@ snapshots:
 
   browserslist@4.24.4:
     dependencies:
-      caniuse-lite: 1.0.30001707
+      caniuse-lite: 1.0.30001769
       electron-to-chromium: 1.5.123
       node-releases: 2.0.19
       update-browserslist-db: 1.1.3(browserslist@4.24.4)
 
   browserslist@4.25.3:
     dependencies:
-      caniuse-lite: 1.0.30001735
+      caniuse-lite: 1.0.30001769
       electron-to-chromium: 1.5.207
       node-releases: 2.0.19
       update-browserslist-db: 1.1.3(browserslist@4.25.3)
@@ -6004,9 +6023,7 @@ snapshots:
 
   camelcase-css@2.0.1: {}
 
-  caniuse-lite@1.0.30001707: {}
-
-  caniuse-lite@1.0.30001735: {}
+  caniuse-lite@1.0.30001769: {}
 
   cborg@4.2.9: {}
 

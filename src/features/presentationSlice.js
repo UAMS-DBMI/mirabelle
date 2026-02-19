@@ -80,7 +80,7 @@ const presentationSlice = createSlice({
         visible: false,
         noiseDefaultValue: 0,
         fillDefaultValue: 3,
-      },          
+      },
       leftClickToolGroup: {
         visible: false,
         defaultValue: 'selection',
@@ -108,6 +108,10 @@ const presentationSlice = createSlice({
       presetToolGroup: {
         visible: false,
         defaultValue: 'CT-MIP',
+      },
+      decimateToolGroup: {
+        visible: false,
+        defaultValue: 300,
       },
       resetToolGroup: {
         visible: false,
@@ -158,9 +162,9 @@ const presentationSlice = createSlice({
         maskingStatus: false,
         reviewStatus: false,
         processingStatus: false,
-        dicomType: false,          
+        dicomType: false,
       },
-    },    
+    },
 
     maximumIntensityProjection: false,
 
@@ -273,7 +277,7 @@ const presentationSlice = createSlice({
       state.buttonConfig.maskerReview.visibility.nonMaskable = true;
 
       state.filterConfig.visible = true;
-      state.filterConfig.visibility.maskingStatus = true;      
+      state.filterConfig.visibility.maskingStatus = true;
 
       return state;
     },
@@ -356,6 +360,7 @@ const presentationSlice = createSlice({
 
       state.toolsConfig.opacityToolGroup.visible = true;
       state.toolsConfig.presetToolGroup.visible = true;
+      state.toolsConfig.decimateToolGroup.visible = true;
 
       return state;
     },
@@ -376,7 +381,8 @@ const presentationSlice = createSlice({
       state.filterConfig.visibility.iec = false;
       state.filterConfig.visibility.file = true;
       state.filterConfig.visibility.processingStatus = false;
-      state.filterConfig.visibility.dicomType = false;      
+      state.filterConfig.visibility.dicomType = false;
+      state.toolsConfig.decimateToolGroup.visible = false;
 
       return state;
     },
@@ -385,7 +391,7 @@ const presentationSlice = createSlice({
   }
 })
 
-export const { 
+export const {
   setPresets,
   addPreset,
   removePreset,

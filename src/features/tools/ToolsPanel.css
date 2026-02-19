@@ -1,25 +1,11 @@
 /* This file contains the CSS styles for the ToolsPanel component */
 
 #tools-panel select {
-  @apply
-  w-full
-  cursor-pointer
-  text-black
-  dark:text-white
-  border
-  border-gray-300
-  dark:bg-slate-800
-  rounded-lg
-  p-4
-  pr-8
-  ;
+  @apply w-full cursor-pointer text-black dark:text-white border border-gray-300 dark:bg-slate-800 rounded-lg p-4 pr-8;
 }
 
 #tools-panel div.mask-filters {
-  @apply
-    flex
-    gap-2
-  ;
+  @apply flex gap-2;
 }
 
 #tools-panel div.mask-filters input {
@@ -32,9 +18,7 @@
 }
 
 #tools-panel div.opacity-control input {
-  @apply
-    w-full
-  ;
+  @apply w-full;
 }
 
 .preset-dropdown-container {
@@ -61,4 +45,91 @@
   outline: none;
   border-color: #2196f3;
   box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.decimate-input {
+  padding: 1rem;
+  border-radius: 10px;
+  width: 100%;
+  background-color: rgb(15, 23, 42);
+}
+
+.decimate-control-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.decimate-control-row .decimate-input {
+  flex: 1;
+}
+
+.decimate-action-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.persistent-btn {
+  background-color: #1e293b;
+}
+
+.persistent-btn.is-active {
+  background-color: #3b82f6;
+}
+
+.refresh-btn {
+  background-color: #0f172a;
+}
+
+.decimate-btn-icon {
+  color: #ffffff;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.decimate-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: -2.8rem;
+  transform: translateX(-50%);
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 20;
+}
+
+.decimate-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid #000000;
+}
+
+.decimate-action-btn:hover .decimate-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.decimate-action-btn:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
 }

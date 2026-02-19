@@ -58,6 +58,21 @@ export default function ToolsPanel({
     dispatch(setOption({ key: 'opacity', value }));
   };
 
+  // pull decimate config + value from Redux
+  const { decimateToolGroup } = globalToolsConfig;
+  const decimate = globalStateValues.decimate;
+  const persistent = globalStateValues.persistent;
+
+  const handleDecimateChange = e => {
+    console.log("Decimate input changed:", e.target.value);
+    const value = parseInt(e.target.value) || 0;
+    dispatch(setOption({ key: 'decimate', value }));
+  };
+
+  const handlePersistentToggle = () => {
+    dispatch(setOption({ key: 'persistent', value: !persistent }));
+  };
+
   const maskingFunction = useSelector(state => state.masking.function);
   const maskingForm = useSelector(state => state.masking.form);
 
@@ -201,6 +216,42 @@ export default function ToolsPanel({
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+        }
+        {
+          decimateToolGroup.visible &&
+          <div className="decimate-control">
+            <p>Decimate:</p>
+            <div className="decimate-control-row">
+              <input
+                type="text"
+                id="decimate-input"
+                value={decimate}
+                onChange={handleDecimateChange}
+                className="decimate-input"
+                placeholder="300"
+              />
+              <button
+                type="button"
+                title='Persistent'
+                className={`decimate-action-btn persistent-btn ${persistent ? 'is-active' : ''}`}
+                aria-label="Persistent"
+                aria-pressed={persistent}
+                onClick={handlePersistentToggle}
+              >
+                <span className="decimate-btn-icon">✓</span>
+                <span className="decimate-tooltip">Persistent</span>
+              </button>
+              <button
+                type="button"
+                title='Refresh'
+                className="decimate-action-btn refresh-btn"
+                aria-label="Refresh"
+              >
+                <span className="decimate-btn-icon">↻</span>
+                <span className="decimate-tooltip">Refresh</span>
+              </button>
             </div>
           </div>
         }
