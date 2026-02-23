@@ -16,7 +16,6 @@ import {
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
 import { useHotkeys } from 'react-hotkeys-hook';
 import toast from 'react-hot-toast';
-import { useSearchParams } from "react-router-dom";
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
 import * as cornerstone from "@cornerstonejs/core";
@@ -82,8 +81,6 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   // const toggleRightPanel = () => setShowRightPanel(v => !v);
 
   const dispatch = useDispatch();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const force_decimate = searchParams.get("decimate");
 
   const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
   const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
@@ -99,6 +96,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   const [toolGroup, setToolGroup] = useState();
   const [toolGroup3d, setToolGroup3d] = useState();
   const preset3d = useSelector(state => state.options.preset);
+  const optionsDecimate = useSelector(state => state.options.decimate);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
@@ -107,6 +105,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
   const [maskingDetails, setMaskingDetails] = useState(true);
+  const [appliedDecimate, setAppliedDecimate] = useState(2000);
 
   let viewer;
 
@@ -158,15 +157,12 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       setDetails(details);
       setMaskingDetails(maskingDetails);
 
+      let decimate_count = appliedDecimate;
+
       setIsErrored(false);
-      let volumeId = `mask-review-${iec}`;
+      let volumeId = `mask-review-${iec}-decimate-${decimate_count}`;
       //let segmentationId = `mask-review-${iec}-seg`;
 
-      let decimate_count = 2000; // default decimation frame limit
-      if (force_decimate) {
-        console.log("Forcing decimation of volume for IEC", iec, "to", force_decimate);
-        decimate_count = parseInt(force_decimate);
-      }
       const { frames } = await getIECInfo(iec, true, decimate_count);
       setImageIds(frames);
 
@@ -211,7 +207,16 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
     setIsInitialized(false);
     initialize();
 
-  }, [iec]);
+  }, [iec, appliedDecimate]);
+
+  function handleApplyDecimate() {
+    const parsedDecimate = parseInt(optionsDecimate, 10);
+    if (Number.isFinite(parsedDecimate) && parsedDecimate > 0) {
+      setAppliedDecimate(parsedDecimate);
+      return;
+    }
+    setAppliedDecimate(2000);
+  }
 
   useHotkeys('a', () => handleOperationAction('accept mask'));
   useHotkeys('r', () => handleOperationAction('reject mask'));
@@ -295,6 +300,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
             onPresetChange={(value) =>
               dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
             }
+            onApplyDecimate={handleApplyDecimate}
           />
         </>
         // : null

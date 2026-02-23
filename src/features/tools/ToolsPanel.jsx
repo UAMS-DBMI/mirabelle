@@ -26,13 +26,15 @@ export default function ToolsPanel({
   toolGroup3d,
   onPresetChange,
   preset3d,
-  renderingEngine
+  renderingEngine,
+  onApplyDecimate
 }) {
   const dispatch = useDispatch();
 
   const presets = useSelector(state => state.presentation.presets);
   const globalToolsConfig = useSelector(state => state.presentation.toolsConfig);
   const globalStateValues = useSelector(state => state.options);
+  const [appliedDecimate, setAppliedDecimate] = useState(globalStateValues.decimate);
 
   // pull filters config + values from Redux
   // const { filterToolGroup } = globalToolsConfig;
@@ -66,7 +68,22 @@ export default function ToolsPanel({
   const handleDecimateChange = e => {
     console.log("Decimate input changed:", e.target.value);
     const value = parseInt(e.target.value) || 0;
-    dispatch(setOption({ key: 'decimate', value }));
+    setAppliedDecimate(value);
+  };
+
+  const handleDecimateApply = () => {
+    dispatch(setOption({ key: 'decimate', value: appliedDecimate }));
+    if (onApplyDecimate) {
+      onApplyDecimate(appliedDecimate);
+    }
+  };
+
+  const handleDecimateInputKeyDown = (event) => {
+    if (event.key !== 'Enter') {
+      return;
+    }
+    event.preventDefault();
+    handleDecimateApply();
   };
 
   const handlePersistentToggle = () => {
@@ -227,8 +244,9 @@ export default function ToolsPanel({
               <input
                 type="text"
                 id="decimate-input"
-                value={decimate}
+                value={appliedDecimate}
                 onChange={handleDecimateChange}
+                onKeyDown={handleDecimateInputKeyDown}
                 className="decimate-input"
                 placeholder="300"
               />
@@ -248,6 +266,7 @@ export default function ToolsPanel({
                 title='Refresh'
                 className="decimate-action-btn refresh-btn"
                 aria-label="Refresh"
+                onClick={handleDecimateApply}
               >
                 <span className="decimate-btn-icon">↻</span>
                 <span className="decimate-tooltip">Refresh</span>

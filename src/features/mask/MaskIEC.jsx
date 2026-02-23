@@ -3,7 +3,6 @@ import React from 'react';
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import { useHotkeys } from 'react-hotkeys-hook';
-import { useSearchParams } from "react-router-dom";
 
 import {
   Enums,
@@ -90,8 +89,6 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   // const toggleRightPanel = () => setShowRightPanel(v => !v);
 
   const dispatch = useDispatch();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const force_decimate = searchParams.get("decimate");
 
   const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
   const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
@@ -103,6 +100,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   const optionsFunction = useSelector(state => state.options.function);
   const optionsNoise = useSelector(state => state.options.noise);
   const optionsFill = useSelector(state => state.options.fill);
+  const optionsDecimate = useSelector(state => state.options.decimate);
   const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
 
   const [volumeId, setVolumeId] = useState()
@@ -188,16 +186,13 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       setDetails(details);
       setMaskingDetails(maskingDetails);
 
+      let decimate_count = optionsDecimate;
+
       setIsErrored(false);
-      let volumeId = `mask-${iec}`;
+      let volumeId = `mask-${iec}-decimate-${decimate_count}`;
       // append a random number 
       let segmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
-      let decimate_count = 2000; // default decimation frame limit
-      if (force_decimate) {
-        console.log("Forcing decimation of volume for IEC", iec, "to", force_decimate);
-        decimate_count = parseInt(force_decimate);
-      }
       const { frames } = await getIECInfo(iec, false, decimate_count);
       const imageIds = frames;
 
@@ -251,7 +246,17 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };
-  }, [iec]);
+  }, [iec, optionsDecimate]);
+
+  // function handleApplyDecimate(decimateValue) {
+
+  //   console.log("Applying decimate with value:", decimateValue);
+  //   if (Number.isFinite(decimateValue) && decimateValue > 0) {
+  //     setAppliedDecimate(decimateValue);
+  //     return;
+  //   }
+  //   setAppliedDecimate(2000);
+  // }
 
   useHotkeys('e', () => handleOperationAction('expand'));
   useHotkeys('c', () => handleOperationAction('clear'));
@@ -273,13 +278,13 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         break;
       case "skip mask":
         await setMaskingStatus(iec, action);
-        toast.success("Mask skipped!"); 
+        toast.success("Mask skipped!");
         onNext();
         break;
       case "nonmaskable mask":
         await setMaskingStatus(iec, action);
-        toast.success("Image is not maskable!"); 
-        onNext(); 
+        toast.success("Image is not maskable!");
+        onNext();
         break;
       default:
         console.log("Unknown action:", action);
@@ -417,7 +422,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     toast.success("Submitted for masking!");
   }
 
-  
+
 
   // short-circuit if not loaded yet
   if (isErrored) {
@@ -475,6 +480,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
               dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
             }
             renderingEngine={renderingEngine}
+          // onApplyDecimate={handleApplyDecimate}
           />
         </>
         // : null
