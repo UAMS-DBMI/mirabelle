@@ -48,10 +48,7 @@
 }
 
 .decimate-input {
-  padding: 1rem;
-  border-radius: 10px;
-  width: 100%;
-  background-color: rgb(15, 23, 42);
+  @apply p-4 rounded-lg w-full border border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-400;
 }
 
 .decimate-control-row {
@@ -65,31 +62,23 @@
 }
 
 .decimate-action-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border: 0;
-  border-radius: 10px;
-  cursor: pointer;
+  @apply relative inline-flex items-center justify-center w-12 h-12 rounded-lg border border-slate-300 bg-white text-slate-700 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:text-white;
 }
 
 .persistent-btn {
-  background-color: #1e293b;
+  @apply border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-white;
 }
 
 .persistent-btn.is-active {
-  background-color: #3b82f6;
+  @apply bg-blue-500 border-blue-500 text-white;
 }
 
 .refresh-btn {
-  background-color: #0f172a;
+  @apply border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-white;
 }
 
 .decimate-btn-icon {
-  color: #ffffff;
+  color: inherit;
   font-size: 1.75rem;
   line-height: 1;
 }
