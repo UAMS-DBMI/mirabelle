@@ -187,13 +187,16 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       setMaskingDetails(maskingDetails);
 
       let decimate_count = optionsDecimate;
+      const requestedDecimateCount = decimate_count === 0
+        ? 2000  // Maximum number of frames to load if decimate is set to 0 (no decimation)
+        : decimate_count;
 
       setIsErrored(false);
       let volumeId = `mask-${iec}-decimate-${decimate_count}`;
       // append a random number 
       let segmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
-      const { frames } = await getIECInfo(iec, false, decimate_count);
+      const { frames } = await getIECInfo(iec, false, requestedDecimateCount);
       const imageIds = frames;
 
       setImageIds(imageIds);

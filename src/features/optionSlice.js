@@ -14,7 +14,7 @@ const initialState = {
   rightClick: Enums.RightClickOptions.ZOOM,
   opacity: 0.3,
   preset: 'CT-MIP',
-  decimate: 300,
+  decimate: 0,
   persistent: false,
   loading: false,
 };
