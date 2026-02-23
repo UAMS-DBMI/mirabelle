@@ -16,8 +16,12 @@ export default function RouteNiftiReviewVR() {
   const { vr, file } = useParams();
 
   const [fileList, setFileList] = useState(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    if (loaded) {
+      return;
+    }
     dispatch(resetOptions());
     dispatch(reset());
     dispatch(setVisualReviewConfig());
@@ -40,6 +44,7 @@ export default function RouteNiftiReviewVR() {
           file,
           fileList
         );
+        setLoaded(true);
       }
     }
   }, [vr, file, fileList]);
@@ -80,6 +85,10 @@ export default function RouteNiftiReviewVR() {
       toast.error("No previous File available.");
     }
   };
+
+  if (!loaded) {
+    return null;
+  }
 
   return (
     <NiftiReviewVR
