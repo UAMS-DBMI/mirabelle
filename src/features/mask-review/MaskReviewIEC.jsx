@@ -105,7 +105,6 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
   const [maskingDetails, setMaskingDetails] = useState(true);
-  const [appliedDecimate, setAppliedDecimate] = useState(2000);
 
   let viewer;
 
@@ -157,13 +156,16 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       setDetails(details);
       setMaskingDetails(maskingDetails);
 
-      let decimate_count = appliedDecimate;
+      let decimate_count = optionsDecimate;
+      const requestedDecimateCount = decimate_count === 0
+        ? 2000  // Maximum number of frames to load if decimate is set to 0 (no decimation)
+        : decimate_count;
 
       setIsErrored(false);
       let volumeId = `mask-review-${iec}-decimate-${decimate_count}`;
       //let segmentationId = `mask-review-${iec}-seg`;
 
-      const { frames } = await getIECInfo(iec, true, decimate_count);
+      const { frames } = await getIECInfo(iec, true, requestedDecimateCount);
       setImageIds(frames);
 
       setVolumeId(volumeId);
@@ -207,16 +209,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
     setIsInitialized(false);
     initialize();
 
-  }, [iec, appliedDecimate]);
-
-  function handleApplyDecimate() {
-    const parsedDecimate = parseInt(optionsDecimate, 10);
-    if (Number.isFinite(parsedDecimate) && parsedDecimate > 0) {
-      setAppliedDecimate(parsedDecimate);
-      return;
-    }
-    setAppliedDecimate(2000);
-  }
+  }, [iec, optionsDecimate]);
 
   useHotkeys('a', () => handleOperationAction('accept mask'));
   useHotkeys('r', () => handleOperationAction('reject mask'));
@@ -300,7 +293,6 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
             onPresetChange={(value) =>
               dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
             }
-            onApplyDecimate={handleApplyDecimate}
           />
         </>
         // : null

@@ -115,6 +115,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
   const [toolGroup, setToolGroup] = useState();
   const [toolGroup3d, setToolGroup3d] = useState();
   const preset3d = useSelector(state => state.options.preset);
+  const optionsDecimate = useSelector(state => state.options.decimate);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
@@ -206,17 +207,22 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
 
       setDetails(finalDetails);
 
+      let decimate_count = optionsDecimate;
+      const requestedDecimateCount = decimate_count === 0
+        ? 2000  // Maximum number of frames to load if decimate is set to 0 (no decimation)
+        : decimate_count;
+
       setIsErrored(false);
-      let volumeId = `dicom-review-${iec}`;
+      let volumeId = `dicom-review-${iec}-decimate-${decimate_count}`;
       let segmentationId = `dicom-review-${iec}-seg`;
 
       let imageIds = [];
 
       if (!isSeg) {
-        const { frames } = await getIECInfo(iec);
+        const { frames } = await getIECInfo(iec, false, requestedDecimateCount);
         imageIds = frames;
       } else {
-        const { frames } = await getIECInfo(segBaseIEC);
+        const { frames } = await getIECInfo(segBaseIEC, false, requestedDecimateCount);
         imageIds = frames;
       }
       setImageIds(imageIds);
@@ -295,7 +301,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };
-  }, [iec]);
+  }, [iec, optionsDecimate]);
 
   useHotkeys('g', () => handleOperationsAction('good'));
   useHotkeys('b', () => handleOperationsAction('bad'));
@@ -387,7 +393,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
                 reviewStatus={reviewStatus}
                 dicomType={dicomType}
                 dicomTypeOptions={dicomTypeOptions}
-                onAction={({ reviewStatus: s, dicomType: t }) => navigate([ '/review', 'dicom', 'vr', vr, '*', (s || 'All'), (t || 'All') ].join('/'))}
+                onAction={({ reviewStatus: s, dicomType: t }) => navigate(['/review', 'dicom', 'vr', vr, '*', (s || 'All'), (t || 'All')].join('/'))}
               />
             }
             <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
@@ -463,7 +469,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
       }
       middlePanel={
         <>
-          {vr && 
+          {vr &&
             <FilterPanel
               vr={vr}
               reviewStatus={reviewStatus}
