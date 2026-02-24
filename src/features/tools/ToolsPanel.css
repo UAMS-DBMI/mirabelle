@@ -1,7 +1,7 @@
 /* This file contains the CSS styles for the ToolsPanel component */
 
 #tools-panel select {
-  @apply w-full cursor-pointer text-black dark:text-white border border-gray-300 dark:bg-slate-800 rounded-lg p-4 pr-8;
+  @apply w-full cursor-pointer text-black dark:text-white border border-gray-300 dark:bg-slate-900 rounded-lg p-4 pr-8;
 }
 
 #tools-panel div.mask-filters {
@@ -48,7 +48,7 @@
 }
 
 .decimate-input {
-  @apply p-4 rounded-lg w-full border border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-400;
+  @apply h-14 px-4 py-0 rounded-lg w-full border border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-400;
 }
 
 .decimate-control-row {
@@ -62,7 +62,7 @@
 }
 
 .decimate-action-btn {
-  @apply relative inline-flex items-center justify-center w-12 h-12 rounded-lg border border-slate-300 bg-white text-slate-700 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:text-white;
+  @apply relative inline-flex items-center justify-center w-14 h-14 p-0 rounded-lg border border-slate-300 bg-white text-slate-700 cursor-pointer box-border dark:border-slate-700 dark:bg-slate-900 dark:text-white;
 }
 
 .persistent-btn {
@@ -121,4 +121,8 @@
 .decimate-action-btn:focus-visible {
   outline: 2px solid #60a5fa;
   outline-offset: 2px;
+}
+
+.decimate-action-btn:focus {
+  outline: none;
 }
