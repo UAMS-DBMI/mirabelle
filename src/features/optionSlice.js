@@ -15,7 +15,7 @@ const initialState = {
   opacity: 0.3,
   preset: 'CT-MIP',
   decimate: 0,
-  persistent: false,
+  persistent: true,
   loading: false,
 };
 

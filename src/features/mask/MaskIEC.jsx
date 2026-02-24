@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import { useHotkeys } from 'react-hotkeys-hook';
 
@@ -120,6 +120,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   const [maskingDetails, setMaskingDetails] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [coords, setCoords] = useState();
+  const loadRequestRef = useRef(0);
 
   let viewer;
 
@@ -178,10 +179,16 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
   useLayoutEffect(() => {
     console.log("MaskIEC useEffect[iec]:", iec);
+    const requestId = ++loadRequestRef.current;
+    let isCancelled = false;
 
     const initialize = async () => {
+      setIsInitialized(false);
       const details = await getDicomDetails(iec);
       const maskingDetails = await getMaskingDetails(iec);
+      if (isCancelled || requestId !== loadRequestRef.current) {
+        return;
+      }
       const { volumetric } = details;
       setDetails(details);
       setMaskingDetails(maskingDetails);
@@ -197,6 +204,9 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       let segmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
       const { frames } = await getIECInfo(iec, false, requestedDecimateCount);
+      if (isCancelled || requestId !== loadRequestRef.current) {
+        return;
+      }
       const imageIds = frames;
 
       setImageIds(imageIds);
@@ -208,6 +218,9 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       try {
         if (volumetric) {
           await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
+          if (isCancelled || requestId !== loadRequestRef.current) {
+            return;
+          }
           dispatch(setTitle("Mask Volume"));
           dispatch(reset());
           dispatch(setMaskerConfig());
@@ -217,6 +230,9 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
           // dispatch(setOption({ key: "form", value: Enums.FormOptions.CYLINDER }));
         } else {
           await loadStackSegmentation(imageIds, segmentationId);
+          if (isCancelled || requestId !== loadRequestRef.current) {
+            return;
+          }
           dispatch(setTitle("Mask Stack"));
           dispatch(reset());
           dispatch(setMaskerConfig());
@@ -235,6 +251,10 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         return;
       }
 
+      if (isCancelled || requestId !== loadRequestRef.current) {
+        return;
+      }
+
       setIsInitialized(true);
       dispatch(setLoading(false));
     };
@@ -242,6 +262,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
     initialize();
 
     return () => {
+      isCancelled = true;
       // Make sure we disable drawing of the volume
       // when we leave, so the next one doesn't attempt to draw
       // before it exists
