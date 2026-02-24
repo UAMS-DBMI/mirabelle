@@ -136,6 +136,98 @@ export default function ToolsPanel({
           </div>
         }
         {
+          globalToolsConfig.leftClickToolGroup.visible &&
+          <div>
+            <p>Left-Click:</p>
+            <MaterialButtonSet
+              buttonConfig={toolsConfigs.leftClickGroupButtonConfig}
+              initialActiveButton={toTitleCase(globalStateValues.leftClick)}
+            />
+          </div>
+        }
+        {
+          globalToolsConfig.rightClickToolGroup.visible &&
+          <div>
+            <p>Right-Click:</p>
+            <MaterialButtonSet
+              buttonConfig={toolsConfigs.rightClickGroupButtonConfig}
+              initialActiveButton={toTitleCase(globalStateValues.rightClick)}
+            />
+          </div>
+        }
+        {
+          decimateToolGroup.visible &&
+          <div className="decimate-control">
+            <p>Decimate:</p>
+            <div className="decimate-control-row">
+              <input
+                type="text"
+                id="decimate-input"
+                value={appliedDecimate}
+                onChange={handleDecimateChange}
+                onKeyDown={handleDecimateInputKeyDown}
+                className="decimate-input"
+                placeholder="300"
+              />
+              <button
+                type="button"
+                title='Persistent'
+                className={`decimate-action-btn persistent-btn ${persistent ? 'is-active' : ''}`}
+                aria-label="Persistent"
+                aria-pressed={persistent}
+                onClick={handlePersistentToggle}
+              >
+                <span className="decimate-btn-icon">✓</span>
+                <span className="decimate-tooltip">Persistent</span>
+              </button>
+              <button
+                type="button"
+                title='Refresh'
+                className="decimate-action-btn refresh-btn"
+                aria-label="Refresh"
+                onClick={handleDecimateApply}
+              >
+                <span className="decimate-btn-icon">↻</span>
+                <span className="decimate-tooltip">Refresh</span>
+              </button>
+            </div>
+          </div>
+        }
+        {
+          globalToolsConfig.presetToolGroup.visible &&
+          <div>
+            <p>Preset:</p>
+            <div className="preset-dropdown-container">
+              {/* <label htmlFor="preset-select">Preset:</label> */}
+              <select
+                id="preset-select"
+                value={preset3d}
+                onChange={handlePresetChange}
+                className="preset-select"
+              >
+                {presets.map(preset => (
+                  <option key={preset} value={preset}>
+                    {preset}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        }
+        {opacityToolGroup.visible && (
+          <div className="opacity-control">
+            <p>Opacity: <span>{opacity.toFixed(1)}</span></p>
+            <input
+              type="range"
+              min={opacityToolGroup.min}
+              max={opacityToolGroup.max}
+              step={opacityToolGroup.step}
+              value={opacity}
+              onChange={handleOpacityChange}
+            />
+          </div>
+        )}
+        {
           globalToolsConfig.functionToolGroup.visible &&
           <div>
             <p>Function:</p>
@@ -179,98 +271,6 @@ export default function ToolsPanel({
                 value={fill}
                 onChange={handleFillChange}
               />
-            </div>
-          </div>
-        }
-        {
-          globalToolsConfig.leftClickToolGroup.visible &&
-          <div>
-            <p>Left-Click:</p>
-            <MaterialButtonSet
-              buttonConfig={toolsConfigs.leftClickGroupButtonConfig}
-              initialActiveButton={toTitleCase(globalStateValues.leftClick)}
-            />
-          </div>
-        }
-        {
-          globalToolsConfig.rightClickToolGroup.visible &&
-          <div>
-            <p>Right-Click:</p>
-            <MaterialButtonSet
-              buttonConfig={toolsConfigs.rightClickGroupButtonConfig}
-              initialActiveButton={toTitleCase(globalStateValues.rightClick)}
-            />
-          </div>
-        }
-        {opacityToolGroup.visible && (
-          <div className="opacity-control">
-            <p>Opacity: <span>{opacity.toFixed(1)}</span></p>
-            <input
-              type="range"
-              min={opacityToolGroup.min}
-              max={opacityToolGroup.max}
-              step={opacityToolGroup.step}
-              value={opacity}
-              onChange={handleOpacityChange}
-            />
-          </div>
-        )}
-        {
-          globalToolsConfig.presetToolGroup.visible &&
-          <div>
-            <p>Preset:</p>
-            <div className="preset-dropdown-container">
-              {/* <label htmlFor="preset-select">Preset:</label> */}
-              <select
-                id="preset-select"
-                value={preset3d}
-                onChange={handlePresetChange}
-                className="preset-select"
-              >
-                {presets.map(preset => (
-                  <option key={preset} value={preset}>
-                    {preset}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        }
-        {
-          decimateToolGroup.visible &&
-          <div className="decimate-control">
-            <p>Decimate:</p>
-            <div className="decimate-control-row">
-              <input
-                type="text"
-                id="decimate-input"
-                value={appliedDecimate}
-                onChange={handleDecimateChange}
-                onKeyDown={handleDecimateInputKeyDown}
-                className="decimate-input"
-                placeholder="300"
-              />
-              <button
-                type="button"
-                title='Persistent'
-                className={`decimate-action-btn persistent-btn ${persistent ? 'is-active' : ''}`}
-                aria-label="Persistent"
-                aria-pressed={persistent}
-                onClick={handlePersistentToggle}
-              >
-                <span className="decimate-btn-icon">✓</span>
-                <span className="decimate-tooltip">Persistent</span>
-              </button>
-              <button
-                type="button"
-                title='Refresh'
-                className="decimate-action-btn refresh-btn"
-                aria-label="Refresh"
-                onClick={handleDecimateApply}
-              >
-                <span className="decimate-btn-icon">↻</span>
-                <span className="decimate-tooltip">Refresh</span>
-              </button>
             </div>
           </div>
         }
