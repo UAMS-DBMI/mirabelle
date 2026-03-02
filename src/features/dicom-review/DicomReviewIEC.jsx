@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
@@ -127,6 +127,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
   const [isSeg, setIsSeg] = useState(false);
   const [segBaseIEC, setSegBaseIEC] = useState(false);
   const [segMetadata, setSegMetadata] = useState([]);
+  const loadRequestRef = useRef(0);
 
   // Factor out the idea of "force stack view" from options
   // so we can use it as a useEffect dependency, and it
@@ -172,9 +173,15 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
   useLayoutEffect(() => {
     if (!iec) return; // nothing to load when IEC is not selected
     console.log("DicomReviewIEC useEffect[iec]:", iec);
+    const requestId = ++loadRequestRef.current;
+    let isCancelled = false;
 
     const initialize = async () => {
       const details = await getDicomDetails(iec);
+      if (isCancelled || requestId !== loadRequestRef.current) {
+        console.log("---------------> getDicomDetails & getMaskingDetails cancelled");
+        return;
+      }
       let { modality, volumetric } = details;
 
       let isSeg = false;
@@ -297,6 +304,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
     // Return initialized to false when unmounting
     // so we don't try to draw the next volume before it's loaded!
     return () => {
+      isCancelled = true;
       setIsInitialized(false);
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();

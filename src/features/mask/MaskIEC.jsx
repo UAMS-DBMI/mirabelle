@@ -187,6 +187,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       const details = await getDicomDetails(iec);
       const maskingDetails = await getMaskingDetails(iec);
       if (isCancelled || requestId !== loadRequestRef.current) {
+        console.log("---------------> getDicomDetails & getMaskingDetails cancelled");
         return;
       }
       const { volumetric } = details;
@@ -205,6 +206,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
       const { frames } = await getIECInfo(iec, false, requestedDecimateCount);
       if (isCancelled || requestId !== loadRequestRef.current) {
+        console.log("---------------> getIECInfo cancelled");
         return;
       }
       const imageIds = frames;
@@ -219,6 +221,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         if (volumetric) {
           await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
           if (isCancelled || requestId !== loadRequestRef.current) {
+            console.log("---------------> loadVolumeAndSegmentation cancelled");
             return;
           }
           dispatch(setTitle("Mask Volume"));
@@ -231,6 +234,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
         } else {
           await loadStackSegmentation(imageIds, segmentationId);
           if (isCancelled || requestId !== loadRequestRef.current) {
+            console.log("---------------> loadStackSegmentation cancelled");
             return;
           }
           dispatch(setTitle("Mask Stack"));
@@ -252,6 +256,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       }
 
       if (isCancelled || requestId !== loadRequestRef.current) {
+        console.log("---------------> initialization cancelled after loading");
         return;
       }
 

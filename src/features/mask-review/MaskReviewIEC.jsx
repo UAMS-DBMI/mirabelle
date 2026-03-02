@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 
 import {
@@ -105,6 +105,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
   const [maskingDetails, setMaskingDetails] = useState(true);
+  const loadRequestRef = useRef(0);
 
   let viewer;
 
@@ -148,10 +149,17 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   // Load the volume into the cache
   useEffect(() => {
     console.log("MaskReviewIEC useEffect[iec]:", iec);
+    const requestId = ++loadRequestRef.current;
+    let isCancelled = false;
 
     const initialize = async () => {
       const details = await getDicomDetails(iec);
       const maskingDetails = await getMaskingDetails(iec);
+      if (isCancelled || requestId !== loadRequestRef.current) {
+        console.log("---------------> getDicomDetails & getMaskingDetails cancelled");
+        return;
+      }
+
       const { volumetric } = details;
       setDetails(details);
       setMaskingDetails(maskingDetails);
@@ -166,6 +174,10 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       //let segmentationId = `mask-review-${iec}-seg`;
 
       const { frames } = await getIECInfo(iec, true, requestedDecimateCount);
+      if (isCancelled || requestId !== loadRequestRef.current) {
+        console.log("---------------> getIECInfo cancelled");
+        return;
+      }
       setImageIds(frames);
 
       setVolumeId(volumeId);
@@ -179,6 +191,10 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
             imageIds: frames,
           });
           volume.load();
+          if (isCancelled || requestId !== loadRequestRef.current) {
+            console.log("---------------> loadVolumeAndSegmentation cancelled");
+            return;
+          }
           dispatch(setTitle("Mask Volume Review"));
           dispatch(reset());
           dispatch(setMaskerReviewConfig());
@@ -202,12 +218,21 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
         // return;
       }
 
+      if (isCancelled || requestId !== loadRequestRef.current) {
+        console.log("---------------> initialization cancelled after loading");
+        return;
+      }
+
       setIsInitialized(true);
       dispatch(setLoading(false));
     };
 
     setIsInitialized(false);
     initialize();
+
+    return () => {
+      isCancelled = true;
+    };
 
   }, [iec, optionsDecimate]);
 
