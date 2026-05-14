@@ -1,0 +1,40 @@
+diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
+index 5ab1158..23a1174 100644
+--- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
++++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
+@@ -16,6 +16,8 @@ export function getArrayConstructor(datatypeCode) {
+             return Uint16Array;
+         case NIFTICONSTANTS.NIFTI_TYPE_UINT32:
+             return Uint32Array;
++        case NIFTICONSTANTS.NIFTI_TYPE_FLOAT64:
++            return Float64Array;
+         default:
+             throw new Error(`NIFTI datatypeCode ${datatypeCode} is not yet supported`);
+     }
+diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js
+index e91e6c6..a91c0a6 100644
+--- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js
++++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js
+@@ -70,6 +70,10 @@ export default function modalityScaleNifti(niftiHeader, niftiImageBuffer) {
+             niiBuffer = new Uint32Array(niftiImageBuffer);
+             scalarData = allocateScalarData('Float32Array', niiBuffer);
+             break;
++        case NIFTICONSTANTS.NIFTI_TYPE_FLOAT64:
++            niiBuffer = new Float64Array(niftiImageBuffer);
++            scalarData = allocateScalarData('Float64Array', niiBuffer);
++            break;
+         default:
+             throw new Error(`NIFTI datatypeCode ${datatypeCode} is not yet supported`);
+     }
+@@ -127,6 +131,11 @@ function allocateScalarData(types, niiBuffer) {
+             checkCacheAvailable(bitsAllocated, nVox);
+             scalarData = new Uint8Array(nVox);
+             break;
++        case 'Float64Array':
++            bitsAllocated = 64;
++            checkCacheAvailable(bitsAllocated, nVox);
++            scalarData = new Float64Array(nVox);
++            break;
+         default:
+             throw new Error(`TypedArray ${types} is not yet supported`);
+     }
