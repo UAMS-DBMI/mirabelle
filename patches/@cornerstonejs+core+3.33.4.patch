@@ -1,0 +1,13 @@
+diff --git a/node_modules/@cornerstonejs/core/dist/esm/utilities/generateVolumePropsFromImageIds.js b/node_modules/@cornerstonejs/core/dist/esm/utilities/generateVolumePropsFromImageIds.js
+index 8ecc86e..cba0ad6 100644
+--- a/node_modules/@cornerstonejs/core/dist/esm/utilities/generateVolumePropsFromImageIds.js
++++ b/node_modules/@cornerstonejs/core/dist/esm/utilities/generateVolumePropsFromImageIds.js
+@@ -74,6 +74,8 @@ function _determineDataType(imageIds, volumeMetadata) {
+             return 'Uint8Array';
+         case 32:
+             return 'Float32Array';
++        case 64:
++            return 'Float64Array';
+         default:
+             throw new Error(`Bits allocated of ${BitsAllocated} is not defined to generate scalarData for the volume.`);
+     }
