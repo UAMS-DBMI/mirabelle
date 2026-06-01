@@ -3,13 +3,13 @@
 default: serve
 
 serve: node_modules
-	pnpm run start
+	npm run start
 
 build: node_modules
-	pnpm run build
+	npm run build
 
 node_modules: package.json
-	pnpm i
+	npm i
 
 tags: 
 	ctags -R --languages=JavaScript,TypeScript --exclude=node_modules --exclude=build --exclude=dist

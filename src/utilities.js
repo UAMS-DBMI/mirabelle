@@ -184,9 +184,9 @@ export async function getIECInfo(iec, mask_review=false, decimate_count=2000) {
 			//console.log(file);
 			for (let i = 0; i < file.num_of_frames; i++) {
         if (file.num_of_frames > 1) {
-					frames.push(`wadouri:/papi/v1/files/${file.file_id}/data?frame=${i}`);
+					frames.push(`wadouri:/files/created/${file.path}?frame=${i}`);
 				} else {
-					frames.push(`wadouri:/papi/v1/files/${file.file_id}/data`);
+					frames.push(`wadouri:/files/created/${file.path}`);
 				}
 			}
 		}
