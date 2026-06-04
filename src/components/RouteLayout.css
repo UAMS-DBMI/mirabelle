@@ -34,7 +34,7 @@
 }
 
 html.windows .side-panel .wrapper {
-    @apply pl-[1rem] mx-[-1rem];
+    @apply pl-[1rem] mx-[-1rem] overflow-x-hidden;
 }
 
 html:not(.windows) .side-panel .wrapper {
