@@ -313,6 +313,20 @@ export async function getIECsForMaskReviewVR(visual_review_id) {
 	return details;
 }
 
+export async function getFilteredIECsForMaskReviewVR(visual_review_id, masking_status = 'All', dicom_file_type = 'All') {
+	const params = new URLSearchParams();
+	params.set('awaiting_review', 'true');
+	if (masking_status && masking_status !== 'All') {
+		params.set('masking_status', masking_status.toLowerCase());
+	}
+	if (dicom_file_type && dicom_file_type !== 'All') {
+		params.set('dicom_file_type', dicom_file_type);
+	}
+	const response = await fetch(`/papi/v1/masking/visualreview/${visual_review_id}?${params.toString()}`);
+	const details = await response.json();
+	return details;
+}
+
 export async function getOtherIECsForFOR(iec) {
 
   const response = await fetch(

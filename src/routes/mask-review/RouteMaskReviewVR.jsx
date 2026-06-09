@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import toast from 'react-hot-toast';
 
-import { getIECsForMaskReviewVR } from "@/utilities";
+import { getFilteredIECsForMaskReviewVR, getValuesForDicomVR } from "@/utilities";
 import { resetOptions, setLoading } from "@/features/optionSlice";
 import { setMaskerReviewConfig, reset } from "@/features/presentationSlice";
 import MaskReviewVR from "@/features/mask-review/MaskReviewVR";
@@ -13,56 +13,67 @@ import "./RouteMaskReviewVR.css";
 export default function RouteMaskReviewVR() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { vr, iec } = useParams();
+  const { vr, iec, maskingStatus: rawMaskingStatus, dicomType: rawDicomType } = useParams();
+  const maskingStatus = rawMaskingStatus || 'All';
+  const dicomType = rawDicomType || 'All';
 
   const [iecList, setIecList] = useState(null);
+  const [dicomTypeOptions, setDicomTypeOptions] = useState(['All']);
+
+  // Prefetch image-type options once per VR so the dropdown is populated
+  // immediately and survives IEC navigation (avoids the per-mount fetch flicker).
+  useEffect(() => {
+    let mounted = true;
+    getValuesForDicomVR(vr)
+      .then((values) => {
+        if (!mounted) return;
+        const list = Array.from(new Set((values?.dicom_file_types || []).map((it) => it?.dicom_file_type).filter(Boolean)));
+        setDicomTypeOptions(['All', ...list]);
+      })
+      .catch(() => setDicomTypeOptions(['All']));
+    return () => { mounted = false; };
+  }, [vr]);
 
   useEffect(() => {
     dispatch(resetOptions());
     dispatch(reset());
     dispatch(setMaskerReviewConfig());
     dispatch(setLoading(true));
+    setIecList(null);
 
-    if (!iecList) {
-      getIECsForMaskReviewVR(vr).then((iecs) => {
-        // this should trigger a re-run of this effect
+    getFilteredIECsForMaskReviewVR(vr, maskingStatus, dicomType)
+      .then((iecs) => {
         setIecList(iecs);
+        if (Array.isArray(iecs) && iecs.length === 0) {
+          dispatch(setLoading(false));
+          toast.error('No IECs were found for the selected filters.');
+          return;
+        }
+        if ((iec === '*' || !iec) && Array.isArray(iecs) && iecs.length > 0) {
+          navigate(`/mask/review/vr/${vr}/${iecs[0]}/${maskingStatus}/${dicomType}`, { replace: true });
+        }
+      })
+      .catch(() => {
+        setIecList([]);
+        dispatch(setLoading(false));
+        toast.error('Failed to load IECs.');
       });
-    } else {
-      if (iec === undefined) {
-        console.log("No iec provided, navigating to first IEC.");
-        navigate(`/mask/review/vr/${vr}/${iecList[0]}`);
-      } else {
-        console.log("[RouteMaskReviewVR] useEffect running, vr=", vr, "iec=", iec);
-      }
-    }
-  }, [vr, iec, iecList]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vr, maskingStatus, dicomType, dispatch, iec, navigate]);
 
-  // calculate the next and previous IECs
-  let offset = null;
   let nextIEC = null;
   let previousIEC = null;
 
   if (iecList && iec) {
     const iecNumber = parseInt(iec);
-    offset = iecList.indexOf(iecNumber);
-    const nextOffset = offset + 1;
-    const previousOffset = offset - 1;
-
-    if (nextOffset < iecList.length) {
-      nextIEC = iecList[nextOffset];
-    }
-
-    if (previousOffset >= 0) {
-      previousIEC = iecList[previousOffset];
-    }
+    const offset = iecList.indexOf(iecNumber);
+    if (offset + 1 < iecList.length) nextIEC = iecList[offset + 1];
+    if (offset - 1 >= 0) previousIEC = iecList[offset - 1];
   }
 
   const handleNext = () => {
     if (nextIEC) {
-      console.log("Navigating to next IEC:", nextIEC);
-      navigate(`/mask/review/vr/${vr}/${nextIEC}`);
-      // window.location.assign(`${PUBLIC_URL}/mask/review/vr/${vr}/${nextIEC}`);
+      navigate(`/mask/review/vr/${vr}/${nextIEC}/${maskingStatus}/${dicomType}`);
     } else {
       toast.error("No next IEC available.");
     }
@@ -70,11 +81,23 @@ export default function RouteMaskReviewVR() {
 
   const handlePrevious = () => {
     if (previousIEC) {
-      navigate(`/mask/review/vr/${vr}/${previousIEC}`);
+      navigate(`/mask/review/vr/${vr}/${previousIEC}/${maskingStatus}/${dicomType}`);
     } else {
       toast.error("No previous IEC available.");
     }
   };
 
-  return <MaskReviewVR vr={vr} iec={iec} onNext={handleNext} onPrevious={handlePrevious} />;
+  const resolvedIec = iec && iec !== '*' ? iec : null;
+
+  return (
+    <MaskReviewVR
+      vr={vr}
+      iec={resolvedIec}
+      maskingStatus={maskingStatus}
+      dicomType={dicomType}
+      dicomTypeOptions={dicomTypeOptions}
+      onNext={handleNext}
+      onPrevious={handlePrevious}
+    />
+  );
 }

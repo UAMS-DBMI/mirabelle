@@ -279,6 +279,7 @@ const presentationSlice = createSlice({
 
       state.filterConfig.visible = true;
       state.filterConfig.visibility.maskingStatus = true;
+      state.filterConfig.visibility.dicomType = true;
 
       return state;
     },

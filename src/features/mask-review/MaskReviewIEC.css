@@ -1,1 +1,5 @@
-/* MaskIEC.css */
+/* MaskReviewIEC.css */
+
+#main.mask-review-vr #middle-panel {
+    @apply grid-rows-[auto,1fr,auto];
+}

@@ -125,6 +125,11 @@ const router = createBrowserRouter(
           element: <RouteMaskReviewVR />,
           HydrateFallback: LoadingSpinner,
         },
+        {
+          path: "mask/review/vr/:vr/:iec/:maskingStatus/:dicomType",
+          element: <RouteMaskReviewVR />,
+          HydrateFallback: LoadingSpinner,
+        },
         // Nifti Review Routes
         // ----------------------------------
         {

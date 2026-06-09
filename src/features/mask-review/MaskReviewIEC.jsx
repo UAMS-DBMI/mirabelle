@@ -2,6 +2,7 @@ import React from 'react';
 
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom';
 
 import {
   Enums,
@@ -34,6 +35,7 @@ import { StackView } from '@/features/stack-view';
 import { ToolsPanel } from '@/features/tools';
 import OperationsPanel from '@/components/OperationsPanel';
 import NavigationPanel from '@/components/NavigationPanel';
+import FilterPanel from '@/components/FilterPanel';
 import { DetailsPanel } from '@/features/details';
 
 import RouteLayout from '@/components/RouteLayout';
@@ -73,7 +75,7 @@ function transformDetails(details, maskingDetails) {
   }
 }
 
-export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
+export default function MaskReviewIEC({ iec, vr, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -81,6 +83,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
   // const toggleRightPanel = () => setShowRightPanel(v => !v);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
   const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
@@ -148,6 +151,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   // Load the volume into the cache
   useEffect(() => {
+    if (!iec) return; // nothing to load when IEC is not selected
     console.log("MaskReviewIEC useEffect[iec]:", iec);
     const requestId = ++loadRequestRef.current;
     let isCancelled = false;
@@ -236,6 +240,10 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   }, [iec, optionsDecimate]);
 
+  function handleFilterAction({ maskingStatus: newMaskingStatus, dicomType: newDicomType }) {
+    navigate(`/mask/review/vr/${vr}/*/${newMaskingStatus || 'All'}/${newDicomType || 'All'}`);
+  }
+
   useHotkeys('a', () => handleOperationAction('accept mask'));
   useHotkeys('r', () => handleOperationAction('reject mask'));
   useHotkeys('s', () => handleOperationAction('skip mask'));
@@ -266,6 +274,41 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       default:
         console.warn(`Unknown action: ${action}`);
     }
+  }
+
+  if (!iec) {
+    return (
+      <RouteLayout
+        routeName="mask-review-vr"
+        leftPanel={
+          <NavigationPanel
+            onNext={onNext}
+            onPrevious={onPrevious}
+            currentId={iec}
+            idLabel='IEC'
+          />
+        }
+        middlePanel={
+          <>
+            {vr && (
+              <FilterPanel
+                vr={vr}
+                maskingStatus={maskingStatus}
+                dicomType={dicomType}
+                dicomTypeOptions={dicomTypeOptions}
+                onAction={handleFilterAction}
+              />
+            )}
+            <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
+              No IECs were found for the selected filters.
+            </div>
+          </>
+        }
+        rightPanel={<div className="side-panel"><div className="wrapper" /></div>}
+        showLeftPanel={showLeftPanel}
+        showRightPanel={true}
+      />
+    );
   }
 
   // short-circuit if not loaded yet
@@ -300,6 +343,7 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
 
   return (
     <RouteLayout
+      routeName={vr ? "mask-review-vr" : undefined}
       leftPanel={
         // showLeftPanel ?
         <>
@@ -324,6 +368,15 @@ export default function MaskReviewIEC({ iec, vr, onNext, onPrevious }) {
       }
       middlePanel={
         <>
+          {vr && (
+            <FilterPanel
+              vr={vr}
+              maskingStatus={maskingStatus}
+              dicomType={dicomType}
+              dicomTypeOptions={dicomTypeOptions}
+              onAction={handleFilterAction}
+            />
+          )}
           {viewer}
           <OperationsPanel onAction={handleOperationAction} />
         </>
