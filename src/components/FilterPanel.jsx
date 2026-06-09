@@ -33,7 +33,11 @@ function FilterPanel({
   const [reviewStatus, setReviewStatus] = useState(initialReviewStatus || "All");
   const [processingStatus, setProcessingStatus] = useState(initialProcessingStatus || "All");
   const [dicomType, setDicomType] = useState(initialDicomType || "All");
-  const [dicomTypeOptions, setDicomTypeOptions] = useState(["All"]);
+  const [dicomTypeOptions, setDicomTypeOptions] = useState(
+    Array.isArray(providedDicomTypeOptions) && providedDicomTypeOptions.length
+      ? providedDicomTypeOptions
+      : ["All"]
+  );
 
   // Keep state in sync if route props change
   useEffect(() => {
@@ -230,19 +234,24 @@ function FilterPanel({
         </label>
       )} 
 
-      {visibility.maskingStatus && (      
+      {visibility.maskingStatus && (
         <label>
           <span>Masking Status:</span>
-          <select 
+          <select
             id="filter-masking-status"
             value={maskingStatus}
             onChange={(e) => setMaskingStatus(e.target.value)}
             onKeyDown={submitOnEnter}
           >
             <option>All</option>
+            <option>Unmasked</option>
+            <option>Accepted</option>
+            <option>Rejected</option>
+            <option>Skipped</option>
+            <option>Nonmaskable</option>
           </select>
         </label>
-      )}       
+      )}
 
       {visibility.reviewStatus && (      
         <label>
@@ -281,7 +290,7 @@ function FilterPanel({
 
       {visibility.dicomType && (
         <label>
-          <span>Dicom Type:</span>
+          <span>Image Type:</span>
           <select 
             id="filter-dicom-type"
             value={dicomType}

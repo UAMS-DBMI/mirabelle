@@ -3,6 +3,7 @@ import React from 'react';
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import { useHotkeys } from 'react-hotkeys-hook';
+import { useNavigate } from 'react-router-dom';
 
 import {
   Enums,
@@ -42,6 +43,7 @@ import { StackView } from '@/features/stack-view';
 import { ToolsPanel } from '@/features/tools';
 import OperationsPanel from '@/components/OperationsPanel';
 import NavigationPanel from '@/components/NavigationPanel';
+import FilterPanel from '@/components/FilterPanel';
 import { DetailsPanel } from '@/features/details';
 
 import RouteLayout from '@/components/RouteLayout';
@@ -81,7 +83,7 @@ function transformDetails(details, maskingDetails) {
   }
 }
 
-export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
+export default function MaskIEC({ iec, vr, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -89,6 +91,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   // const toggleRightPanel = () => setShowRightPanel(v => !v);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
   const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
@@ -287,6 +290,10 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
   //   setAppliedDecimate(2000);
   // }
 
+  function handleFilterAction({ maskingStatus: newMaskingStatus, dicomType: newDicomType }) {
+    navigate(`/mask/vr/${vr}/*/${newMaskingStatus || 'All'}/${newDicomType || 'All'}`);
+  }
+
   useHotkeys('e', () => handleOperationAction('expand'));
   useHotkeys('c', () => handleOperationAction('clear'));
   useHotkeys('a', () => handleOperationAction('accept'));
@@ -453,6 +460,41 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
 
 
+  if (!iec) {
+    return (
+      <RouteLayout
+        routeName="mask-vr"
+        leftPanel={
+          <NavigationPanel
+            onNext={onNext}
+            onPrevious={onPrevious}
+            currentId={iec}
+            idLabel='IEC'
+          />
+        }
+        middlePanel={
+          <>
+            {vr && (
+              <FilterPanel
+                vr={vr}
+                maskingStatus={maskingStatus}
+                dicomType={dicomType}
+                dicomTypeOptions={dicomTypeOptions}
+                onAction={handleFilterAction}
+              />
+            )}
+            <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
+              No IECs were found for the selected filters.
+            </div>
+          </>
+        }
+        rightPanel={<div className="side-panel"><div className="wrapper" /></div>}
+        showLeftPanel={showLeftPanel}
+        showRightPanel={true}
+      />
+    );
+  }
+
   // short-circuit if not loaded yet
   if (isErrored) {
     return (
@@ -490,6 +532,7 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
 
   return (
     <RouteLayout
+      routeName={vr ? "mask-vr" : undefined}
       leftPanel={
         // showLeftPanel ?
         <>
@@ -516,6 +559,15 @@ export default function MaskIEC({ iec, vr, onNext, onPrevious }) {
       }
       middlePanel={
         <>
+          {vr && (
+            <FilterPanel
+              vr={vr}
+              maskingStatus={maskingStatus}
+              dicomType={dicomType}
+              dicomTypeOptions={dicomTypeOptions}
+              onAction={handleFilterAction}
+            />
+          )}
           {viewer}
           <OperationsPanel
             onAction={handleOperationAction}

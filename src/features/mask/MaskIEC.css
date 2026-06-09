@@ -1,1 +1,5 @@
 /* MaskIEC.css */
+
+#main.mask-vr #middle-panel {
+    @apply grid-rows-[auto,1fr,auto];
+}

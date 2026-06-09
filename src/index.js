@@ -96,7 +96,12 @@ const router = createBrowserRouter(
           path: "mask/vr/:vr/:iec/:maskingStatus",
           element: <RouteMaskVR />,
           HydrateFallback: LoadingSpinner,
-        },        
+        },
+        {
+          path: "mask/vr/:vr/:iec/:maskingStatus/:dicomType",
+          element: <RouteMaskVR />,
+          HydrateFallback: LoadingSpinner,
+        },
         // Mask Review Routes
         // ----------------------------------
         {
