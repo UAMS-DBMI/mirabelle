@@ -88,11 +88,13 @@ export default function RouteMaskReviewVR() {
   };
 
   const resolvedIec = iec && iec !== '*' ? iec : null;
+  const noIecs = Array.isArray(iecList) && iecList.length === 0;
 
   return (
     <MaskReviewVR
       vr={vr}
       iec={resolvedIec}
+      noIecs={noIecs}
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}

@@ -6,7 +6,7 @@ import MaskReviewIEC from "@/features/mask-review/MaskReviewIEC";
 
 import "./MaskReviewVR.css";
 
-export default function MaskReviewVR({ vr, iec, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
+export default function MaskReviewVR({ vr, iec, noIecs, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
   useHotkeys("right", handleNext);
@@ -30,6 +30,7 @@ export default function MaskReviewVR({ vr, iec, maskingStatus, dicomType, dicomT
     <MaskReviewIEC
       vr={vr}
       iec={iec}
+      noIecs={noIecs}
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}

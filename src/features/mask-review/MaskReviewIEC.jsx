@@ -75,7 +75,7 @@ function transformDetails(details, maskingDetails) {
   }
 }
 
-export default function MaskReviewIEC({ iec, vr, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
+export default function MaskReviewIEC({ iec, vr, noIecs, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -299,9 +299,11 @@ export default function MaskReviewIEC({ iec, vr, maskingStatus, dicomType, dicom
                 onAction={handleFilterAction}
               />
             )}
-            <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
-              No IECs were found for the selected filters.
-            </div>
+            {noIecs && (
+              <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
+                No IECs were found for the selected filters.
+              </div>
+            )}
           </>
         }
         rightPanel={<div className="side-panel"><div className="wrapper" /></div>}

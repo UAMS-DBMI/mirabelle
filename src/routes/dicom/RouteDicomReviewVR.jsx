@@ -13,7 +13,9 @@ import './RouteDicomReviewVR.css';
 export default function RouteDicomReviewVR() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { vr, iec, reviewStatus, dicomType } = useParams();  
+  const { vr, iec, reviewStatus: rawReviewStatus, dicomType: rawDicomType } = useParams();
+  const reviewStatus = rawReviewStatus || 'All';
+  const dicomType = rawDicomType || 'All';
   const [iecList, setIecList] = useState(null);
   const [dicomTypeOptions, setDicomTypeOptions] = useState([]);
 

@@ -6,7 +6,7 @@ import MaskIEC from '@/features/mask/MaskIEC';
 
 import "./MaskVR.css";
 
-export default function MaskVR({ vr, iec, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
+export default function MaskVR({ vr, iec, noIecs, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
   useHotkeys("right", handleNext);
@@ -28,6 +28,7 @@ export default function MaskVR({ vr, iec, maskingStatus, dicomType, dicomTypeOpt
     <MaskIEC
       vr={vr}
       iec={iec}
+      noIecs={noIecs}
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}

@@ -234,8 +234,9 @@ export async function getFilteredIECsForDicomVR(
   dicom_file_type = "*",
   processing_status = "*"
 ) {
-  // Accept 'All' from URL/UI and translate to '*' for the API
-  const mapAllToStar = (v) => (v == null || v === '' || v === 'All' ? '*' : v);
+  // Accept 'All' from URL/UI and translate to '*' for the API.
+  // Also treat the literal string 'undefined' (from stale URLs) as 'All'.
+  const mapAllToStar = (v) => (v == null || v === '' || v === 'All' || v === 'undefined' ? '*' : v);
   // Special-case review status: 'Unreviewed' must be null in the API payload
   const mapReviewStatus = (v) => {
     if (v === 'Unreviewed') return null;
