@@ -3,13 +3,13 @@
 default: serve
 
 serve: node_modules
-	npm run start
+	bun run start
 
 build: node_modules
-	npm run build
+	bun run build
 
 node_modules: package.json
-	npm i
+	bun i
 
 tags: 
 	ctags -R --languages=JavaScript,TypeScript --exclude=node_modules --exclude=build --exclude=dist
