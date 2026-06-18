@@ -340,7 +340,7 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
 
   async function handleExpand() {
     if (!expanded && isSegFlat(segmentationId)) {
-      notify.error(messages.maskValidation.flatSelection);
+      notify.info(messages.maskValidation.flatSelection);
       return;
     }
     const coords = expandSegTo3D(segmentationId);
@@ -433,7 +433,7 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
 
   async function handleAccept() {
     if (volumetric && !expanded) {
-      notify.error(messages.maskValidation.expandFirst);
+      notify.info(messages.maskValidation.expandFirst);
       return false;
     }
 

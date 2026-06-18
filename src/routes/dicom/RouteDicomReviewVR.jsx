@@ -51,7 +51,7 @@ export default function RouteDicomReviewVR() {
         if (Array.isArray(iecs) && iecs.length === 0) {
           // No results: stop loading and notify
           dispatch(setLoading(false));
-          notify.error(messages.filters.noResults);
+          notify.info(messages.filters.noResults);
           return;
         }
         // If IEC is '*' or missing, redirect to the FIRST IEC from these fresh results
@@ -109,7 +109,7 @@ export default function RouteDicomReviewVR() {
       console.log("Navigating to next IEC:", nextIECId);
       navigate(`/review/dicom/vr/${vr}/${nextIECId}/${reviewStatus}/${dicomType}`);
     } else {
-      notify.error(messages.navigation.noNext("IEC"));
+      notify.info(messages.navigation.noNext("IEC"));
     }
   };
 
@@ -117,7 +117,7 @@ export default function RouteDicomReviewVR() {
     if (previousIECId) {
       navigate(`/review/dicom/vr/${vr}/${previousIECId}/${reviewStatus}/${dicomType}`);
     } else {
-      notify.error(messages.navigation.noPrevious("IEC"));
+      notify.info(messages.navigation.noPrevious("IEC"));
     }
   };
 

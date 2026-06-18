@@ -15,7 +15,7 @@
 
   --toast-success: #22c55e;
   --toast-error: #f87171;
-  --toast-info: #60a5fa;
+  --toast-info: #facc15;
   --toast-loading: #9ca3af;
 }
 
@@ -28,7 +28,7 @@
 
     --toast-success: #16a34a;
     --toast-error: #dc2626;
-    --toast-info: #2563eb;
+    --toast-info: #ca8a04;
     --toast-loading: #6b7280;
   }
 }
@@ -42,7 +42,7 @@
 
   --toast-success: #22c55e;
   --toast-error: #f87171;
-  --toast-info: #60a5fa;
+  --toast-info: #facc15;
   --toast-loading: #9ca3af;
 }
 
@@ -54,7 +54,7 @@
 
   --toast-success: #16a34a;
   --toast-error: #dc2626;
-  --toast-info: #2563eb;
+  --toast-info: #ca8a04;
   --toast-loading: #6b7280;
 }
 
@@ -75,6 +75,13 @@
 
 .app-toast--info {
   border-left-color: var(--toast-info);
+}
+
+/* Info toast icon (Material Symbols), tinted to match the info accent. */
+.app-toast__info-icon {
+  color: var(--toast-info);
+  font-size: 1.375rem;
+  line-height: 1;
 }
 
 .app-toast--loading {

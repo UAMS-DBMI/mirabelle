@@ -52,11 +52,11 @@ const ERRORS = [
 ];
 
 const VALIDATION_NAV = [
-  ["Flat selection", () => notify.error(messages.maskValidation.flatSelection)],
-  ["Expand first", () => notify.error(messages.maskValidation.expandFirst)],
-  ["No next (IEC)", () => notify.error(messages.navigation.noNext("IEC"))],
-  ["No previous (file)", () => notify.error(messages.navigation.noPrevious("file"))],
-  ["No filter results", () => notify.error(messages.filters.noResults)],
+  ["Flat selection", () => notify.info(messages.maskValidation.flatSelection)],
+  ["Expand first", () => notify.info(messages.maskValidation.expandFirst)],
+  ["No next (IEC)", () => notify.info(messages.navigation.noNext("IEC"))],
+  ["No previous (file)", () => notify.info(messages.navigation.noPrevious("file"))],
+  ["No filter results", () => notify.info(messages.filters.noResults)],
   ["List load failed", () => notify.error(messages.filters.loadFailed)],
 ];
 

@@ -47,7 +47,7 @@ export default function RouteMaskReviewVR() {
         setIecList(iecs);
         if (Array.isArray(iecs) && iecs.length === 0) {
           dispatch(setLoading(false));
-          notify.error(messages.filters.noResults);
+          notify.info(messages.filters.noResults);
           return;
         }
         if ((iec === '*' || !iec) && Array.isArray(iecs) && iecs.length > 0) {
@@ -76,7 +76,7 @@ export default function RouteMaskReviewVR() {
     if (nextIEC) {
       navigate(`/mask/review/vr/${vr}/${nextIEC}/${maskingStatus}/${dicomType}`);
     } else {
-      notify.error(messages.navigation.noNext("IEC"));
+      notify.info(messages.navigation.noNext("IEC"));
     }
   };
 
@@ -84,7 +84,7 @@ export default function RouteMaskReviewVR() {
     if (previousIEC) {
       navigate(`/mask/review/vr/${vr}/${previousIEC}/${maskingStatus}/${dicomType}`);
     } else {
-      notify.error(messages.navigation.noPrevious("IEC"));
+      notify.info(messages.navigation.noPrevious("IEC"));
     }
   };
 

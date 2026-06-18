@@ -10,6 +10,7 @@
  * here via stable class names so CSS stays in charge of appearance.
  */
 
+import React from "react";
 import toast from "react-hot-toast";
 
 import { messages } from "./messages";
@@ -19,6 +20,14 @@ const DURATION = {
   error: 5000,
   info: 3500,
 };
+
+// Info toasts use react-hot-toast's plain variant, which has no icon, so we
+// supply one (Material Symbols font, colored via the --toast-info token).
+const INFO_ICON = React.createElement(
+  "span",
+  { className: "material-symbols-outlined app-toast__info-icon", "aria-hidden": "true" },
+  "info"
+);
 
 /**
  * Resolve any thrown value to a friendly, user-safe string.
@@ -45,6 +54,7 @@ export const notify = {
     return toast(message, {
       duration: DURATION.info,
       className: "app-toast app-toast--info",
+      icon: INFO_ICON,
       ...options,
     });
   },

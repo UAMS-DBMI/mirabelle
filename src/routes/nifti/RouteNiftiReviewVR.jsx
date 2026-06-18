@@ -75,7 +75,7 @@ export default function RouteNiftiReviewVR() {
       console.log("Navigating to next File:", nextFile);
       navigate(`/review/nifti/vr/${vr}/${nextFile}`);
     } else {
-      notify.error(messages.navigation.noNext("file"));
+      notify.info(messages.navigation.noNext("file"));
     }
   };
 
@@ -83,7 +83,7 @@ export default function RouteNiftiReviewVR() {
     if (previousFile) {
       navigate(`/review/nifti/vr/${vr}/${previousFile}`);
     } else {
-      notify.error(messages.navigation.noPrevious("file"));
+      notify.info(messages.navigation.noPrevious("file"));
     }
   };
 
