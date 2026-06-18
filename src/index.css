@@ -74,6 +74,18 @@ button:focus-visible {
   }
 }
 
+/* Explicit color-scheme override (set by the dev playground via [data-theme]
+   on <html>); wins over the prefers-color-scheme media query above. */
+:root[data-theme="dark"] {
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+}
+
+:root[data-theme="light"] {
+  color: #213547;
+  background-color: #ffffff;
+}
+
 .slide-in {
   transform: translateX(0);
   transition: transform 0.3s ease-in-out;

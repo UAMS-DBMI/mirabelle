@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import toast from "react-hot-toast";
+import { notify } from "@/lib/notify";
+import { messages } from "@/lib/messages";
 
 import MaskVR from "@/features/mask/MaskVR";
 import { resetOptions, setLoading } from "@/features/optionSlice";
@@ -59,7 +60,7 @@ export default function RouteMaskVR() {
         setIecList(iecs);
         if (Array.isArray(iecs) && iecs.length === 0) {
           dispatch(setLoading(false));
-          toast.error("No IECs were found for the selected filters.");
+          notify.info(messages.filters.noResults);
           return;
         }
         if ((iec === "*" || !iec) && Array.isArray(iecs) && iecs.length > 0) {
@@ -68,10 +69,10 @@ export default function RouteMaskVR() {
           });
         }
       })
-      .catch(() => {
+      .catch((error) => {
         setIecList([]);
         dispatch(setLoading(false));
-        toast.error("Failed to load IECs.");
+        notify.error(error, messages.filters.loadFailed);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vr, maskingStatus, dicomType, dispatch, iec, navigate]);
@@ -90,7 +91,7 @@ export default function RouteMaskVR() {
     if (nextIEC) {
       navigate(`/mask/vr/${vr}/${nextIEC}/${maskingStatus}/${dicomType}`);
     } else {
-      toast.error("No next IEC available.");
+      notify.info(messages.navigation.noNext("IEC"));
     }
   };
 
@@ -98,7 +99,7 @@ export default function RouteMaskVR() {
     if (previousIEC) {
       navigate(`/mask/vr/${vr}/${previousIEC}/${maskingStatus}/${dicomType}`);
     } else {
-      toast.error("No previous IEC available.");
+      notify.info(messages.navigation.noPrevious("IEC"));
     }
   };
 

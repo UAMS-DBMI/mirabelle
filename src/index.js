@@ -59,6 +59,8 @@ import RouteDump, { loader as routeDumpLoader } from "./routes/dicom/RouteDump";
 
 import RouteTests from "@/components/RouteTests";
 
+import RouteMessagesPlayground from "./routes/dev/RouteMessagesPlayground";
+
 const router = createBrowserRouter(
   [
     {
@@ -192,6 +194,11 @@ const router = createBrowserRouter(
           element: <RouteTests />,
           HydrateFallback: LoadingSpinner,
         },
+        {
+          path: "dev/messages",
+          element: <RouteMessagesPlayground />,
+          HydrateFallback: LoadingSpinner,
+        },
       ],
     },
   ],
@@ -201,6 +208,10 @@ const router = createBrowserRouter(
 );
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
+
+// Catch errors that escape component-level handling (e.g. async failures deep
+// in Cornerstone) and surface them as toasts instead of raw runtime errors.
+installGlobalErrorHandlers();
 
 if (
   typeof navigator !== "undefined" &&

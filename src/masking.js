@@ -1,5 +1,8 @@
 import * as math from "mathjs";
 
+import { requestJSON } from "@/lib/http";
+import { messages } from "@/lib/messages";
+
 /*
  * Functions related to masking
  */
@@ -8,49 +11,42 @@ import * as math from "mathjs";
 export let loaded = { loaded: false };
 
 export async function getMaskingDetails(iec) {
-  const response = await fetch(`/papi/v1/masking/${iec}`);
-  const details = await response.json();
-
-  return details;
+  return requestJSON(`/papi/v1/masking/${iec}`, undefined, {
+    errorMessage: messages.errors.loadImage,
+  });
 }
 
 export async function flagForMasking(iec) {
-  const response = await fetch(`/papi/v1/masking/${iec}/mask`, {
-    method: "POST",
-  });
-  const details = await response.json();
-
-  return details;
+  return requestJSON(
+    `/papi/v1/masking/${iec}/mask`,
+    { method: "POST" },
+    { errorMessage: messages.errors.saveStatus },
+  );
 }
 
+const MASKING_STATUS_PATHS = {
+  "accept mask": "accept",
+  "reject mask": "reject",
+  "skip mask": "skip",
+  "nonmaskable mask": "nonmaskable",
+};
+
 export async function setMaskingStatus(iec, status) {
-  let url = "";
-  switch (status) {
-    case "accept mask":
-      url = `/papi/v1/masking/${iec}/accept`;
-      break;
-    case "reject mask":
-      url = `/papi/v1/masking/${iec}/reject`;
-      break;
-    case "skip mask":
-      url = `/papi/v1/masking/${iec}/skip`;
-      break;
-    case "nonmaskable mask":
-      url = `/papi/v1/masking/${iec}/nonmaskable`;
-      break;
-    default:
-      console.warn(`Unknown status: ${status}`);
+  const action = MASKING_STATUS_PATHS[status];
+  if (!action) {
+    throw new Error(`Unknown masking status: ${status}`);
   }
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  return requestJSON(
+    `/papi/v1/masking/${iec}/${action}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
     },
-  });
-  const details = await response.json();
-
-  return details;
+    { errorMessage: messages.errors.saveStatus },
+  );
 }
 
 export async function setParameters(
@@ -81,16 +77,43 @@ export async function setParameters(
     noise,
     fill,
   });
-  const response = await fetch(`/papi/v1/masking/${iec}/parameters`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: body,
-  });
-  const details = await response.json();
+  // console.log("setParameters", body);
 
-  return details;
+  return requestJSON(
+    `/papi/v1/masking/${iec}/parameters`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: body,
+    },
+    { errorMessage: messages.errors.submitMask },
+  );
+}
+
+export async function tests() {
+  const iec = 3;
+
+  // console.log("getDetails");
+  // console.log(await getDetails(iec));
+
+  // console.log("flagForMasking");
+  // console.log(await flagForMasking(iec));
+
+  // console.log("setParameters");
+  let lr = 212;
+  let pa = 47;
+  let s = 24;
+  let i = 1;
+  let d = 200;
+  // console.log(await setParameters(iec, { lr, pa, s, i, d }));
+
+  // console.log("getFiles");
+  // console.log(await getFiles(iec));
+
+  // console.log("getIECsForVR");
+  // console.log(await getIECsForVR(1));
 }
 
 export async function submitFinalCoords(

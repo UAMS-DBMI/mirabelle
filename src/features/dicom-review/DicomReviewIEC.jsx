@@ -15,7 +15,8 @@ import {
 } from "@/features/presentationSlice";
 
 import { setTitle, setLoading, setOption } from "@/features/optionSlice";
-import toast from "react-hot-toast";
+import { notify } from "@/lib/notify";
+import { messages } from "@/lib/messages";
 import { useHotkeys } from "react-hotkeys-hook";
 import { wadouri } from "@cornerstonejs/dicom-image-loader";
 
@@ -53,7 +54,7 @@ import NavigationPanel from "@/components/NavigationPanel";
 import FilterPanel from "@/components/FilterPanel";
 import { DetailsPanel } from "@/features/details";
 import { SegPanel } from "@/features/seg";
-import ErrorPanel from "@/components/ErrorPanel";
+import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
@@ -95,8 +96,8 @@ export default function DicomReviewIEC({
   reviewStatus,
   dicomType,
   dicomTypeOptions,
-  onNext,
-  onPrevious,
+  onNext = () => {},
+  onPrevious = () => {},
   routeName,
 }) {
   console.log("[DicomReviewIEC] rendering, iec:", iec);
@@ -141,7 +142,6 @@ export default function DicomReviewIEC({
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
-  const [errorMessage, setErrorMessage] = useState();
 
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
@@ -227,6 +227,7 @@ export default function DicomReviewIEC({
       setIsSeg(isSeg);
 
       //if (optionsView === 'stack') {
+      //  console.log("DicomReviewIEC: forcing stack view");
       //  volumetric = false; // force stack view
       //}
 
@@ -266,6 +267,7 @@ export default function DicomReviewIEC({
       setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
 
+      let segLoadingId;
       try {
         if (volumetric) {
           if (!isSeg) {
@@ -273,7 +275,7 @@ export default function DicomReviewIEC({
             // pass a callback, we don't care about when it finishes
             await loadVolume(imageIds, volumeId, segmentationId);
           } else {
-            const loadingId = toast.loading("Loading volume for SEG...");
+            segLoadingId = notify.loading(messages.loading.segVolume);
             // this version of loadVolume only resolves when the volume
             // has been fully loaded.
             // TODO: We should instead use the normal version and provide
@@ -284,7 +286,7 @@ export default function DicomReviewIEC({
 
             const segFileIds = await getFiles(iec);
             if (segFileIds.length > 1) {
-              throw new Error("More than one SEG image found for IEC:", iec);
+              throw new Error(messages.errors.multipleSegImages(iec));
             }
 
             const data = await fetchFileAsArrayBuffer(segFileIds[0]);
@@ -299,7 +301,7 @@ export default function DicomReviewIEC({
             // the segmentIndex is unique (handled in loadSEGSegmentation)
             setSegMetadata(segSegments.segments);
 
-            toast.dismiss(loadingId);
+            notify.dismiss(segLoadingId);
           }
 
           dispatch(setTitle("DICOM Volume Review"));
@@ -326,9 +328,11 @@ export default function DicomReviewIEC({
           setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
         );
       } catch (error) {
-        console.log(error);
-        // TODO: set an isError status here and display an error message?
-        setErrorMessage(error);
+        console.error(error);
+        notify.dismiss(segLoadingId);
+        // Surface load failures as a toast and keep the viewport clean
+        // (a neutral placeholder is rendered instead of an error card).
+        notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
         return;
       }
@@ -337,7 +341,16 @@ export default function DicomReviewIEC({
       dispatch(setLoading(false));
     };
 
-    initialize();
+    // Catch failures from awaits that run before the inner try (e.g. the
+    // detail/info fetches), so a thrown ApiError surfaces as a toast and a
+    // clean viewport instead of an unhandled promise rejection.
+    initialize().catch((error) => {
+      if (isCancelled || requestId !== loadRequestRef.current) return;
+      console.error(error);
+      notify.error(error, messages.errors.loadImage);
+      setIsErrored(true);
+      dispatch(setLoading(false));
+    });
 
     // Return initialized to false when unmounting
     // so we don't try to draw the next volume before it's loaded!
@@ -356,41 +369,32 @@ export default function DicomReviewIEC({
   useHotkeys("o", () => handleOperationsAction("other"));
   useHotkeys("f", () => handleOperationsAction("flag"));
 
+  const DICOM_STATUS_LABELS = {
+    good: "Good",
+    bad: "Bad",
+    blank: "Blank",
+    scout: "Scout",
+    other: "Other",
+  };
+
   async function handleOperationsAction(action) {
-    switch (action) {
-      case "good":
-        await setDicomStatus(iec, "Good");
-        toast.success("Status set to Good!");
-        onNext();
-        break;
-      case "bad":
-        await setDicomStatus(iec, "Bad");
-        toast.success("Status set to Bad!");
-        onNext();
-        break;
-      case "blank":
-        await setDicomStatus(iec, "Blank");
-        toast.success("Status set to Blank!");
-        onNext();
-        break;
-      case "scout":
-        await setDicomStatus(iec, "Scout");
-        toast.success("Status set to Scout!");
-        onNext();
-        break;
-      case "other":
-        await setDicomStatus(iec, "Other");
-        toast.success("Status set to Other!");
-        onNext();
-        break;
-      case "flag":
+    try {
+      if (action === "flag") {
         await setDicomStatus(iec, "Flagged");
         await setMaskingFlag(iec);
-        toast.success("Flagged for Masking!");
-        onNext();
-        break;
-      default:
-        console.log("Unknown action:", action);
+        notify.success(messages.status.flaggedForMasking);
+      } else {
+        const label = DICOM_STATUS_LABELS[action];
+        if (!label) {
+          console.warn("Unknown action:", action);
+          return;
+        }
+        await setDicomStatus(iec, label);
+        notify.success(messages.status.set(label));
+      }
+      onNext();
+    } catch (error) {
+      notify.error(error, messages.errors.saveStatus);
     }
   }
 
@@ -403,9 +407,10 @@ export default function DicomReviewIEC({
     );
   }
 
-  // short-circuit if not loaded yet
+  // Load failures are surfaced as a toast; keep the viewport itself clean
+  // with a neutral placeholder rather than an error card.
   if (isErrored) {
-    return <ErrorPanel error={errorMessage.message} />;
+    return <ViewportPlaceholder />;
   }
   // When IEC is not selected yet, render full app with controls and message
   if (!iec) {

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import toast from "react-hot-toast";
+import { notify } from "@/lib/notify";
+import { messages } from "@/lib/messages";
 
 import {
   getIECsForDicomVR,
@@ -63,7 +64,7 @@ export default function RouteDicomReviewVR() {
         if (Array.isArray(iecs) && iecs.length === 0) {
           // No results: stop loading and notify
           dispatch(setLoading(false));
-          toast.error("No IECs were found for the selected filters.");
+          notify.info(messages.filters.noResults);
           return;
         }
         // If IEC is '*' or missing, redirect to the FIRST IEC from these fresh results
@@ -97,10 +98,10 @@ export default function RouteDicomReviewVR() {
           }
         }
       })
-      .catch(() => {
+      .catch((error) => {
         setIecList([]);
         dispatch(setLoading(false));
-        toast.error("Failed to load IECs.");
+        notify.error(error, messages.filters.loadFailed);
       });
   }, [vr, reviewStatus, dicomType, dispatch, iec, navigate]);
 
@@ -140,7 +141,7 @@ export default function RouteDicomReviewVR() {
         `/review/dicom/vr/${vr}/${nextIECId}/${reviewStatus}/${dicomType}`,
       );
     } else {
-      toast.error("No next IEC available.");
+      notify.info(messages.navigation.noNext("IEC"));
     }
   };
 
@@ -150,7 +151,7 @@ export default function RouteDicomReviewVR() {
         `/review/dicom/vr/${vr}/${previousIECId}/${reviewStatus}/${dicomType}`,
       );
     } else {
-      toast.error("No previous IEC available.");
+      notify.info(messages.navigation.noPrevious("IEC"));
     }
   };
 

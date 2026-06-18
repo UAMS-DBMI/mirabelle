@@ -1,0 +1,135 @@
+/**
+ * Toast / notification theming.
+ *
+ * Colors are exposed as CSS variables that flip with the OS color scheme
+ * (matching the rest of the app, which themes via `prefers-color-scheme`).
+ * The <Toaster> in AppLayout references these via inline style; the per-type
+ * accent border is applied through the `app-toast--*` classes set in notify.js.
+ */
+
+:root {
+  --toast-bg: #2b2b30;
+  --toast-fg: #f3f4f6;
+  --toast-border: rgba(255, 255, 255, 0.10);
+  --toast-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  --toast-success: #22c55e;
+  --toast-error: #f87171;
+  --toast-info: #facc15;
+  --toast-loading: #9ca3af;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --toast-bg: #ffffff;
+    --toast-fg: #1f2937;
+    --toast-border: rgba(0, 0, 0, 0.08);
+    --toast-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+    --toast-success: #16a34a;
+    --toast-error: #dc2626;
+    --toast-info: #ca8a04;
+    --toast-loading: #6b7280;
+  }
+}
+
+/* Explicit override (set by the dev playground); wins over the media query. */
+:root[data-theme="dark"] {
+  --toast-bg: #2b2b30;
+  --toast-fg: #f3f4f6;
+  --toast-border: rgba(255, 255, 255, 0.10);
+  --toast-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  --toast-success: #22c55e;
+  --toast-error: #f87171;
+  --toast-info: #facc15;
+  --toast-loading: #9ca3af;
+}
+
+:root[data-theme="light"] {
+  --toast-bg: #ffffff;
+  --toast-fg: #1f2937;
+  --toast-border: rgba(0, 0, 0, 0.08);
+  --toast-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  --toast-success: #16a34a;
+  --toast-error: #dc2626;
+  --toast-info: #ca8a04;
+  --toast-loading: #6b7280;
+}
+
+/* Border is not set inline by react-hot-toast, so these class rules win. */
+.app-toast {
+  border: 1px solid var(--toast-border);
+  border-left: 4px solid var(--toast-border);
+  font-weight: 500;
+}
+
+.app-toast--success {
+  border-left-color: var(--toast-success);
+}
+
+.app-toast--error {
+  border-left-color: var(--toast-error);
+}
+
+/* Optional technical detail shown beneath an error message. */
+.app-toast__detail {
+  margin-top: 3px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.7;
+  word-break: break-word;
+}
+
+/* Error message + close button layout. */
+.app-toast__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+
+.app-toast__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Close button. Explicit resets override the global `button` rule (index.css). */
+.app-toast__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: -4px -6px 0 0;
+  padding: 0 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-toast__close:hover {
+  opacity: 1;
+  border-color: transparent;
+}
+
+.app-toast--info {
+  border-left-color: var(--toast-info);
+}
+
+/* Info toast icon (Material Symbols), tinted to match the info accent. */
+.app-toast__info-icon {
+  color: var(--toast-info);
+  font-size: 1.375rem;
+  line-height: 1;
+}
+
+.app-toast--loading {
+  border-left-color: var(--toast-loading);
+}

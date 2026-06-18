@@ -14,7 +14,8 @@ import {
 } from "@/features/presentationSlice";
 
 import { setTitle, setLoading, setOption } from "@/features/optionSlice";
-import toast from "react-hot-toast";
+import { notify } from "@/lib/notify";
+import { messages } from "@/lib/messages";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import {
@@ -36,7 +37,7 @@ import OperationsPanel from "@/components/OperationsPanel";
 import NavigationPanel from "@/components/NavigationPanel";
 import FilterPanel from "@/components/FilterPanel";
 import { DetailsPanel } from "@/features/details";
-import ErrorPanel from "@/components/ErrorPanel";
+import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
@@ -68,8 +69,8 @@ function transformDetails(details) {
 export default function NiftiReviewFile({
   file,
   vr,
-  onNext,
-  onPrevious,
+  onNext = () => {},
+  onPrevious = () => {},
   routeName,
 }) {
   console.log("[NiftiReviewFile] rendering, file:", file);
@@ -112,7 +113,6 @@ export default function NiftiReviewFile({
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
-  const [errorMessage, setErrorMessage] = useState();
 
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState({});
@@ -164,10 +164,7 @@ export default function NiftiReviewFile({
         setDetails(details);
 
         if (details.download_path === undefined) {
-          const missingPathError = new Error(
-            "No downloadable NIfTI file was found for this record.",
-          );
-          setErrorMessage(missingPathError);
+          notify.error(messages.errors.missingNiftiFile);
           setIsErrored(true);
           dispatch(setLoading(false));
           return;
@@ -194,9 +191,8 @@ export default function NiftiReviewFile({
           return;
         }
       } catch (error) {
-        console.log(error);
-        // TODO: set an isError status here and display an error message?
-        setErrorMessage(error);
+        console.error(error);
+        notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
         dispatch(setLoading(false));
         return;
@@ -243,35 +239,26 @@ export default function NiftiReviewFile({
   useHotkeys("s", () => handleOperationsAction("scout"));
   useHotkeys("o", () => handleOperationsAction("other"));
 
+  const NIFTI_STATUS_LABELS = {
+    good: "Good",
+    bad: "Bad",
+    blank: "Blank",
+    scout: "Scout",
+    other: "Other",
+  };
+
   async function handleOperationsAction(action) {
-    switch (action) {
-      case "good":
-        await setNiftiStatus(file, "Good");
-        toast.success("Status set to Good!");
-        onNext();
-        break;
-      case "bad":
-        await setNiftiStatus(file, "Bad");
-        toast.success("Status set to Bad!");
-        onNext();
-        break;
-      case "blank":
-        await setNiftiStatus(file, "Blank");
-        toast.success("Status set to Blank!");
-        onNext();
-        break;
-      case "scout":
-        await setNiftiStatus(file, "Scout");
-        toast.success("Status set to Scout!");
-        onNext();
-        break;
-      case "other":
-        await setNiftiStatus(file, "Other");
-        toast.success("Status set to Other!");
-        onNext();
-        break;
-      default:
-        console.log("Unknown action:", action);
+    const label = NIFTI_STATUS_LABELS[action];
+    if (!label) {
+      console.warn("Unknown action:", action);
+      return;
+    }
+    try {
+      await setNiftiStatus(file, label);
+      notify.success(messages.status.set(label));
+      onNext();
+    } catch (error) {
+      notify.error(error, messages.errors.saveStatus);
     }
   }
 
@@ -285,7 +272,7 @@ export default function NiftiReviewFile({
   }
 
   viewer = isErrored ? (
-    <ErrorPanel error={errorMessage?.message || "Failed to load this image."} />
+    <ViewportPlaceholder />
   ) : (
     <VolumeView
       volumeId={volumeId}
