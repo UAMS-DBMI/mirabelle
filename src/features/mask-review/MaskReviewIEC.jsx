@@ -16,7 +16,8 @@ import {
 
 import { setTitle, setLoading, setOption } from '@/features/optionSlice';
 import { useHotkeys } from 'react-hotkeys-hook';
-import toast from 'react-hot-toast';
+import { notify } from '@/lib/notify';
+import { messages } from '@/lib/messages';
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
 import * as cornerstone from "@cornerstonejs/core";
@@ -39,7 +40,7 @@ import FilterPanel from '@/components/FilterPanel';
 import { DetailsPanel } from '@/features/details';
 
 import RouteLayout from '@/components/RouteLayout';
-import ErrorPanel from '@/components/ErrorPanel';
+import ViewportPlaceholder from '@/components/ViewportPlaceholder';
 
 import './MaskReviewIEC.css';
 
@@ -103,7 +104,6 @@ export default function MaskReviewIEC({ iec, vr, noIecs, maskingStatus, dicomTyp
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
-  const [errorMessage, setErrorMessage] = useState();
 
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
@@ -215,11 +215,9 @@ export default function MaskReviewIEC({ iec, vr, noIecs, maskingStatus, dicomTyp
         dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
         // throw new Error("This is a test error");
       } catch (error) {
-        console.log(error);
-        // TODO: set an isError status here and display an error message?
-        setErrorMessage(error);
+        console.error(error);
+        notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
-        // return;
       }
 
       if (isCancelled || requestId !== loadRequestRef.current) {
@@ -232,7 +230,16 @@ export default function MaskReviewIEC({ iec, vr, noIecs, maskingStatus, dicomTyp
     };
 
     setIsInitialized(false);
-    initialize();
+    // Catch failures from awaits that run before the inner try (e.g. the
+    // detail/info fetches), so a thrown ApiError surfaces as a toast and a
+    // clean viewport instead of an unhandled promise rejection.
+    initialize().catch((error) => {
+      if (isCancelled || requestId !== loadRequestRef.current) return;
+      console.error(error);
+      notify.error(error, messages.errors.loadImage);
+      setIsErrored(true);
+      dispatch(setLoading(false));
+    });
 
     return () => {
       isCancelled = true;
@@ -249,30 +256,25 @@ export default function MaskReviewIEC({ iec, vr, noIecs, maskingStatus, dicomTyp
   useHotkeys('s', () => handleOperationAction('skip mask'));
   useHotkeys('n', () => handleOperationAction('nonmaskable mask'));
 
+  const MASK_REVIEW_MESSAGES = {
+    'accept mask': messages.mask.accepted,
+    'reject mask': messages.mask.rejected,
+    'skip mask': messages.mask.skipped,
+    'nonmaskable mask': messages.mask.notMaskable,
+  };
+
   async function handleOperationAction(action) {
-    switch (action) {
-      case 'accept mask':
-        await setMaskingStatus(iec, action);
-        toast.success("Mask accepted!");
-        onNext();
-        break;
-      case 'reject mask':
-        await setMaskingStatus(iec, action);
-        toast.success("Mask rejected!");
-        onNext();
-        break;
-      case 'skip mask':
-        await setMaskingStatus(iec, action);
-        toast.success("Mask skipped!");
-        onNext();
-        break;
-      case 'nonmaskable mask':
-        await setMaskingStatus(iec, action);
-        toast.success("Image is not maskable!");
-        onNext();
-        break;
-      default:
-        console.warn(`Unknown action: ${action}`);
+    const successMessage = MASK_REVIEW_MESSAGES[action];
+    if (!successMessage) {
+      console.warn(`Unknown action: ${action}`);
+      return;
+    }
+    try {
+      await setMaskingStatus(iec, action);
+      notify.success(successMessage);
+      onNext();
+    } catch (error) {
+      notify.error(error, messages.errors.saveStatus);
     }
   }
 
@@ -301,7 +303,7 @@ export default function MaskReviewIEC({ iec, vr, noIecs, maskingStatus, dicomTyp
             )}
             {noIecs && (
               <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
-                No IECs were found for the selected filters.
+                {messages.filters.noResults}
               </div>
             )}
           </>
@@ -340,7 +342,7 @@ export default function MaskReviewIEC({ iec, vr, noIecs, maskingStatus, dicomTyp
   }
 
   if (isErrored) {
-    viewer = <ErrorPanel error={errorMessage.message} />
+    viewer = <ViewportPlaceholder />
   }
 
   return (

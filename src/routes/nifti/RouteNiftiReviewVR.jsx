@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import toast from "react-hot-toast";
+import { notify } from "@/lib/notify";
+import { messages } from "@/lib/messages";
 
 import { getFilesForNiftiVR } from "@/utilities";
 import { resetOptions, setLoading } from "@/features/optionSlice";
@@ -74,7 +75,7 @@ export default function RouteNiftiReviewVR() {
       console.log("Navigating to next File:", nextFile);
       navigate(`/review/nifti/vr/${vr}/${nextFile}`);
     } else {
-      toast.error("No next File available.");
+      notify.error(messages.navigation.noNext("file"));
     }
   };
 
@@ -82,7 +83,7 @@ export default function RouteNiftiReviewVR() {
     if (previousFile) {
       navigate(`/review/nifti/vr/${vr}/${previousFile}`);
     } else {
-      toast.error("No previous File available.");
+      notify.error(messages.navigation.noPrevious("file"));
     }
   };
 

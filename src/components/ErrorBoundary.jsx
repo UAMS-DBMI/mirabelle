@@ -8,6 +8,9 @@
  */
 
 import React from 'react';
+
+import ErrorState from './ErrorState';
+import { messages } from '@/lib/messages';
 import './ErrorBoundary.css';
 
 
@@ -25,10 +28,11 @@ export default class ErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             return (
-                <div id="error-boundary">
-                    <h1>Something went wrong.</h1>
-                    <pre>{this.state.error.message}</pre>
-                </div>
+                <ErrorState
+                    title="Something went wrong."
+                    message={messages.errors.generic}
+                    detail={this.state.error?.message}
+                />
             );
         }
         return this.props.children;

@@ -1,5 +1,8 @@
 import * as math from 'mathjs';
 
+import { requestJSON } from "@/lib/http";
+import { messages } from "@/lib/messages";
+
 /*
  * Functions related to masking
  */
@@ -8,58 +11,44 @@ import * as math from 'mathjs';
 export let loaded = { loaded: false };
 
 export async function getMaskingDetails(iec) {
-
-  const response = await fetch(`/papi/v1/masking/${iec}`);
-  const details = await response.json();
-
-  return details;
+  return requestJSON(
+    `/papi/v1/masking/${iec}`,
+    undefined,
+    { errorMessage: messages.errors.loadImage }
+  );
 }
 
 export async function flagForMasking(iec) {
-  const response = await fetch(
+  return requestJSON(
     `/papi/v1/masking/${iec}/mask`,
-    {
-      method: "POST",
-    }
+    { method: "POST" },
+    { errorMessage: messages.errors.saveStatus }
   );
-  const details = await response.json();
-
-  return details;
 }
 
-export async function setMaskingStatus(iec, status) {
+const MASKING_STATUS_PATHS = {
+  'accept mask': 'accept',
+  'reject mask': 'reject',
+  'skip mask': 'skip',
+  'nonmaskable mask': 'nonmaskable',
+};
 
-  let url = ''
-  switch (status) {
-    case 'accept mask':
-      url = `/papi/v1/masking/${iec}/accept`;
-      break;
-    case 'reject mask':
-      url = `/papi/v1/masking/${iec}/reject`;
-      break;
-    case 'skip mask':
-      url = `/papi/v1/masking/${iec}/skip`;
-      break;
-    case 'nonmaskable mask':
-      url = `/papi/v1/masking/${iec}/nonmaskable`;
-      break;
-    default:
-      console.warn(`Unknown status: ${status}`);
+export async function setMaskingStatus(iec, status) {
+  const action = MASKING_STATUS_PATHS[status];
+  if (!action) {
+    throw new Error(`Unknown masking status: ${status}`);
   }
 
-
-	const response = await fetch(
-		url,
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-		}
-	);
-	const details = await response.json();
-
-	return details;
+  return requestJSON(
+    `/papi/v1/masking/${iec}/${action}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+    { errorMessage: messages.errors.saveStatus }
+  );
 }
 
 
@@ -82,7 +71,7 @@ export async function setParameters(
   });
   // console.log("setParameters", body);
 
-  const response = await fetch(
+  return requestJSON(
     `/papi/v1/masking/${iec}/parameters`,
     {
       method: "POST",
@@ -90,11 +79,9 @@ export async function setParameters(
         "Content-Type": "application/json",
       },
       body: body,
-    }
+    },
+    { errorMessage: messages.errors.submitMask }
   );
-  const details = await response.json();
-
-  return details;
 }
 
 export async function tests() {

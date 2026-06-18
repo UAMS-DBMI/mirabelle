@@ -1,0 +1,152 @@
+/**
+ * Dev playground styling. Theme-aware via the shared color-scheme tokens
+ * (prefers-color-scheme by default, overridable with [data-theme] on <html>).
+ */
+
+:root {
+  --pg-fg: #e5e7eb;
+  --pg-muted: #9ca3af;
+  --pg-surface: #1f2937;
+  --pg-surface-hover: #374151;
+  --pg-border: rgba(255, 255, 255, 0.12);
+  --pg-stage-bg: #18181b;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --pg-fg: #1f2937;
+    --pg-muted: #6b7280;
+    --pg-surface: #f3f4f6;
+    --pg-surface-hover: #e5e7eb;
+    --pg-border: rgba(0, 0, 0, 0.12);
+    --pg-stage-bg: #f9fafb;
+  }
+}
+
+:root[data-theme="dark"] {
+  --pg-fg: #e5e7eb;
+  --pg-muted: #9ca3af;
+  --pg-surface: #1f2937;
+  --pg-surface-hover: #374151;
+  --pg-border: rgba(255, 255, 255, 0.12);
+  --pg-stage-bg: #18181b;
+}
+
+:root[data-theme="light"] {
+  --pg-fg: #1f2937;
+  --pg-muted: #6b7280;
+  --pg-surface: #f3f4f6;
+  --pg-surface-hover: #e5e7eb;
+  --pg-border: rgba(0, 0, 0, 0.12);
+  --pg-stage-bg: #f9fafb;
+}
+
+.pg {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  color: var(--pg-fg);
+}
+
+.pg-header {
+  margin-bottom: 2rem;
+}
+
+.pg-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.pg-theme {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pg-theme__label {
+  color: var(--pg-muted);
+  font-size: 0.9rem;
+}
+
+.pg-hint {
+  margin: 0.75rem 0 0;
+  color: var(--pg-muted);
+  font-size: 0.9rem;
+  max-width: 42rem;
+}
+
+.pg-section {
+  margin-top: 2rem;
+}
+
+.pg-section__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--pg-fg);
+  border-bottom: 1px solid var(--pg-border);
+  padding-bottom: 0.4rem;
+}
+
+.pg-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--pg-border);
+  border-radius: 0.5rem;
+  background: var(--pg-surface);
+  color: var(--pg-fg);
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pg-btn:hover {
+  background: var(--pg-surface-hover);
+}
+
+.pg-btn--active {
+  border-color: #3b82f6;
+  outline: 2px solid rgba(59, 130, 246, 0.4);
+}
+
+.pg-btn--danger {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.pg-previews {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem;
+}
+
+.pg-preview {
+  border: 1px solid var(--pg-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.pg-preview__caption {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--pg-muted);
+  border-bottom: 1px solid var(--pg-border);
+}
+
+.pg-preview__stage {
+  min-height: 16rem;
+  background: var(--pg-stage-bg);
+  display: flex;
+}

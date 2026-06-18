@@ -2,13 +2,19 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useSelector } from 'react-redux';
 import quinceLogo from "@/assets/quince-small-logo.svg";
 
+import { notify } from "@/lib/notify";
+import { messages } from "@/lib/messages";
 import './DetailsPanel.css';
-import { re } from 'mathjs';
 
 function downloadFile(details) {
   // Fetch the file from the path specified in details["path"]
   fetch(details["download_path"])
-    .then((response) => response.blob()) // Convert the response to a blob
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status}`);
+      }
+      return response.blob(); // Convert the response to a blob
+    })
     .then((blob) => {
       const element = document.createElement("a");
       const url = URL.createObjectURL(blob);
@@ -20,7 +26,10 @@ function downloadFile(details) {
       document.body.removeChild(element); // Clean up after download
       URL.revokeObjectURL(url); // Free up memory
     })
-    .catch((error) => console.error("Error downloading file:", error));
+    .catch((error) => {
+      console.error("Error downloading file:", error);
+      notify.error(error, messages.errors.downloadFailed);
+    });
 }
 
 function download(details) {

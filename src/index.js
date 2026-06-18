@@ -61,6 +61,8 @@ import RouteDump, {
 
 import RouteTests from "@/components/RouteTests";
 
+import RouteMessagesPlayground from "./routes/dev/RouteMessagesPlayground";
+
 const router = createBrowserRouter(
   [
     {
@@ -192,6 +194,11 @@ const router = createBrowserRouter(
         {
           path: "test/:vr",
           element: <RouteTests />,
+          HydrateFallback: LoadingSpinner,
+        },
+        {
+          path: "dev/messages",
+          element: <RouteMessagesPlayground />,
           HydrateFallback: LoadingSpinner,
         },
       ],

@@ -6,6 +6,9 @@ import createImageIdsAndCacheMetaData from './lib/createImageIdsAndCacheMetaData
 import { eventTarget, triggerEvent } from '@cornerstonejs/core';
 import { useSearchParams } from "react-router-dom";
 
+import { requestJSON } from "@/lib/http";
+import { messages } from "@/lib/messages";
+
 const { volumeLoader, imageLoader, metaData } = cornerstone;
 const { Enums: csToolsEnums, segmentation: csToolsSegmentation, } = cornerstoneTools;
 const { Cornerstone3D } = cornerstoneAdapters.adaptersSEG;
@@ -147,17 +150,12 @@ function isFlat(bounds, eps = 1e-6) {
 
 
 export async function getUsername() {
-	const response = await fetch(`/papi/v1/other/testme`);
-	const details = await response.json();
-
+	const details = await requestJSON(`/papi/v1/other/testme`);
 	return details.username;
 }
 
 export async function getFiles(iec) {
-
-	const response = await fetch(`/papi/v1/iecs/${iec}/files`);
-	const details = await response.json();
-
+	const details = await requestJSON(`/papi/v1/iecs/${iec}/files`);
 	return details.file_ids;
 }
 
@@ -220,12 +218,11 @@ function decimateFrames(imageIds, maxFrames = 2000) {
 }
 
 export async function getIECsForDicomVR(visual_review_id) {
-
-	const response = await fetch(
-		`/papi/v1/visualreviews/${visual_review_id}/iecs`);
-	const details = await response.json();
-
-	return details;
+	return requestJSON(
+		`/papi/v1/visualreviews/${visual_review_id}/iecs`,
+		undefined,
+		{ errorMessage: messages.filters.loadFailed }
+	);
 }
 
 export async function getFilteredIECsForDicomVR(
@@ -252,7 +249,7 @@ export async function getFilteredIECsForDicomVR(
     review_status: _review_status,
   };
 
-  const response = await fetch(
+  return requestJSON(
     `/papi/v1/visualreviews/${visual_review_id}/filter`,
     {
       method: 'POST',
@@ -261,34 +258,21 @@ export async function getFilteredIECsForDicomVR(
         'Accept': 'application/json',
       },
       body: JSON.stringify(payload),
-    }
+    },
+    { errorMessage: messages.filters.loadFailed }
   );
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`getFilteredIECsForDicomVR failed: ${response.status} ${text}`);
-  }
-
-  const details = await response.json();
-  return details;
 }
 
 export async function getValuesForDicomVR(visual_review_id) {
-
-	const response = await fetch(
-		`/papi/v1/visualreviews/${visual_review_id}/values`);
-	const details = await response.json();
-
-	return details;
+	return requestJSON(`/papi/v1/visualreviews/${visual_review_id}/values`);
 }
 
 export async function getIECsForMaskVR(visual_review_id) {
-
-	const response = await fetch(
-		`/papi/v1/masking/visualreview/${visual_review_id}`);
-	const details = await response.json();
-
-	return details;
+	return requestJSON(
+		`/papi/v1/masking/visualreview/${visual_review_id}`,
+		undefined,
+		{ errorMessage: messages.filters.loadFailed }
+	);
 }
 
 export async function getFilteredIECsForMaskVR(visual_review_id, masking_status = 'All', dicom_file_type = 'All') {
@@ -300,18 +284,19 @@ export async function getFilteredIECsForMaskVR(visual_review_id, masking_status 
 		params.set('dicom_file_type', dicom_file_type);
 	}
 	const query = params.toString() ? `?${params.toString()}` : '';
-	const response = await fetch(`/papi/v1/masking/visualreview/${visual_review_id}${query}`);
-	const details = await response.json();
-	return details;
+	return requestJSON(
+		`/papi/v1/masking/visualreview/${visual_review_id}${query}`,
+		undefined,
+		{ errorMessage: messages.filters.loadFailed }
+	);
 }
 
 export async function getIECsForMaskReviewVR(visual_review_id) {
-
-	const response = await fetch(
-		`/papi/v1/masking/visualreview/${visual_review_id}?awaiting_review=true`);
-	const details = await response.json();
-
-	return details;
+	return requestJSON(
+		`/papi/v1/masking/visualreview/${visual_review_id}?awaiting_review=true`,
+		undefined,
+		{ errorMessage: messages.filters.loadFailed }
+	);
 }
 
 export async function getFilteredIECsForMaskReviewVR(visual_review_id, masking_status = 'All', dicom_file_type = 'All') {
@@ -323,27 +308,23 @@ export async function getFilteredIECsForMaskReviewVR(visual_review_id, masking_s
 	if (dicom_file_type && dicom_file_type !== 'All') {
 		params.set('dicom_file_type', dicom_file_type);
 	}
-	const response = await fetch(`/papi/v1/masking/visualreview/${visual_review_id}?${params.toString()}`);
-	const details = await response.json();
-	return details;
+	return requestJSON(
+		`/papi/v1/masking/visualreview/${visual_review_id}?${params.toString()}`,
+		undefined,
+		{ errorMessage: messages.filters.loadFailed }
+	);
 }
 
 export async function getOtherIECsForFOR(iec) {
-
-  const response = await fetch(
-    `/papi/v1/iecs/${iec}/other_iecs_in_for`);
-  const iecList = await response.json();
-
-  return iecList;
+  return requestJSON(`/papi/v1/iecs/${iec}/other_iecs_in_for`);
 }
 
 export async function getFilesForNiftiVR(nifti_visual_review_id) {
-
-	const response = await fetch(
-		`/papi/v1/nifti/visualreview/${nifti_visual_review_id}`);
-	const details = await response.json();
-
-	return details;
+	return requestJSON(
+		`/papi/v1/nifti/visualreview/${nifti_visual_review_id}`,
+		undefined,
+		{ errorMessage: messages.filters.loadFailed }
+	);
 }
 
 export async function loadIECVolumeAndSegmentation(iec, volumeId, segmentationId) {
