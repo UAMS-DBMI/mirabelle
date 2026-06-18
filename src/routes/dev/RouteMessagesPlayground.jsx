@@ -63,8 +63,14 @@ const VALIDATION_NAV = [
 // Demonstrates how notify.error resolves the message from different throwables.
 const THROWABLES = [
   [
-    "ApiError (uses userMessage)",
-    () => notify.error(new ApiError(messages.errors.saveStatus, { status: 500 })),
+    "ApiError (message + detail)",
+    () =>
+      notify.error(
+        new ApiError(messages.errors.saveStatus, {
+          status: 500,
+          detail: "Internal Server Error: could not write status for IEC 1117950",
+        })
+      ),
   ],
   [
     "Raw Error (uses fallback)",

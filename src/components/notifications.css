@@ -73,6 +73,52 @@
   border-left-color: var(--toast-error);
 }
 
+/* Optional technical detail shown beneath an error message. */
+.app-toast__detail {
+  margin-top: 3px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.7;
+  word-break: break-word;
+}
+
+/* Error message + close button layout. */
+.app-toast__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+
+.app-toast__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Close button. Explicit resets override the global `button` rule (index.css). */
+.app-toast__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: -4px -6px 0 0;
+  padding: 0 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-toast__close:hover {
+  opacity: 1;
+  border-color: transparent;
+}
+
 .app-toast--info {
   border-left-color: var(--toast-info);
 }

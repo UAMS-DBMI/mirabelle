@@ -17,6 +17,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 
 import ErrorPage from "./error-page";
+import installGlobalErrorHandlers from "@/lib/installGlobalErrorHandlers";
 import "./index.css";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -210,6 +211,10 @@ const router = createBrowserRouter(
 );
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
+
+// Catch errors that escape component-level handling (e.g. async failures deep
+// in Cornerstone) and surface them as toasts instead of raw runtime errors.
+installGlobalErrorHandlers();
 
 if (typeof navigator !== 'undefined' && navigator.userAgent.includes('Windows')) {
     document.documentElement.classList.add('windows');
