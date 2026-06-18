@@ -251,7 +251,7 @@ function FilterPanel({
             onKeyDown={submitOnEnter}
           >
             <option>All</option>
-            <option>Unmasked</option>
+            <option>Unreviewed</option>
             <option>Accepted</option>
             <option>Rejected</option>
             <option>Skipped</option>

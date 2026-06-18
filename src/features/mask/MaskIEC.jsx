@@ -16,7 +16,8 @@ import {
 } from "@/features/presentationSlice";
 
 import { setTitle, setLoading, setOption } from "@/features/optionSlice";
-import toast from "react-hot-toast";
+import { notify } from "@/lib/notify";
+import { messages } from "@/lib/messages";
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
 import { volumeLoader } from "@cornerstonejs/core";
@@ -47,7 +48,7 @@ import FilterPanel from "@/components/FilterPanel";
 import { DetailsPanel } from "@/features/details";
 
 import RouteLayout from "@/components/RouteLayout";
-import ErrorPanel from "@/components/ErrorPanel";
+import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 
 import "./MaskIEC.css";
 
@@ -95,8 +96,8 @@ export default function MaskIEC({
   maskingStatus,
   dicomType,
   dicomTypeOptions,
-  onNext,
-  onPrevious,
+  onNext = () => {},
+  onPrevious = () => {},
 }) {
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -140,7 +141,6 @@ export default function MaskIEC({
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
-  const [errorMessage, setErrorMessage] = useState();
 
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
@@ -210,6 +210,7 @@ export default function MaskIEC({
   }, [iec]);
 
   useLayoutEffect(() => {
+    if (!iec) return; // nothing to load until an IEC is resolved
     console.log("MaskIEC useEffect[iec]:", iec);
     const requestId = ++loadRequestRef.current;
     let isCancelled = false;
@@ -295,9 +296,8 @@ export default function MaskIEC({
           setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
         );
       } catch (error) {
-        console.log(error);
-        // TODO: set an isError status here and display an error message?
-        setErrorMessage(error);
+        console.error(error);
+        notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
         return;
       }
@@ -311,7 +311,16 @@ export default function MaskIEC({
       dispatch(setLoading(false));
     };
 
-    initialize();
+    // Catch failures from awaits that run before the inner try (e.g. the
+    // detail/info fetches), so a thrown ApiError surfaces as a toast and a
+    // clean viewport instead of an unhandled promise rejection.
+    initialize().catch((error) => {
+      if (isCancelled || requestId !== loadRequestRef.current) return;
+      console.error(error);
+      notify.error(error, messages.errors.loadImage);
+      setIsErrored(true);
+      dispatch(setLoading(false));
+    });
 
     return () => {
       isCancelled = true;
@@ -357,29 +366,31 @@ export default function MaskIEC({
         handleClear();
         break;
       case "accept":
-        await handleAccept();
-        onNext();
+        // Only advance when the mask was actually submitted.
+        if (await handleAccept()) onNext();
         break;
       case "skip mask":
-        await setMaskingStatus(iec, action);
-        toast.success("Mask skipped!");
-        onNext();
-        break;
       case "nonmaskable mask":
-        await setMaskingStatus(iec, action);
-        toast.success("Image is not maskable!");
-        onNext();
+        try {
+          await setMaskingStatus(iec, action);
+          notify.success(
+            action === "skip mask"
+              ? messages.mask.skipped
+              : messages.mask.notMaskable,
+          );
+          onNext();
+        } catch (error) {
+          notify.error(error, messages.errors.saveStatus);
+        }
         break;
       default:
-        console.log("Unknown action:", action);
+        console.warn("Unknown action:", action);
     }
   }
 
   async function handleExpand() {
     if (!expanded && isSegFlat(segmentationId)) {
-      alert(
-        "Cannot expand a flat selection! You must draw in at least two planes.",
-      );
+      notify.info(messages.maskValidation.flatSelection);
       return;
     }
     const coords = expandSegTo3D(segmentationId);
@@ -408,7 +419,7 @@ export default function MaskIEC({
 
     setExpanded(true);
     setCoords(coords);
-    toast.success("Expanded selection!");
+    notify.success(messages.mask.expanded);
   }
 
   function handleClear() {
@@ -467,8 +478,8 @@ export default function MaskIEC({
 
   async function handleAccept() {
     if (volumetric && !expanded) {
-      alert("You must Expand Selection first!");
-      return;
+      notify.info(messages.maskValidation.expandFirst);
+      return false;
     }
 
     let finalCoords = coords;
@@ -493,17 +504,23 @@ export default function MaskIEC({
     }
 
     console.log(finalCoords, spacing, iec);
-    await submitFinalCoords(
-      finalCoords,
-      spacing,
-      iec,
-      selectedForm,
-      selectedFunction,
-      selectedNoise,
-      selectedFill,
-    );
+    try {
+      await submitFinalCoords(
+        finalCoords,
+        spacing,
+        iec,
+        selectedForm,
+        selectedFunction,
+        selectedNoise,
+        selectedFill,
+      );
+    } catch (error) {
+      notify.error(error, messages.errors.submitMask);
+      return false;
+    }
 
-    toast.success("Submitted for masking!");
+    notify.success(messages.mask.submitted);
+    return true;
   }
 
   if (!iec) {
@@ -547,9 +564,10 @@ export default function MaskIEC({
     );
   }
 
-  // short-circuit if not loaded yet
+  // Load failures are surfaced as a toast; keep the viewport itself clean
+  // with a neutral placeholder rather than an error card.
   if (isErrored) {
-    return <ErrorPanel error={errorMessage.message} />;
+    return <ViewportPlaceholder />;
   }
   if (!isInitialized) {
     // display nothing; a loading spinner will be handled elsewhere

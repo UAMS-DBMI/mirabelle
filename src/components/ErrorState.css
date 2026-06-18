@@ -1,0 +1,104 @@
+/**
+ * Full-page error fallback styling. Themed for both color schemes via
+ * CSS variables that flip with `prefers-color-scheme`.
+ */
+
+:root {
+  --error-state-fg: #e5e7eb;
+  --error-state-muted: #9ca3af;
+  --error-state-accent: #f87171;
+  --error-state-detail-bg: rgba(255, 255, 255, 0.06);
+  --error-state-btn-bg: #1f2937;
+  --error-state-btn-bg-hover: #374151;
+  --error-state-btn-border: #4b5563;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --error-state-fg: #1f2937;
+    --error-state-muted: #6b7280;
+    --error-state-accent: #dc2626;
+    --error-state-detail-bg: rgba(0, 0, 0, 0.05);
+    --error-state-btn-bg: #f9fafb;
+    --error-state-btn-bg-hover: #e5e7eb;
+    --error-state-btn-border: #d1d5db;
+  }
+}
+
+/* Explicit override (set by the dev playground); wins over the media query. */
+:root[data-theme="dark"] {
+  --error-state-fg: #e5e7eb;
+  --error-state-muted: #9ca3af;
+  --error-state-accent: #f87171;
+  --error-state-detail-bg: rgba(255, 255, 255, 0.06);
+  --error-state-btn-bg: #1f2937;
+  --error-state-btn-bg-hover: #374151;
+  --error-state-btn-border: #4b5563;
+}
+
+:root[data-theme="light"] {
+  --error-state-fg: #1f2937;
+  --error-state-muted: #6b7280;
+  --error-state-accent: #dc2626;
+  --error-state-detail-bg: rgba(0, 0, 0, 0.05);
+  --error-state-btn-bg: #f9fafb;
+  --error-state-btn-bg-hover: #e5e7eb;
+  --error-state-btn-border: #d1d5db;
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  height: 100%;
+  min-height: 60vh;
+  padding: 2rem;
+  text-align: center;
+  color: var(--error-state-fg);
+}
+
+.error-state__title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.error-state__message {
+  margin: 0;
+  max-width: 32rem;
+  font-size: 1.1rem;
+  color: var(--error-state-muted);
+}
+
+.error-state__detail {
+  margin: 0;
+  max-width: 40rem;
+  max-height: 12rem;
+  overflow: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--error-state-detail-bg);
+  color: var(--error-state-accent);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-state__retry {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--error-state-btn-border);
+  border-radius: 0.5rem;
+  background: var(--error-state-btn-bg);
+  color: var(--error-state-fg);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.error-state__retry:hover {
+  background: var(--error-state-btn-bg-hover);
+}

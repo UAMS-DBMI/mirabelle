@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { RenderingEngine } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
-import toast from "react-hot-toast";
 
 import VolumeViewport from "@/components/VolumeViewport";
 import VolumeViewport3d from "@/components/VolumeViewport3d";
