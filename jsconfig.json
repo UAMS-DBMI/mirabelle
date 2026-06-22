@@ -1,8 +1,7 @@
 {  
   "compilerOptions": {
-    "baseUrl": ".",                // root of your workspace
     "paths": {
-      "@/*": ["src/*"]             // @/foo ? <root>/src/foo
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"]
