@@ -1,0 +1,4 @@
+# Known-good toolchain floors (mise/asdf). Hard floors are enforced via
+# package.json "engines". Node 20 is EOL (April 2026); use 22 LTS or newer.
+bun 1.3
+nodejs 22

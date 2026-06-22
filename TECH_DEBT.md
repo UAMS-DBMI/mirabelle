@@ -32,8 +32,9 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
   It covers `convertCoordinates` (the risky math); the rest of `utilities.js`, the Redux
   slices, and the masking workflow are untested.
 
-- [ ] **Pin tool versions.** No `engines` field and no `.nvmrc`. Pin bun/node so contributors
-  and CI match — relevant since patches target an exact Cornerstone version.
+- [x] **Pin tool versions.** Done: added a `package.json` `engines` floor (`bun >=1.3.0`,
+  `node >=22.0.0`) and a `.tool-versions` file (`bun 1.3`, `nodejs 22`) for mise/asdf.
+  Floors rather than exact pins; Node floored at 22 since 20 is EOL (April 2026).
 
 ## 🟡 Maintainability
 
