@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "bunx vitest",
-    "start": "webpack serve",
-    "build": "webpack",
+    "start": "webpack serve --mode development",
+    "build": "webpack --mode production",
 	"postinstall": "patch-package"
   },
   "keywords": [],

@@ -16,9 +16,10 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
   (`make serve ENV=...`); `.env.local` is gitignored and `.env.example` documents the vars.
   No `dotenv`/`DefinePlugin` needed. The committed tokens are non-sensitive dev/test tokens.
 
-- [ ] **Don't hardcode `mode: 'development'`** (`webpack.config.js:6`). `make build` currently
-  ships an unminified dev-React bundle with full source maps. Drive `mode` from
-  `argv.mode` / `NODE_ENV` so `bun run build` produces an optimized production bundle.
+- [x] **Don't hardcode `mode: 'development'`** (was `webpack.config.js:6`). Done: the config
+  is now a function that reads `argv.mode`; `start`/`build` scripts pass
+  `--mode development` / `--mode production`, so `bun run build` produces a minified
+  production bundle (devtool also switches: `source-map` in prod, `eval-source-map` in dev).
 
 ## 🟠 Engineering hygiene
 
