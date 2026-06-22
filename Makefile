@@ -8,8 +8,9 @@ serve: node_modules
 build: node_modules
 	bun run build
 
-node_modules: package.json
-	bun i
+node_modules: package.json bun.lock
+	# This is the same as `npm ci`
+	bun install --frozen-lockfile
 
 tags: 
 	ctags -R --languages=JavaScript,TypeScript --exclude=node_modules --exclude=build --exclude=dist
