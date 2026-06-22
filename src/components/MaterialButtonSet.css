@@ -1,7 +1,6 @@
 ul {
-  @apply
-  flex
-  gap-2
+  @apply flex
+  gap-2;
 }
 
 li {

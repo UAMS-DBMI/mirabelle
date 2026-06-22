@@ -1,4 +1,4 @@
-import * as math from 'mathjs';
+import * as math from "mathjs";
 
 /*
  * Functions related to masking
@@ -8,7 +8,6 @@ import * as math from 'mathjs';
 export let loaded = { loaded: false };
 
 export async function getMaskingDetails(iec) {
-
   const response = await fetch(`/papi/v1/masking/${iec}`);
   const details = await response.json();
 
@@ -16,56 +15,58 @@ export async function getMaskingDetails(iec) {
 }
 
 export async function flagForMasking(iec) {
-  const response = await fetch(
-    `/papi/v1/masking/${iec}/mask`,
-    {
-      method: "POST",
-    }
-  );
+  const response = await fetch(`/papi/v1/masking/${iec}/mask`, {
+    method: "POST",
+  });
   const details = await response.json();
 
   return details;
 }
 
 export async function setMaskingStatus(iec, status) {
-
-  let url = ''
+  let url = "";
   switch (status) {
-    case 'accept mask':
+    case "accept mask":
       url = `/papi/v1/masking/${iec}/accept`;
       break;
-    case 'reject mask':
+    case "reject mask":
       url = `/papi/v1/masking/${iec}/reject`;
       break;
-    case 'skip mask':
+    case "skip mask":
       url = `/papi/v1/masking/${iec}/skip`;
       break;
-    case 'nonmaskable mask':
+    case "nonmaskable mask":
       url = `/papi/v1/masking/${iec}/nonmaskable`;
       break;
     default:
       console.warn(`Unknown status: ${status}`);
   }
 
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  const details = await response.json();
 
-	const response = await fetch(
-		url,
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-		}
-	);
-	const details = await response.json();
-
-	return details;
+  return details;
 }
-
 
 export async function setParameters(
   iec,
-  { lr, pa, is, width, height, depth, form, function: maskFunction, noise, fill }
+  {
+    lr,
+    pa,
+    is,
+    width,
+    height,
+    depth,
+    form,
+    function: maskFunction,
+    noise,
+    fill,
+  },
 ) {
   // The api expects lr,pa,is to be capitalized
   const body = JSON.stringify({
@@ -76,22 +77,19 @@ export async function setParameters(
     height,
     depth,
     form,
-    function: maskFunction === 'slice_remove' ? 'sliceremove' : maskFunction,
+    function: maskFunction === "slice_remove" ? "sliceremove" : maskFunction,
     noise,
-    fill
+    fill,
   });
   // console.log("setParameters", body);
 
-  const response = await fetch(
-    `/papi/v1/masking/${iec}/parameters`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: body,
-    }
-  );
+  const response = await fetch(`/papi/v1/masking/${iec}/parameters`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: body,
+  });
   const details = await response.json();
 
   return details;
@@ -119,11 +117,17 @@ export async function tests() {
 
   // console.log("getIECsForVR");
   // console.log(await getIECsForVR(1));
-
 }
 
-export async function submitFinalCoords(coords, spacing, iec, maskForm, maskFunction, maskNoise, maskFill) {
-
+export async function submitFinalCoords(
+  coords,
+  spacing,
+  iec,
+  maskForm,
+  maskFunction,
+  maskNoise,
+  maskFill,
+) {
   //// single image
   //// iec = 1167702
   //coords = {
@@ -148,21 +152,25 @@ export async function submitFinalCoords(coords, spacing, iec, maskForm, maskFunc
   //  "k": { "min": 12, "max": 64 }
   //}
 
-   // Define the 8 corners of the cuboid in the source voxel space
+  // Define the 8 corners of the cuboid in the source voxel space
   const sourceVoxelCorners = [
-    [coords.i.min, coords.j.min, coords.k.min],  // Bottom-front-left corner
-    [coords.i.min, coords.j.min, coords.k.max],  // Bottom-front-right corner
-    [coords.i.min, coords.j.max, coords.k.min],  // Top-front-left corner
-    [coords.i.min, coords.j.max, coords.k.max],  // Top-front-right corner
-    [coords.i.max, coords.j.min, coords.k.min],  // Bottom-back-left corner
-    [coords.i.max, coords.j.min, coords.k.max],  // Bottom-back-right corner
-    [coords.i.max, coords.j.max, coords.k.min],  // Top-back-left corner
-    [coords.i.max, coords.j.max, coords.k.max]   // Top-back-right corner
+    [coords.i.min, coords.j.min, coords.k.min], // Bottom-front-left corner
+    [coords.i.min, coords.j.min, coords.k.max], // Bottom-front-right corner
+    [coords.i.min, coords.j.max, coords.k.min], // Top-front-left corner
+    [coords.i.min, coords.j.max, coords.k.max], // Top-front-right corner
+    [coords.i.max, coords.j.min, coords.k.min], // Bottom-back-left corner
+    [coords.i.max, coords.j.min, coords.k.max], // Bottom-back-right corner
+    [coords.i.max, coords.j.max, coords.k.min], // Top-back-left corner
+    [coords.i.max, coords.j.max, coords.k.max], // Top-back-right corner
   ];
 
   // Compute min/max in target space
-  const sourceMin = [0, 1, 2].map(ax => Math.floor(Math.min(...sourceVoxelCorners.map(c => c[ax]))));
-  const sourceMax = [0, 1, 2].map(ax => Math.ceil(Math.max(...sourceVoxelCorners.map(c => c[ax]))));
+  const sourceMin = [0, 1, 2].map((ax) =>
+    Math.floor(Math.min(...sourceVoxelCorners.map((c) => c[ax]))),
+  );
+  const sourceMax = [0, 1, 2].map((ax) =>
+    Math.ceil(Math.max(...sourceVoxelCorners.map((c) => c[ax]))),
+  );
 
   const ijkOutput = [
     Math.round(sourceMin[0]) | 0,
@@ -170,7 +178,7 @@ export async function submitFinalCoords(coords, spacing, iec, maskForm, maskFunc
     Math.round(sourceMin[1]) | 0,
     Math.round(sourceMax[1]) | 0,
     Math.round(sourceMin[2]) | 0,
-    Math.round(sourceMax[2]) | 0
+    Math.round(sourceMax[2]) | 0,
   ];
 
   // Convert sourceMin and sourceMax to physical coordinates using only source spacing

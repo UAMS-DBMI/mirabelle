@@ -88,7 +88,7 @@ export default function VolumeView({
     setRenderingEngine(renderingEngine);
 
     // Teardown function
-    return () => { };
+    return () => {};
   }, []);
 
   useEffect(() => {
@@ -174,7 +174,6 @@ export default function VolumeView({
         segmentationId={segmentationId}
         orientation="SAGITTAL"
       />
-
     </div>
   );
 }

@@ -1,8 +1,8 @@
-import { configureStore } from '@reduxjs/toolkit'
-import counterReducer from '@/features/counterSlice'
-import presentationReducer from '@/features/presentationSlice'
-import maskingReducer from '@/features/maskingSlice'
-import optionReducer from '@/features/optionSlice'
+import { configureStore } from "@reduxjs/toolkit";
+import counterReducer from "@/features/counterSlice";
+import presentationReducer from "@/features/presentationSlice";
+import maskingReducer from "@/features/maskingSlice";
+import optionReducer from "@/features/optionSlice";
 
 const store = configureStore({
   reducer: {
@@ -11,6 +11,6 @@ const store = configureStore({
     masking: maskingReducer,
     options: optionReducer,
   },
-})
+});
 
 export default store;

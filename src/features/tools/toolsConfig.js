@@ -1,46 +1,50 @@
-import { useSelector, useDispatch } from 'react-redux';
-import { Enums } from '@/features/presentationSlice'
-import { setOption } from '@/features/optionSlice';
+import { useSelector, useDispatch } from "react-redux";
+import { Enums } from "@/features/presentationSlice";
+import { setOption } from "@/features/optionSlice";
 
-const maybe = (condition, item) => condition ? [item]: [];
+const maybe = (condition, item) => (condition ? [item] : []);
 
 export default function useToolsConfigs({ manager }) {
   const dispatch = useDispatch();
-  const globalToolsConfig = useSelector(state => state.presentation.toolsConfig);
+  const globalToolsConfig = useSelector(
+    (state) => state.presentation.toolsConfig,
+  );
 
   const viewGroupButtonConfig = [
     ...maybe(globalToolsConfig.viewToolGroup.visibility.volume, {
       name: "Volume",
       icon: "deployed_code",
-      action: () => dispatch(setOption(
-        {
-          key: "view",
-          value: Enums.ViewOptions.VOLUME,
-        }
-      )),
+      action: () =>
+        dispatch(
+          setOption({
+            key: "view",
+            value: Enums.ViewOptions.VOLUME,
+          }),
+        ),
     }),
     ...maybe(globalToolsConfig.viewToolGroup.visibility.projection, {
       name: "Maximum Intensity Projection",
       icon: "light_mode",
-      action: () => dispatch(setOption(
-        {
-          key: "view",
-          value: Enums.ViewOptions.PROJECTION,
-        }
-      )),
+      action: () =>
+        dispatch(
+          setOption({
+            key: "view",
+            value: Enums.ViewOptions.PROJECTION,
+          }),
+        ),
     }),
     ...maybe(globalToolsConfig.viewToolGroup.visibility.stack, {
       name: "Stack",
       icon: "stacks",
-      action: () => dispatch(setOption(
-        {
-          key: "view",
-          value: Enums.ViewOptions.STACK,
-        }
-      )),
+      action: () =>
+        dispatch(
+          setOption({
+            key: "view",
+            value: Enums.ViewOptions.STACK,
+          }),
+        ),
     }),
   ];
-
 
   const functionGroupButtonConfig = [
     ...maybe(globalToolsConfig.functionToolGroup.visibility.mask, {
@@ -56,7 +60,8 @@ export default function useToolsConfigs({ manager }) {
     ...maybe(globalToolsConfig.functionToolGroup.visibility.sliceRemove, {
       name: "Slice Remove",
       icon: "content_cut",
-      action: () => manager.switchFunctionMode(Enums.FunctionOptions.SLICE_REMOVE),
+      action: () =>
+        manager.switchFunctionMode(Enums.FunctionOptions.SLICE_REMOVE),
     }),
   ];
 
@@ -77,18 +82,24 @@ export default function useToolsConfigs({ manager }) {
     ...maybe(globalToolsConfig.leftClickToolGroup.visibility.windowLevel, {
       name: "Window Level",
       icon: "exposure",
-      action: () => manager.switchLeftClickMode(Enums.LeftClickOptions.WINDOW_LEVEL),
+      action: () =>
+        manager.switchLeftClickMode(Enums.LeftClickOptions.WINDOW_LEVEL),
     }),
     ...maybe(globalToolsConfig.leftClickToolGroup.visibility.crossHairs, {
       name: "Crosshairs",
       icon: "point_scan",
-      action: () => manager.switchLeftClickMode(Enums.LeftClickOptions.CROSSHAIRS),
+      action: () =>
+        manager.switchLeftClickMode(Enums.LeftClickOptions.CROSSHAIRS),
     }),
-    ...maybe(globalToolsConfig.leftClickToolGroup.visibility.rectangleScissors, {
-      name: "Selection",
-      icon: "gesture_select",
-      action: () => manager.switchLeftClickMode(Enums.LeftClickOptions.SELECTION),
-    }),
+    ...maybe(
+      globalToolsConfig.leftClickToolGroup.visibility.rectangleScissors,
+      {
+        name: "Selection",
+        icon: "gesture_select",
+        action: () =>
+          manager.switchLeftClickMode(Enums.LeftClickOptions.SELECTION),
+      },
+    ),
   ];
 
   const rightClickGroupButtonConfig = [

@@ -1,9 +1,9 @@
 /* NavigationPanel.css */
 
 #navigation-panel {
-	@apply flex-none;
+  @apply flex-none;
 }
 
 #navigation-panel ul {
-	@apply flex flex-row;
+  @apply flex flex-row;
 }

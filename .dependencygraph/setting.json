@@ -1,13 +1,5 @@
 {
   "alias": false,
-  "resolveExtensions": [
-    ".js",
-    ".jsx",
-    ".ts",
-    ".tsx",
-    ".vue",
-    ".scss",
-    ".less"
-  ],
+  "resolveExtensions": [".js", ".jsx", ".ts", ".tsx", ".vue", ".scss", ".less"],
   "entryFilePath": ""
 }

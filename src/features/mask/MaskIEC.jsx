@@ -1,9 +1,9 @@
-import React from 'react';
+import React from "react";
 
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux'
-import { useHotkeys } from 'react-hotkeys-hook';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useNavigate } from "react-router-dom";
 
 import {
   Enums,
@@ -13,15 +13,15 @@ import {
   toggleLeftPanel,
   toggleRightPanel,
   reset,
-} from '@/features/presentationSlice';
+} from "@/features/presentationSlice";
 
-import { setTitle, setLoading, setOption } from '@/features/optionSlice';
-import toast from 'react-hot-toast';
+import { setTitle, setLoading, setOption } from "@/features/optionSlice";
+import toast from "react-hot-toast";
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
 import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
-import * as cornerstoneTools from '@cornerstonejs/tools';
+import * as cornerstoneTools from "@cornerstonejs/tools";
 import {
   expandSegTo3D,
   expandSegTo3DInWorldSpace,
@@ -32,59 +32,72 @@ import {
   getIECInfo,
   getImageIdsFromIEC,
   loadStackSegmentation,
-} from '@/utilities';
-import { getDicomDetails } from '@/visualreview';
-import { getMaskingDetails, setMaskingStatus } from '@/masking.js';
-import { submitFinalCoords } from '@/masking';
+} from "@/utilities";
+import { getDicomDetails } from "@/visualreview";
+import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
+import { submitFinalCoords } from "@/masking";
 
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { VolumeView } from '@/features/volume-view';
-import { StackView } from '@/features/stack-view';
-import { ToolsPanel } from '@/features/tools';
-import OperationsPanel from '@/components/OperationsPanel';
-import NavigationPanel from '@/components/NavigationPanel';
-import FilterPanel from '@/components/FilterPanel';
-import { DetailsPanel } from '@/features/details';
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { VolumeView } from "@/features/volume-view";
+import { StackView } from "@/features/stack-view";
+import { ToolsPanel } from "@/features/tools";
+import OperationsPanel from "@/components/OperationsPanel";
+import NavigationPanel from "@/components/NavigationPanel";
+import FilterPanel from "@/components/FilterPanel";
+import { DetailsPanel } from "@/features/details";
 
-import RouteLayout from '@/components/RouteLayout';
-import ErrorPanel from '@/components/ErrorPanel';
+import RouteLayout from "@/components/RouteLayout";
+import ErrorPanel from "@/components/ErrorPanel";
 
-import './MaskIEC.css';
+import "./MaskIEC.css";
 
 const {
   ToolGroupManager,
   TrackballRotateTool,
   Enums: csToolsEnums,
-  segmentation
+  segmentation,
 } = cornerstoneTools;
 
 function transformDetails(details, maskingDetails) {
-
   const maskingParams = JSON.parse(maskingDetails.masking_parameters);
-  const maskingFilters = maskingParams?.noise !== undefined ? `Noise: ${maskingParams?.noise} ● Fill: ${maskingParams?.fill}` : '';
-  const maskingFunction = maskingParams?.function !== undefined ? `${maskingParams?.function === 'sliceremove' ? 'slice-remove' : maskingParams?.function} ● ${maskingParams?.form}` : '';
+  const maskingFilters =
+    maskingParams?.noise !== undefined
+      ? `Noise: ${maskingParams?.noise} ● Fill: ${maskingParams?.fill}`
+      : "";
+  const maskingFunction =
+    maskingParams?.function !== undefined
+      ? `${maskingParams?.function === "sliceremove" ? "slice-remove" : maskingParams?.function} ● ${maskingParams?.form}`
+      : "";
 
   return {
-    'IEC': details.image_equivalence_class_id,
-    'Images in IEC': details.file_count,
+    IEC: details.image_equivalence_class_id,
+    "Images in IEC": details.file_count,
     //'Processing Status': details.processing_status,
-    'Review Status': details.review_status,
-    'Masking Status': maskingDetails?.masking_status,
-    'Masking Function': maskingFunction,
-    'Masking Filters': maskingFilters,
-    'Modality': details.modality,
-    'Patient ID': details.patient_id,
-    'Series Instance UID': details.series_instance_uid,
-    'Series Description': details.series_description,
-    'Body Part Examined': details.body_part_examined,
-    'Path': details.path,
-    'download_path': details.download_path,
-    'download_name': details.download_name,
-  }
+    "Review Status": details.review_status,
+    "Masking Status": maskingDetails?.masking_status,
+    "Masking Function": maskingFunction,
+    "Masking Filters": maskingFilters,
+    Modality: details.modality,
+    "Patient ID": details.patient_id,
+    "Series Instance UID": details.series_instance_uid,
+    "Series Description": details.series_description,
+    "Body Part Examined": details.body_part_examined,
+    Path: details.path,
+    download_path: details.download_path,
+    download_name: details.download_name,
+  };
 }
 
-export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
-
+export default function MaskIEC({
+  iec,
+  vr,
+  noIecs,
+  maskingStatus,
+  dicomType,
+  dicomTypeOptions,
+  onNext,
+  onPrevious,
+}) {
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
   // const toggleLeftPanel = () => setShowLeftPanel(v => !v);
@@ -93,26 +106,37 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
-  const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
-  console.log("showLeftPanel:", showLeftPanel, "showRightPanel:", showRightPanel);
+  const showLeftPanel = useSelector(
+    (s) => s.presentation.panelConfig.open.left,
+  );
+  const showRightPanel = useSelector(
+    (s) => s.presentation.panelConfig.open.right,
+  );
+  console.log(
+    "showLeftPanel:",
+    showLeftPanel,
+    "showRightPanel:",
+    showRightPanel,
+  );
   const handleToggleLeft = () => dispatch(toggleLeftPanel());
   const handleToggleRight = () => dispatch(toggleRightPanel());
 
-  const optionsForm = useSelector(state => state.options.form);
-  const optionsFunction = useSelector(state => state.options.function);
-  const optionsNoise = useSelector(state => state.options.noise);
-  const optionsFill = useSelector(state => state.options.fill);
-  const optionsDecimate = useSelector(state => state.options.decimate);
-  const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
+  const optionsForm = useSelector((state) => state.options.form);
+  const optionsFunction = useSelector((state) => state.options.function);
+  const optionsNoise = useSelector((state) => state.options.noise);
+  const optionsFill = useSelector((state) => state.options.fill);
+  const optionsDecimate = useSelector((state) => state.options.decimate);
+  const [renderingEngine, setRenderingEngine] = useState(
+    cornerstone.getRenderingEngine("re1"),
+  );
 
-  const [volumeId, setVolumeId] = useState()
+  const [volumeId, setVolumeId] = useState();
   const [segmentationId, setSegmentationId] = useState();
-  const [imageIds, setImageIds] = useState()
+  const [imageIds, setImageIds] = useState();
 
   const [toolGroup, setToolGroup] = useState();
   const [toolGroup3d, setToolGroup3d] = useState();
-  const preset3d = useSelector(state => state.options.preset);
+  const preset3d = useSelector((state) => state.options.preset);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
@@ -131,25 +155,32 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
 
   // Fire a resize event whenever the right and left panels toggle
   useEffect(() => {
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
   }, [showLeftPanel, showRightPanel]);
 
   useEffect(() => {
     const callback = (evt) => {
       // trigger a new event, to enable segmentation drawing
       console.log("[callback] AllowSegmentationDrawing firing...");
-      cornerstone.triggerEvent(cornerstone.eventTarget, 'AllowSegmentationDrawing', {
-        volumeId,
-      });
+      cornerstone.triggerEvent(
+        cornerstone.eventTarget,
+        "AllowSegmentationDrawing",
+        {
+          volumeId,
+        },
+      );
     };
 
     // TODO: these string based event names need to be collected into
     // a library and accessed as enums
-    cornerstone.eventTarget.addEventListener('VolumeReallyLoaded', callback);
+    cornerstone.eventTarget.addEventListener("VolumeReallyLoaded", callback);
 
     // cleanup the callback
     return () => {
-      cornerstone.eventTarget.removeEventListener('VolumeReallyLoaded', callback);
+      cornerstone.eventTarget.removeEventListener(
+        "VolumeReallyLoaded",
+        callback,
+      );
     };
   }, []);
 
@@ -173,8 +204,8 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
 
     // Teardown function
     return () => {
-      ToolGroupManager.destroyToolGroup("toolGroup2d")
-      ToolGroupManager.destroyToolGroup("toolGroup3d")
+      ToolGroupManager.destroyToolGroup("toolGroup2d");
+      ToolGroupManager.destroyToolGroup("toolGroup3d");
       // Do not delete the RenderingEngine here, it needs
       // to stay, for now
     };
@@ -190,7 +221,9 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
       const details = await getDicomDetails(iec);
       const maskingDetails = await getMaskingDetails(iec);
       if (isCancelled || requestId !== loadRequestRef.current) {
-        console.log("---------------> getDicomDetails & getMaskingDetails cancelled");
+        console.log(
+          "---------------> getDicomDetails & getMaskingDetails cancelled",
+        );
         return;
       }
       const { volumetric } = details;
@@ -198,13 +231,14 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
       setMaskingDetails(maskingDetails);
 
       let decimate_count = optionsDecimate;
-      const requestedDecimateCount = decimate_count === 0
-        ? 2000  // Maximum number of frames to load if decimate is set to 0 (no decimation)
-        : decimate_count;
+      const requestedDecimateCount =
+        decimate_count === 0
+          ? 2000 // Maximum number of frames to load if decimate is set to 0 (no decimation)
+          : decimate_count;
 
       setIsErrored(false);
       let volumeId = `mask-${iec}-decimate-${decimate_count}`;
-      // append a random number 
+      // append a random number
       let segmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
       const { frames } = await getIECInfo(iec, false, requestedDecimateCount);
@@ -245,11 +279,23 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
           dispatch(setMaskerConfig());
           dispatch(setStackConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
-          dispatch(setOption({ key: "function", value: Enums.FunctionOptions.BLACKOUT }));
+          dispatch(
+            setOption({
+              key: "function",
+              value: Enums.FunctionOptions.BLACKOUT,
+            }),
+          );
           dispatch(setOption({ key: "form", value: Enums.FormOptions.CUBOID }));
         }
-        dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.SELECTION }));
-        dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
+        dispatch(
+          setOption({
+            key: "leftClick",
+            value: Enums.LeftClickOptions.SELECTION,
+          }),
+        );
+        dispatch(
+          setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
+        );
       } catch (error) {
         console.log(error);
         // TODO: set an isError status here and display an error message?
@@ -290,15 +336,20 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
   //   setAppliedDecimate(2000);
   // }
 
-  function handleFilterAction({ maskingStatus: newMaskingStatus, dicomType: newDicomType }) {
-    navigate(`/mask/vr/${vr}/*/${newMaskingStatus || 'All'}/${newDicomType || 'All'}`);
+  function handleFilterAction({
+    maskingStatus: newMaskingStatus,
+    dicomType: newDicomType,
+  }) {
+    navigate(
+      `/mask/vr/${vr}/*/${newMaskingStatus || "All"}/${newDicomType || "All"}`,
+    );
   }
 
-  useHotkeys('e', () => handleOperationAction('expand'));
-  useHotkeys('c', () => handleOperationAction('clear'));
-  useHotkeys('a', () => handleOperationAction('accept'));
-  useHotkeys('s', () => handleOperationAction('skip mask'));
-  useHotkeys('n', () => handleOperationAction('nonmaskable mask'));
+  useHotkeys("e", () => handleOperationAction("expand"));
+  useHotkeys("c", () => handleOperationAction("clear"));
+  useHotkeys("a", () => handleOperationAction("accept"));
+  useHotkeys("s", () => handleOperationAction("skip mask"));
+  useHotkeys("n", () => handleOperationAction("nonmaskable mask"));
 
   async function handleOperationAction(action) {
     switch (action) {
@@ -329,34 +380,32 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
 
   async function handleExpand() {
     if (!expanded && isSegFlat(segmentationId)) {
-      alert("Cannot expand a flat selection! You must draw in at least two planes.");
+      alert(
+        "Cannot expand a flat selection! You must draw in at least two planes.",
+      );
       return;
     }
     const coords = expandSegTo3D(segmentationId);
 
-
     //flag data as updated so it will redraw
-    cornerstoneTools.segmentation
-      .triggerSegmentationEvents
-      .triggerSegmentationDataModified(segmentationId);
-
+    cornerstoneTools.segmentation.triggerSegmentationEvents.triggerSegmentationDataModified(
+      segmentationId,
+    );
 
     // TODO I don't like this being here, perhaps put it inside VolumeView
-    // and expose a callback that can be called from here? 
+    // and expose a callback that can be called from here?
     const renderingEngine = cornerstone.getRenderingEngines()[0];
     const viewports = renderingEngine.getViewports();
     viewports.forEach(async (item) => {
       let viewportId = item.id;
       if (viewportId.startsWith("coronal3d")) {
         console.log("[MaskIEC] Adding surface representation to", viewportId);
-        await segmentation.addSegmentationRepresentations(
-          viewportId, [
+        await segmentation.addSegmentationRepresentations(viewportId, [
           {
             segmentationId,
             type: csToolsEnums.SegmentationRepresentations.Surface,
-          }
-        ],
-        );
+          },
+        ]);
       }
     });
 
@@ -369,9 +418,9 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
     if (volumetric) {
       // Delete the current segmentation and add a new one (and activate it)
       // using a new randomly-named segmentation ID. This gets around a bug
-      // with the 3d viewport not rendering after clearing a segmentation. 
+      // with the 3d viewport not rendering after clearing a segmentation.
       // Note: this does not prevent the error in updateSurfaceData for the
-      // previous segmentation, however. 
+      // previous segmentation, however.
       cornerstoneTools.segmentation.removeSegmentation(segmentationId);
       let newSegmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
@@ -394,11 +443,11 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
         },
       ]);
 
-      // triggering this event will cause the viewports to automatically 
+      // triggering this event will cause the viewports to automatically
       // add a representation for the new segmentation
-      cornerstone.triggerEvent(cornerstone.eventTarget, 'VolumeReallyLoaded', {
+      cornerstone.triggerEvent(cornerstone.eventTarget, "VolumeReallyLoaded", {
         volumeId,
-        segmentationId: newSegmentationId
+        segmentationId: newSegmentationId,
       });
 
       setSegmentationId(newSegmentationId);
@@ -411,11 +460,10 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
       });
 
       // flag data as updated so it will redraw
-      cornerstoneTools.segmentation
-        .triggerSegmentationEvents
-        .triggerSegmentationDataModified(segmentationId);
+      cornerstoneTools.segmentation.triggerSegmentationEvents.triggerSegmentationDataModified(
+        segmentationId,
+      );
     }
-
 
     setExpanded(false);
   }
@@ -432,33 +480,34 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
     let selectedNoise = optionsNoise;
     let selectedFill = optionsFill;
 
-    let spacing = null
+    let spacing = null;
 
     if (volumetric) {
       const volume = cornerstone.cache.getVolume(volumeId);
       spacing = volume.spacing;
-    }
-    else {
+    } else {
       const imageIds = segmentation.getLabelmapImageIds(segmentationId);
       if (!coords) {
         finalCoords = getCoordsForStackSeg(imageIds);
         setCoords(finalCoords);
       }
       const image = cornerstone.cache.getImage(imageIds[0]);
-      spacing = [
-        image.columnPixelSpacing ?? 1,
-        image.rowPixelSpacing ?? 1,
-        1
-      ];
+      spacing = [image.columnPixelSpacing ?? 1, image.rowPixelSpacing ?? 1, 1];
     }
 
     console.log(finalCoords, spacing, iec);
-    await submitFinalCoords(finalCoords, spacing, iec, selectedForm, selectedFunction, selectedNoise, selectedFill);
+    await submitFinalCoords(
+      finalCoords,
+      spacing,
+      iec,
+      selectedForm,
+      selectedFunction,
+      selectedNoise,
+      selectedFill,
+    );
 
     toast.success("Submitted for masking!");
   }
-
-
 
   if (!iec) {
     return (
@@ -469,7 +518,7 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
             onNext={onNext}
             onPrevious={onPrevious}
             currentId={iec}
-            idLabel='IEC'
+            idLabel="IEC"
           />
         }
         middlePanel={
@@ -490,7 +539,11 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
             )}
           </>
         }
-        rightPanel={<div className="side-panel"><div className="wrapper" /></div>}
+        rightPanel={
+          <div className="side-panel">
+            <div className="wrapper" />
+          </div>
+        }
         showLeftPanel={showLeftPanel}
         showRightPanel={true}
       />
@@ -499,18 +552,16 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
 
   // short-circuit if not loaded yet
   if (isErrored) {
-    return (
-      <ErrorPanel error={errorMessage.message} />
-    );
+    return <ErrorPanel error={errorMessage.message} />;
   }
   if (!isInitialized) {
     // display nothing; a loading spinner will be handled elsewhere
-    return <></>
+    return <></>;
   }
 
   if (volumetric) {
     console.log(">>>>> about to pass volumeId=", volumeId);
-    viewer =
+    viewer = (
       <VolumeView
         volumeId={volumeId}
         segmentationId={segmentationId}
@@ -521,8 +572,9 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
         onToggleLeftPanel={handleToggleLeft}
         onToggleRightPanel={handleToggleRight}
       />
+    );
   } else {
-    viewer =
+    viewer = (
       <StackView
         segmentationId={segmentationId}
         toolGroup={toolGroup}
@@ -530,6 +582,7 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
         onToggleLeftPanel={handleToggleLeft}
         onToggleRightPanel={handleToggleRight}
       />
+    );
   }
 
   return (
@@ -538,23 +591,23 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
       leftPanel={
         // showLeftPanel ?
         <>
-          {vr &&
+          {vr && (
             <NavigationPanel
               onNext={onNext}
               onPrevious={onPrevious}
               currentId={iec}
-              idLabel='IEC'
+              idLabel="IEC"
             />
-          }
+          )}
           <ToolsPanel
             toolGroup={toolGroup}
             toolGroup3d={toolGroup3d}
             preset3d={preset3d}
-            onPresetChange={(value) =>
-              dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
+            onPresetChange={
+              (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
             }
             renderingEngine={renderingEngine}
-          // onApplyDecimate={handleApplyDecimate}
+            // onApplyDecimate={handleApplyDecimate}
           />
         </>
         // : null
@@ -571,9 +624,7 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
             />
           )}
           {viewer}
-          <OperationsPanel
-            onAction={handleOperationAction}
-          />
+          <OperationsPanel onAction={handleOperationAction} />
         </>
       }
       rightPanel={
@@ -584,5 +635,5 @@ export default function MaskIEC({ iec, vr, noIecs, maskingStatus, dicomType, dic
       showLeftPanel={showLeftPanel}
       showRightPanel={showRightPanel}
     />
-  )
+  );
 }

@@ -1,1 +1,1 @@
-export { default as SegPanel } from './SegPanel';
+export { default as SegPanel } from "./SegPanel";

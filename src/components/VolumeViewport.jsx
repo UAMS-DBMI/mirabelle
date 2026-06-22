@@ -184,12 +184,12 @@ function VolumeViewport({
     if (viewMode === "projection") {
       const volSlab = Math.sqrt(
         volDimensions[0] * volDimensions[0] +
-        volDimensions[1] * volDimensions[1] +
-        volDimensions[2] * volDimensions[2]
+          volDimensions[1] * volDimensions[1] +
+          volDimensions[2] * volDimensions[2],
       );
 
       viewport.setBlendMode(
-        cornerstone.Enums.BlendModes.MAXIMUM_INTENSITY_BLEND
+        cornerstone.Enums.BlendModes.MAXIMUM_INTENSITY_BLEND,
       );
       viewport.setSlabThickness(volSlab);
     } else if (viewMode === "volume") {

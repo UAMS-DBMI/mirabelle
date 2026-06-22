@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 export default function useRendererResize(renderingEngine) {
   useEffect(() => {
@@ -9,7 +9,7 @@ export default function useRendererResize(renderingEngine) {
       renderingEngine.resize(true, true);
     };
 
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [renderingEngine]);
 }

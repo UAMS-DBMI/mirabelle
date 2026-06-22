@@ -55,9 +55,7 @@ import RouteNiftiReviewVR, {
   loader as routeNiftiReviewVRLoader,
 } from "./routes/nifti/RouteNiftiReviewVR";
 
-import RouteDump, {
-  loader as routeDumpLoader,
-} from "./routes/dicom/RouteDump";
+import RouteDump, { loader as routeDumpLoader } from "./routes/dicom/RouteDump";
 
 import RouteTests from "@/components/RouteTests";
 
@@ -152,7 +150,7 @@ const router = createBrowserRouter(
           path: "review/nifti/vr/:vr/:file/:reviewStatus",
           element: <RouteNiftiReviewVR />,
           HydrateFallback: LoadingSpinner,
-        },        
+        },
         // Dicom Review Routes
         // ----------------------------------
         {
@@ -175,9 +173,9 @@ const router = createBrowserRouter(
           path: "review/dicom/vr/:vr/:iec/:reviewStatus/:dicomType",
           element: <RouteDicomReviewVR />,
           HydrateFallback: LoadingSpinner,
-        },        
+        },
         // Other Routes
-        // ----------------------------------        
+        // ----------------------------------
         {
           path: "dump/:file_id",
           element: <RouteDump />,
@@ -204,8 +202,11 @@ const router = createBrowserRouter(
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
-if (typeof navigator !== 'undefined' && navigator.userAgent.includes('Windows')) {
-    document.documentElement.classList.add('windows');
+if (
+  typeof navigator !== "undefined" &&
+  navigator.userAgent.includes("Windows")
+) {
+  document.documentElement.classList.add("windows");
 }
 
 root.render(

@@ -1,8 +1,8 @@
-import React from 'react';
+import React from "react";
 
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 import {
   Enums,
@@ -12,17 +12,17 @@ import {
   toggleLeftPanel,
   toggleRightPanel,
   reset,
-} from '@/features/presentationSlice';
+} from "@/features/presentationSlice";
 
-import { setTitle, setLoading, setOption } from '@/features/optionSlice';
-import toast from 'react-hot-toast';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { wadouri } from "@cornerstonejs/dicom-image-loader"
+import { setTitle, setLoading, setOption } from "@/features/optionSlice";
+import toast from "react-hot-toast";
+import { useHotkeys } from "react-hotkeys-hook";
+import { wadouri } from "@cornerstonejs/dicom-image-loader";
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
 import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
-import * as cornerstoneTools from '@cornerstonejs/tools';
+import * as cornerstoneTools from "@cornerstonejs/tools";
 import {
   loadVolumeAndSegmentation,
   getOtherIECsForFOR,
@@ -34,60 +34,71 @@ import {
   loadSEGSegmentation,
   getFiles,
   fetchFileAsArrayBuffer,
-  getIECInfo
+  getIECInfo,
 } from "@/utilities";
-import { getDicomDetails, setDicomStatus, setMaskingFlag } from '@/visualreview';
+import {
+  getDicomDetails,
+  setDicomStatus,
+  setMaskingFlag,
+} from "@/visualreview";
 
-import Header from '@/components/Header';
+import Header from "@/components/Header";
 
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { VolumeView } from '@/features/volume-view';
-import { StackView } from '@/features/stack-view';
-import { ToolsPanel } from '@/features/tools';
-import OperationsPanel from '@/components/OperationsPanel';
-import NavigationPanel from '@/components/NavigationPanel';
-import FilterPanel from '@/components/FilterPanel';
-import { DetailsPanel } from '@/features/details';
-import { SegPanel } from '@/features/seg';
-import ErrorPanel from '@/components/ErrorPanel';
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { VolumeView } from "@/features/volume-view";
+import { StackView } from "@/features/stack-view";
+import { ToolsPanel } from "@/features/tools";
+import OperationsPanel from "@/components/OperationsPanel";
+import NavigationPanel from "@/components/NavigationPanel";
+import FilterPanel from "@/components/FilterPanel";
+import { DetailsPanel } from "@/features/details";
+import { SegPanel } from "@/features/seg";
+import ErrorPanel from "@/components/ErrorPanel";
 
-import { Context } from '@/components/Context.js';
-import RouteLayout from '@/components/RouteLayout';
+import { Context } from "@/components/Context.js";
+import RouteLayout from "@/components/RouteLayout";
 
-import './DicomReviewIEC.css';
+import "./DicomReviewIEC.css";
 
 const {
   ToolGroupManager,
   TrackballRotateTool,
   Enums: csToolsEnums,
-  segmentation
+  segmentation,
 } = cornerstoneTools;
 
 function transformDetails(details, imageId) {
-
   let ret = {
-    'IEC': details.image_equivalence_class_id,
-    'Images in IEC': details.file_count,
+    IEC: details.image_equivalence_class_id,
+    "Images in IEC": details.file_count,
     //'Processing Status': details.processing_status,
-    'Review Status': details.review_status,
-    'Modality': details.modality,
-    'Patient ID': details.patient_id,
-    'Series Instance UID': details.series_instance_uid,
-    'Series Description': details.series_description,
-    'Body Part Examined': details.body_part_examined,
-    'Path': details.path,
-    'download_path': details.download_path,
-    'download_name': details.download_name,
-  }
+    "Review Status": details.review_status,
+    Modality: details.modality,
+    "Patient ID": details.patient_id,
+    "Series Instance UID": details.series_instance_uid,
+    "Series Description": details.series_description,
+    "Body Part Examined": details.body_part_examined,
+    Path: details.path,
+    download_path: details.download_path,
+    download_name: details.download_name,
+  };
   if (imageId) {
-    ret['Current Image ID'] = imageId;
+    ret["Current Image ID"] = imageId;
   }
 
   return ret;
 }
 
-
-export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicomTypeOptions, onNext, onPrevious, routeName }) {
+export default function DicomReviewIEC({
+  iec,
+  vr,
+  reviewStatus,
+  dicomType,
+  dicomTypeOptions,
+  onNext,
+  onPrevious,
+  routeName,
+}) {
   console.log("[DicomReviewIEC] rendering, iec:", iec);
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
@@ -98,24 +109,35 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const showLeftPanel = useSelector(s => s.presentation.panelConfig.open.left);
-  const showRightPanel = useSelector(s => s.presentation.panelConfig.open.right);
-  console.log("DicomReviewIEC: showLeftPanel:", showLeftPanel, "showRightPanel:", showRightPanel);
+  const showLeftPanel = useSelector(
+    (s) => s.presentation.panelConfig.open.left,
+  );
+  const showRightPanel = useSelector(
+    (s) => s.presentation.panelConfig.open.right,
+  );
+  console.log(
+    "DicomReviewIEC: showLeftPanel:",
+    showLeftPanel,
+    "showRightPanel:",
+    showRightPanel,
+  );
   const handleToggleLeft = () => dispatch(toggleLeftPanel());
   const handleToggleRight = () => dispatch(toggleRightPanel());
 
-  const optionsView = useSelector(state => state.options.view);
-  const currentImageId = useSelector(state => state.options.currentImageId);
-  const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
+  const optionsView = useSelector((state) => state.options.view);
+  const currentImageId = useSelector((state) => state.options.currentImageId);
+  const [renderingEngine, setRenderingEngine] = useState(
+    cornerstone.getRenderingEngine("re1"),
+  );
 
-  const [volumeId, setVolumeId] = useState()
+  const [volumeId, setVolumeId] = useState();
   const [segmentationId, setSegmentationId] = useState();
-  const [imageIds, setImageIds] = useState()
+  const [imageIds, setImageIds] = useState();
 
   const [toolGroup, setToolGroup] = useState();
   const [toolGroup3d, setToolGroup3d] = useState();
-  const preset3d = useSelector(state => state.options.preset);
-  const optionsDecimate = useSelector(state => state.options.decimate);
+  const preset3d = useSelector((state) => state.options.preset);
+  const optionsDecimate = useSelector((state) => state.options.decimate);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
@@ -140,7 +162,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
 
   // Fire a resize event whenever the right and left panels toggle
   useEffect(() => {
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
   }, [showLeftPanel, showRightPanel]);
 
   useLayoutEffect(() => {
@@ -163,8 +185,8 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
 
     // Teardown function
     return () => {
-      ToolGroupManager.destroyToolGroup("toolGroup2d")
-      ToolGroupManager.destroyToolGroup("toolGroup3d")
+      ToolGroupManager.destroyToolGroup("toolGroup2d");
+      ToolGroupManager.destroyToolGroup("toolGroup3d");
       // Do not delete the RenderingEngine here, it needs
       // to stay, for now
     };
@@ -179,7 +201,9 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
     const initialize = async () => {
       const details = await getDicomDetails(iec);
       if (isCancelled || requestId !== loadRequestRef.current) {
-        console.log("---------------> getDicomDetails & getMaskingDetails cancelled");
+        console.log(
+          "---------------> getDicomDetails & getMaskingDetails cancelled",
+        );
         return;
       }
       let { modality, volumetric } = details;
@@ -190,7 +214,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
       let segBaseDetails = null;
       let segBaseModality = modality;
 
-      if (modality === 'SEG') {
+      if (modality === "SEG") {
         isSeg = true;
         iecList = await getOtherIECsForFOR(iec);
         if (iecList.length > 0) {
@@ -200,7 +224,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
           segBaseModality = segBaseDetails.modality;
         }
       }
-      setIsSeg(isSeg)
+      setIsSeg(isSeg);
 
       //if (optionsView === 'stack') {
       //  console.log("DicomReviewIEC: forcing stack view");
@@ -215,9 +239,10 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
       setDetails(finalDetails);
 
       let decimate_count = optionsDecimate;
-      const requestedDecimateCount = decimate_count === 0
-        ? 2000  // Maximum number of frames to load if decimate is set to 0 (no decimation)
-        : decimate_count;
+      const requestedDecimateCount =
+        decimate_count === 0
+          ? 2000 // Maximum number of frames to load if decimate is set to 0 (no decimation)
+          : decimate_count;
 
       setIsErrored(false);
       let volumeId = `dicom-review-${iec}-decimate-${decimate_count}`;
@@ -229,7 +254,11 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
         const { frames } = await getIECInfo(iec, false, requestedDecimateCount);
         imageIds = frames;
       } else {
-        const { frames } = await getIECInfo(segBaseIEC, false, requestedDecimateCount);
+        const { frames } = await getIECInfo(
+          segBaseIEC,
+          false,
+          requestedDecimateCount,
+        );
         imageIds = frames;
       }
       setImageIds(imageIds);
@@ -244,11 +273,10 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
             // Load the volume directly if it's not a seg. No need to
             // pass a callback, we don't care about when it finishes
             await loadVolume(imageIds, volumeId, segmentationId);
-
           } else {
             const loadingId = toast.loading("Loading volume for SEG...");
             // this version of loadVolume only resolves when the volume
-            // has been fully loaded. 
+            // has been fully loaded.
             // TODO: We should instead use the normal version and provide
             // a callback that will load the segmentation. Currently
             // this doens't work because segMetadata is being passed
@@ -262,7 +290,11 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
 
             const data = await fetchFileAsArrayBuffer(segFileIds[0]);
 
-            const segSegments = await loadSEGSegmentation(data, imageIds, segmentationId);
+            const segSegments = await loadSEGSegmentation(
+              data,
+              imageIds,
+              segmentationId,
+            );
             // NOTE: At some point down in the bowels, the values
             // in the segment list are used for React keys, so make sure
             // the segmentIndex is unique (handled in loadSEGSegmentation)
@@ -285,8 +317,15 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
           dispatch(setStackConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
         }
-        dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL }));
-        dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
+        dispatch(
+          setOption({
+            key: "leftClick",
+            value: Enums.LeftClickOptions.WINDOW_LEVEL,
+          }),
+        );
+        dispatch(
+          setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
+        );
       } catch (error) {
         console.log(error);
         // TODO: set an isError status here and display an error message?
@@ -311,12 +350,12 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
     };
   }, [iec, optionsDecimate]);
 
-  useHotkeys('g', () => handleOperationsAction('good'));
-  useHotkeys('b', () => handleOperationsAction('bad'));
-  useHotkeys('l', () => handleOperationsAction('blank'));
-  useHotkeys('s', () => handleOperationsAction('scout'));
-  useHotkeys('o', () => handleOperationsAction('other'));
-  useHotkeys('f', () => handleOperationsAction('flag'));
+  useHotkeys("g", () => handleOperationsAction("good"));
+  useHotkeys("b", () => handleOperationsAction("bad"));
+  useHotkeys("l", () => handleOperationsAction("blank"));
+  useHotkeys("s", () => handleOperationsAction("scout"));
+  useHotkeys("o", () => handleOperationsAction("other"));
+  useHotkeys("f", () => handleOperationsAction("flag"));
 
   async function handleOperationsAction(action) {
     switch (action) {
@@ -356,15 +395,18 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
     }
   }
 
-  async function handleFilterAction({ reviewStatus: newStatus, dicomType: newType }) {
-    navigate(`/review/dicom/vr/${vr}/*/${newStatus || 'All'}/${newType || 'All'}`);
+  async function handleFilterAction({
+    reviewStatus: newStatus,
+    dicomType: newType,
+  }) {
+    navigate(
+      `/review/dicom/vr/${vr}/*/${newStatus || "All"}/${newType || "All"}`,
+    );
   }
 
   // short-circuit if not loaded yet
   if (isErrored) {
-    return (
-      <ErrorPanel error={errorMessage.message} />
-    );
+    return <ErrorPanel error={errorMessage.message} />;
   }
   // When IEC is not selected yet, render full app with controls and message
   if (!iec) {
@@ -373,21 +415,21 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
         routeName={routeName}
         leftPanel={
           <>
-            {vr &&
+            {vr && (
               <NavigationPanel
                 onNext={onNext}
                 onPrevious={onPrevious}
                 currentId={iec}
-                idLabel='IEC'
+                idLabel="IEC"
               />
-            }
+            )}
             {toolGroup && (
               <ToolsPanel
                 toolGroup={toolGroup}
                 toolGroup3d={toolGroup3d}
                 preset3d={preset3d}
                 onPresetChange={(value) =>
-                  dispatch(setOption({ key: 'preset', value }))
+                  dispatch(setOption({ key: "preset", value }))
                 }
               />
             )}
@@ -395,21 +437,37 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
         }
         middlePanel={
           <>
-            {vr &&
+            {vr && (
               <FilterPanel
                 vr={vr}
                 reviewStatus={reviewStatus}
                 dicomType={dicomType}
                 dicomTypeOptions={dicomTypeOptions}
-                onAction={({ reviewStatus: s, dicomType: t }) => navigate(['/review', 'dicom', 'vr', vr, '*', (s || 'All'), (t || 'All')].join('/'))}
+                onAction={({ reviewStatus: s, dicomType: t }) =>
+                  navigate(
+                    [
+                      "/review",
+                      "dicom",
+                      "vr",
+                      vr,
+                      "*",
+                      s || "All",
+                      t || "All",
+                    ].join("/"),
+                  )
+                }
               />
-            }
+            )}
             <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
               No IECs were found for the selected filters.
             </div>
           </>
         }
-        rightPanel={<div className="side-panel"><div className="wrapper" /></div>}
+        rightPanel={
+          <div className="side-panel">
+            <div className="wrapper" />
+          </div>
+        }
         showLeftPanel={showLeftPanel}
         showRightPanel={true}
       />
@@ -421,7 +479,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
   }
 
   if (volumetric) {
-    viewer =
+    viewer = (
       <VolumeView
         volumeId={volumeId}
         segmentationId={segmentationId}
@@ -432,13 +490,16 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
         onToggleLeftPanel={handleToggleLeft}
         onToggleRightPanel={handleToggleRight}
       />
+    );
   } else {
-    viewer = <StackView
-      toolGroup={toolGroup}
-      frames={imageIds}
-      onToggleLeftPanel={handleToggleLeft}
-      onToggleRightPanel={handleToggleRight}
-    />
+    viewer = (
+      <StackView
+        toolGroup={toolGroup}
+        frames={imageIds}
+        onToggleLeftPanel={handleToggleLeft}
+        onToggleRightPanel={handleToggleRight}
+      />
+    );
   }
 
   return (
@@ -454,21 +515,21 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
       leftPanel={
         // showLeftPanel ?
         <>
-          {vr &&
+          {vr && (
             <NavigationPanel
               onNext={onNext}
               onPrevious={onPrevious}
               currentId={iec}
-              idLabel='IEC'
+              idLabel="IEC"
             />
-          }
+          )}
           {toolGroup && (
             <ToolsPanel
               toolGroup={toolGroup}
               toolGroup3d={toolGroup3d}
               preset3d={preset3d}
-              onPresetChange={(value) =>
-                dispatch(setOption({ key: 'preset', value }))      // ← dispatch changes
+              onPresetChange={
+                (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
               }
             />
           )}
@@ -477,7 +538,7 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
       }
       middlePanel={
         <>
-          {vr &&
+          {vr && (
             <FilterPanel
               vr={vr}
               reviewStatus={reviewStatus}
@@ -485,17 +546,17 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
               dicomTypeOptions={dicomTypeOptions}
               onAction={handleFilterAction}
             />
-          }
+          )}
           {viewer}
-          <OperationsPanel
-            onAction={handleOperationsAction}
-          />
+          <OperationsPanel onAction={handleOperationsAction} />
         </>
       }
       rightPanel={
         // showRightPanel ?
         <>
-          {isSeg && <SegPanel segments={segMetadata} segmentationId={segmentationId} />}
+          {isSeg && (
+            <SegPanel segments={segMetadata} segmentationId={segmentationId} />
+          )}
           <DetailsPanel details={transformDetails(details, currentImageId)} />
         </>
         // : null
@@ -503,5 +564,5 @@ export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicom
       showLeftPanel={showLeftPanel}
       showRightPanel={showRightPanel}
     />
-  )
+  );
 }

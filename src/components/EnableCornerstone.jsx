@@ -1,27 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 import {
   RenderingEngine,
   Enums,
   volumeLoader,
-  cornerstoneStreamingImageVolumeLoader
-} from "@cornerstonejs/core"
-import * as cornerstone from "@cornerstonejs/core"
-import { init as csRenderInit, imageLoader } from "@cornerstonejs/core"
-import { init as csToolsInit } from "@cornerstonejs/tools"
-import * as cornerstoneTools from '@cornerstonejs/tools'
-import { init as dicomImageLoaderInit } from "@cornerstonejs/dicom-image-loader"
-import * as cornerstoneDicomImageLoader from "@cornerstonejs/dicom-image-loader"
-import { cornerstoneNiftiImageLoader } from '@cornerstonejs/nifti-volume-loader'
-import * as polySeg from '@cornerstonejs/polymorphic-segmentation'
+  cornerstoneStreamingImageVolumeLoader,
+} from "@cornerstonejs/core";
+import * as cornerstone from "@cornerstonejs/core";
+import { init as csRenderInit, imageLoader } from "@cornerstonejs/core";
+import { init as csToolsInit } from "@cornerstonejs/tools";
+import * as cornerstoneTools from "@cornerstonejs/tools";
+import { init as dicomImageLoaderInit } from "@cornerstonejs/dicom-image-loader";
+import * as cornerstoneDicomImageLoader from "@cornerstonejs/dicom-image-loader";
+import { cornerstoneNiftiImageLoader } from "@cornerstonejs/nifti-volume-loader";
+import * as polySeg from "@cornerstonejs/polymorphic-segmentation";
 
-import './EnableCornerstone.css';
+import "./EnableCornerstone.css";
 
-
-volumeLoader.registerUnknownVolumeLoader(
-  cornerstoneStreamingImageVolumeLoader
-)
-
+volumeLoader.registerUnknownVolumeLoader(cornerstoneStreamingImageVolumeLoader);
 
 function EnableCornerstone({ children }) {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -29,18 +25,18 @@ function EnableCornerstone({ children }) {
   useEffect(() => {
     const initialize = async () => {
       // new 2.0 init routines
-      await csRenderInit()
+      await csRenderInit();
       await csToolsInit({
         addons: {
           polySeg,
         },
-      })
+      });
       dicomImageLoaderInit({
         maxWebWorkers: 5,
         startWebWorkersOnDemand: true,
       });
 
-      imageLoader.registerImageLoader('nifti', cornerstoneNiftiImageLoader);
+      imageLoader.registerImageLoader("nifti", cornerstoneNiftiImageLoader);
 
       window.cornerstoneTools = cornerstoneTools;
       window.cornerstone = cornerstone;
@@ -60,11 +56,7 @@ function EnableCornerstone({ children }) {
     return <div>Loading...</div>;
   }
 
-  return (
-    <>
-      {children}
-    </>
-  );
-};
+  return <>{children}</>;
+}
 
 export default EnableCornerstone;

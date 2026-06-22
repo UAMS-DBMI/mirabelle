@@ -1,6 +1,5 @@
 #volume-view {
-  @apply
-    relative
+  @apply relative
     w-full
     h-full
     rounded-lg
@@ -8,8 +7,7 @@
     grid
     grid-cols-[1fr,1fr]
     grid-rows-[1fr,1fr]
-    gap-2
-  ;
+    gap-2;
 }
 
 #volume-view.expanded {

@@ -34,9 +34,9 @@ import { VolumeView } from "@/features/volume-view";
 import { ToolsPanel } from "@/features/tools";
 import OperationsPanel from "@/components/OperationsPanel";
 import NavigationPanel from "@/components/NavigationPanel";
-import FilterPanel from '@/components/FilterPanel';
+import FilterPanel from "@/components/FilterPanel";
 import { DetailsPanel } from "@/features/details";
-import ErrorPanel from '@/components/ErrorPanel';
+import ErrorPanel from "@/components/ErrorPanel";
 
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
@@ -65,7 +65,13 @@ function transformDetails(details) {
   };
 }
 
-export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeName }) {
+export default function NiftiReviewFile({
+  file,
+  vr,
+  onNext,
+  onPrevious,
+  routeName,
+}) {
   console.log("[NiftiReviewFile] rendering, file:", file);
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
@@ -75,15 +81,26 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
 
   const dispatch = useDispatch();
 
-  const showLeftPanel = useSelector((s) => s.presentation.panelConfig.open.left);
-  const showRightPanel = useSelector((s) => s.presentation.panelConfig.open.right);
-  console.log("NiftiReviewFile: showLeftPanel:", showLeftPanel, "showRightPanel:", showRightPanel);
+  const showLeftPanel = useSelector(
+    (s) => s.presentation.panelConfig.open.left,
+  );
+  const showRightPanel = useSelector(
+    (s) => s.presentation.panelConfig.open.right,
+  );
+  console.log(
+    "NiftiReviewFile: showLeftPanel:",
+    showLeftPanel,
+    "showRightPanel:",
+    showRightPanel,
+  );
   const handleToggleLeft = () => dispatch(toggleLeftPanel());
   const handleToggleRight = () => dispatch(toggleRightPanel());
 
-  const optionsView = useSelector(state => state.options.view);
-  const currentImageId = useSelector(state => state.options.currentImageId);
-  const [renderingEngine, setRenderingEngine] = useState(cornerstone.getRenderingEngine("re1"));
+  const optionsView = useSelector((state) => state.options.view);
+  const currentImageId = useSelector((state) => state.options.currentImageId);
+  const [renderingEngine, setRenderingEngine] = useState(
+    cornerstone.getRenderingEngine("re1"),
+  );
 
   const [volumeId, setVolumeId] = useState();
   const [segmentationId, setSegmentationId] = useState();
@@ -147,7 +164,9 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
         setDetails(details);
 
         if (details.download_path === undefined) {
-          const missingPathError = new Error("No downloadable NIfTI file was found for this record.");
+          const missingPathError = new Error(
+            "No downloadable NIfTI file was found for this record.",
+          );
           setErrorMessage(missingPathError);
           setIsErrored(true);
           dispatch(setLoading(false));
@@ -194,8 +213,15 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
       dispatch(setNiftiConfig());
 
       dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-      dispatch(setOption({ key: "leftClick", value: Enums.LeftClickOptions.WINDOW_LEVEL, }));
-      dispatch(setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }));
+      dispatch(
+        setOption({
+          key: "leftClick",
+          value: Enums.LeftClickOptions.WINDOW_LEVEL,
+        }),
+      );
+      dispatch(
+        setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
+      );
 
       dispatch(setLoading(false));
     };
@@ -250,7 +276,7 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
   }
 
   async function handleFilterAction(action) {
-    let a = 'a';
+    let a = "a";
   }
 
   // short-circuit while loading, but keep layout available for handled errors
@@ -291,8 +317,8 @@ export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeNam
             toolGroup={toolGroup}
             toolGroup3d={toolGroup3d}
             preset3d={preset3d}
-            onPresetChange={(value) =>
-              dispatch(setOption({ key: "preset", value })) // ← dispatch changes
+            onPresetChange={
+              (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
             }
           />
         </>

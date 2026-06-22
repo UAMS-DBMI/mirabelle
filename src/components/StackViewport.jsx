@@ -1,14 +1,14 @@
 /**
- * Simple stack display panel. 
+ * Simple stack display panel.
  **/
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 
-import * as cornerstone from '@cornerstonejs/core';
-import * as cornerstoneTools from '@cornerstonejs/tools';
-import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core"
-import LoadingSpinner from '@/components/LoadingSpinner';
+import * as cornerstone from "@cornerstonejs/core";
+import * as cornerstoneTools from "@cornerstonejs/tools";
+import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
-import './StackViewport.css';
+import "./StackViewport.css";
 
 const {
   PanTool,
@@ -35,7 +35,7 @@ function StackViewport({
   segmentationId,
   onImageChange,
 }) {
-  console.log("[StackViewport] rendering")
+  console.log("[StackViewport] rendering");
   const elementRef = useRef(null);
 
   const [initialized, setInitialized] = useState(false);
@@ -57,17 +57,16 @@ function StackViewport({
           if (onImageChange) {
             onImageChange(evt.detail.image.imageId);
           }
-        }
+        },
       );
-
 
       const viewportInput = {
         viewportId,
         type: Enums.ViewportType.STACK,
         element: elementRef.current,
-      }
+      };
 
-      renderingEngine.enableElement(viewportInput)
+      renderingEngine.enableElement(viewportInput);
 
       // Get the stack viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
@@ -81,22 +80,19 @@ function StackViewport({
           {
             segmentationId,
             type: csToolsEnums.SegmentationRepresentations.Labelmap,
-          }
+          },
         ],
       });
 
       // Render the image
-      viewport.render()
+      viewport.render();
       window.viewport = viewport;
 
-
-
-
       setInitialized(true);
-    }
+    };
 
-    setup()
-  }, [elementRef, frames])
+    setup();
+  }, [elementRef, frames]);
 
   return (
     <>
@@ -106,7 +102,7 @@ function StackViewport({
         className="stack-viewport viewport"
       ></div>
     </>
-  )
+  );
 }
 
 export default StackViewport;

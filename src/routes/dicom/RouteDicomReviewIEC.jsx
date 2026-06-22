@@ -1,13 +1,13 @@
-import React, { useEffect } from 'react';
-import { useLoaderData } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux'
+import React, { useEffect } from "react";
+import { useLoaderData } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 
-import DicomReviewIEC from '@/features/dicom-review/DicomReviewIEC';
+import DicomReviewIEC from "@/features/dicom-review/DicomReviewIEC";
 
-import { setVisualReviewConfig, reset } from '@/features/presentationSlice'
-import { resetOptions } from '@/features/optionSlice';
+import { setVisualReviewConfig, reset } from "@/features/presentationSlice";
+import { resetOptions } from "@/features/optionSlice";
 
-import './RouteDicomReviewIEC.css';
+import "./RouteDicomReviewIEC.css";
 
 export async function loader({ params }) {
   return { iec: params.iec };
@@ -15,7 +15,7 @@ export async function loader({ params }) {
 
 export default function RouteDicomReviewIEC() {
   const dispatch = useDispatch();
-  const viewState = useSelector(state => state.options.view);
+  const viewState = useSelector((state) => state.options.view);
 
   let { iec } = useLoaderData();
 
@@ -26,7 +26,5 @@ export default function RouteDicomReviewIEC() {
     dispatch(setVisualReviewConfig());
   }, []);
 
-  return (
-    <DicomReviewIEC iec={iec} />
-  );
+  return <DicomReviewIEC iec={iec} />;
 }

@@ -1,25 +1,22 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { setOption } from '@/features/optionSlice';
-import { Enums } from '@/features/presentationSlice'
+import React, { useState, useContext, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { setOption } from "@/features/optionSlice";
+import { Enums } from "@/features/presentationSlice";
 
-import * as cornerstoneTools from '@cornerstonejs/tools';
+import * as cornerstoneTools from "@cornerstonejs/tools";
 
-import MaterialButtonSet from '@/components/MaterialButtonSet';
+import MaterialButtonSet from "@/components/MaterialButtonSet";
 
-import useToolsManager from './toolsManager';
-import useToolsConfigs from './toolsConfig';
+import useToolsManager from "./toolsManager";
+import useToolsConfigs from "./toolsConfig";
 
-import './ToolsPanel.css';
+import "./ToolsPanel.css";
 
 function toTitleCase(some_string) {
-  return some_string.replace("_", " ").replace(
-    /\w\S*/g,
-    (txt) => {
-      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-    }
-  );
-};
+  return some_string.replace("_", " ").replace(/\w\S*/g, (txt) => {
+    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+  });
+}
 
 export default function ToolsPanel({
   toolGroup,
@@ -27,37 +24,41 @@ export default function ToolsPanel({
   onPresetChange,
   preset3d,
   renderingEngine,
-  onApplyDecimate
+  onApplyDecimate,
 }) {
   const dispatch = useDispatch();
 
-  const presets = useSelector(state => state.presentation.presets);
-  const globalToolsConfig = useSelector(state => state.presentation.toolsConfig);
-  const globalStateValues = useSelector(state => state.options);
-  const [appliedDecimate, setAppliedDecimate] = useState(globalStateValues.decimate);
+  const presets = useSelector((state) => state.presentation.presets);
+  const globalToolsConfig = useSelector(
+    (state) => state.presentation.toolsConfig,
+  );
+  const globalStateValues = useSelector((state) => state.options);
+  const [appliedDecimate, setAppliedDecimate] = useState(
+    globalStateValues.decimate,
+  );
 
   // pull filters config + values from Redux
   // const { filterToolGroup } = globalToolsConfig;
   const noise = globalStateValues.noise;
   const fill = globalStateValues.fill;
 
-  const handleNoiseChange = e => {
+  const handleNoiseChange = (e) => {
     const value = parseInt(e.target.value);
-    dispatch(setOption({ key: 'noise', value }));
+    dispatch(setOption({ key: "noise", value }));
   };
 
-  const handleFillChange = e => {
+  const handleFillChange = (e) => {
     const value = parseInt(e.target.value);
-    dispatch(setOption({ key: 'fill', value }));
+    dispatch(setOption({ key: "fill", value }));
   };
 
   // pull opacity config + value from Redux
   const { opacityToolGroup } = globalToolsConfig;
   const opacity = globalStateValues.opacity;
 
-  const handleOpacityChange = e => {
+  const handleOpacityChange = (e) => {
     const value = parseFloat(e.target.value);
-    dispatch(setOption({ key: 'opacity', value }));
+    dispatch(setOption({ key: "opacity", value }));
   };
 
   // pull decimate config + value from Redux
@@ -65,21 +66,21 @@ export default function ToolsPanel({
   const decimate = globalStateValues.decimate;
   const persistent = globalStateValues.persistent;
 
-  const handleDecimateChange = e => {
+  const handleDecimateChange = (e) => {
     console.log("Decimate input changed:", e.target.value);
     const value = parseInt(e.target.value) || 0;
     setAppliedDecimate(value);
   };
 
   const handleDecimateApply = () => {
-    dispatch(setOption({ key: 'decimate', value: appliedDecimate }));
+    dispatch(setOption({ key: "decimate", value: appliedDecimate }));
     if (onApplyDecimate) {
       onApplyDecimate(appliedDecimate);
     }
   };
 
   const handleDecimateInputKeyDown = (event) => {
-    if (event.key !== 'Enter') {
+    if (event.key !== "Enter") {
       return;
     }
     event.preventDefault();
@@ -87,11 +88,11 @@ export default function ToolsPanel({
   };
 
   const handlePersistentToggle = () => {
-    dispatch(setOption({ key: 'persistent', value: !persistent }));
+    dispatch(setOption({ key: "persistent", value: !persistent }));
   };
 
-  const maskingFunction = useSelector(state => state.masking.function);
-  const maskingForm = useSelector(state => state.masking.form);
+  const maskingFunction = useSelector((state) => state.masking.function);
+  const maskingForm = useSelector((state) => state.masking.form);
 
   // const [selectedPreset, setSelectedPreset] = useState(preset3d);
 
@@ -108,9 +109,15 @@ export default function ToolsPanel({
     const handler = () => {
       manager.switchLeftClickMode(Enums.LeftClickOptions.SELECTION);
     };
-    cornerstone.eventTarget.addEventListener('AllowSegmentationDrawing', handler);
+    cornerstone.eventTarget.addEventListener(
+      "AllowSegmentationDrawing",
+      handler,
+    );
     return () => {
-      cornerstone.eventTarget.removeEventListener('AllowSegmentationDrawing', handler);
+      cornerstone.eventTarget.removeEventListener(
+        "AllowSegmentationDrawing",
+        handler,
+      );
     };
   }, []);
 
@@ -125,8 +132,7 @@ export default function ToolsPanel({
     <div id="tools-panel" className="side-panel">
       <h2 id="title">Tools</h2>
       <div className="wrapper">
-        {
-          globalToolsConfig.viewToolGroup.visible &&
+        {globalToolsConfig.viewToolGroup.visible && (
           <div>
             <p>View:</p>
             <MaterialButtonSet
@@ -134,9 +140,8 @@ export default function ToolsPanel({
               initialActiveButton={toTitleCase(globalStateValues.view)}
             />
           </div>
-        }
-        {
-          globalToolsConfig.leftClickToolGroup.visible &&
+        )}
+        {globalToolsConfig.leftClickToolGroup.visible && (
           <div>
             <p>Left-Click:</p>
             <MaterialButtonSet
@@ -144,9 +149,8 @@ export default function ToolsPanel({
               initialActiveButton={toTitleCase(globalStateValues.leftClick)}
             />
           </div>
-        }
-        {
-          globalToolsConfig.rightClickToolGroup.visible &&
+        )}
+        {globalToolsConfig.rightClickToolGroup.visible && (
           <div>
             <p>Right-Click:</p>
             <MaterialButtonSet
@@ -154,9 +158,8 @@ export default function ToolsPanel({
               initialActiveButton={toTitleCase(globalStateValues.rightClick)}
             />
           </div>
-        }
-        {
-          decimateToolGroup.visible &&
+        )}
+        {decimateToolGroup.visible && (
           <div className="decimate-control">
             <p>Decimate:</p>
             <div className="decimate-control-row">
@@ -171,8 +174,8 @@ export default function ToolsPanel({
               />
               <button
                 type="button"
-                title='Persistent'
-                className={`decimate-action-btn persistent-btn ${persistent ? 'is-active' : ''}`}
+                title="Persistent"
+                className={`decimate-action-btn persistent-btn ${persistent ? "is-active" : ""}`}
                 aria-label="Persistent"
                 aria-pressed={persistent}
                 onClick={handlePersistentToggle}
@@ -182,7 +185,7 @@ export default function ToolsPanel({
               </button>
               <button
                 type="button"
-                title='Refresh'
+                title="Refresh"
                 className="decimate-action-btn refresh-btn"
                 aria-label="Refresh"
                 onClick={handleDecimateApply}
@@ -192,9 +195,8 @@ export default function ToolsPanel({
               </button>
             </div>
           </div>
-        }
-        {
-          globalToolsConfig.presetToolGroup.visible &&
+        )}
+        {globalToolsConfig.presetToolGroup.visible && (
           <div>
             <p>Preset:</p>
             <div className="preset-dropdown-container">
@@ -205,7 +207,7 @@ export default function ToolsPanel({
                 onChange={handlePresetChange}
                 className="preset-select"
               >
-                {presets.map(preset => (
+                {presets.map((preset) => (
                   <option key={preset} value={preset}>
                     {preset}
                   </option>
@@ -213,10 +215,12 @@ export default function ToolsPanel({
               </select>
             </div>
           </div>
-        }
+        )}
         {opacityToolGroup.visible && (
           <div className="opacity-control">
-            <p>Opacity: <span>{opacity.toFixed(1)}</span></p>
+            <p>
+              Opacity: <span>{opacity.toFixed(1)}</span>
+            </p>
             <input
               type="range"
               min={opacityToolGroup.min}
@@ -227,8 +231,7 @@ export default function ToolsPanel({
             />
           </div>
         )}
-        {
-          globalToolsConfig.functionToolGroup.visible &&
+        {globalToolsConfig.functionToolGroup.visible && (
           <div>
             <p>Function:</p>
             <MaterialButtonSet
@@ -236,9 +239,8 @@ export default function ToolsPanel({
               initialActiveButton={toTitleCase(globalStateValues.function)}
             />
           </div>
-        }
-        {
-          globalToolsConfig.formToolGroup.visible &&
+        )}
+        {globalToolsConfig.formToolGroup.visible && (
           <div>
             <p>Form:</p>
             <MaterialButtonSet
@@ -246,9 +248,8 @@ export default function ToolsPanel({
               initialActiveButton={toTitleCase(globalStateValues.form)}
             />
           </div>
-        }
-        {
-          globalToolsConfig.filterToolGroup.visible &&
+        )}
+        {globalToolsConfig.filterToolGroup.visible && (
           <div className="mask-filters">
             <div className="noise-control">
               <p>Noise: {noise}</p>
@@ -273,7 +274,7 @@ export default function ToolsPanel({
               />
             </div>
           </div>
-        }
+        )}
       </div>
     </div>
   );

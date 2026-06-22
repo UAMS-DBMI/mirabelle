@@ -1,24 +1,21 @@
 /**
  **/
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 
-import * as cornerstone from '@cornerstonejs/core';
-import * as cornerstoneTools from '@cornerstonejs/tools';
+import * as cornerstone from "@cornerstonejs/core";
+import * as cornerstoneTools from "@cornerstonejs/tools";
 import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
-import { useSelector, useDispatch } from 'react-redux';
-import { setPresets } from '@/features/presentationSlice';
-import { setOption } from '@/features/optionSlice';
+import { useSelector, useDispatch } from "react-redux";
+import { setPresets } from "@/features/presentationSlice";
+import { setOption } from "@/features/optionSlice";
 
-import './VolumeViewport3d.css';
+import "./VolumeViewport3d.css";
 
-import { eventTarget } from '@cornerstonejs/core';
+import { eventTarget } from "@cornerstonejs/core";
 
 const { Events } = Enums;
 
-const {
-  CONSTANTS,
-  setVolumesForViewports,
-} = cornerstone;
+const { CONSTANTS, setVolumesForViewports } = cornerstone;
 
 const {
   PanTool,
@@ -36,20 +33,28 @@ const { segmentation: segmentationUtils } = cstUtils;
 
 const { ViewportType } = Enums;
 
-function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, orientation, preset3d, modality }) {
+function VolumeViewport3d({
+  viewportId,
+  renderingEngine,
+  toolGroup,
+  volumeId,
+  orientation,
+  preset3d,
+  modality,
+}) {
   const dispatch = useDispatch();
   const elementRef = useRef(null);
 
-  const opacity = useSelector(state => state.options.opacity);
+  const opacity = useSelector((state) => state.options.opacity);
 
   let realOrientation = Enums.OrientationAxis.ACQUISITION;
-  if (orientation == 'SAGITTAL') {
+  if (orientation == "SAGITTAL") {
     realOrientation = Enums.OrientationAxis.SAGITTAL;
   }
-  if (orientation == 'AXIAL') {
+  if (orientation == "AXIAL") {
     realOrientation = Enums.OrientationAxis.AXIAL;
   }
-  if (orientation == 'CORONAL') {
+  if (orientation == "CORONAL") {
     realOrientation = Enums.OrientationAxis.CORONAL;
   }
 
@@ -58,39 +63,43 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
     .map((seg) => seg.segmentationId);
 
   useEffect(() => {
-    const wrapper = elementRef.current
-    if (!wrapper || !renderingEngine) return
+    const wrapper = elementRef.current;
+    if (!wrapper || !renderingEngine) return;
 
     // Enable double click to toggle viewport size
     function toggleViewportSize() {
       Array.from(wrapper.parentNode.children)
-        .filter(child => child !== wrapper)
-        .forEach(child => child.classList.toggle('minimized'))
-      wrapper.classList.toggle('expanded')
-      wrapper.parentElement.classList.toggle('expanded')
+        .filter((child) => child !== wrapper)
+        .forEach((child) => child.classList.toggle("minimized"));
+      wrapper.classList.toggle("expanded");
+      wrapper.parentElement.classList.toggle("expanded");
 
       /* A hack to force-render a 3d viewport */
-      renderingEngine.resize(true, true)
-      renderingEngine.render()
+      renderingEngine.resize(true, true);
+      renderingEngine.render();
     }
 
-    wrapper.addEventListener('dblclick', toggleViewportSize)
+    wrapper.addEventListener("dblclick", toggleViewportSize);
     return () => {
-      wrapper.removeEventListener('dblclick', toggleViewportSize)
-    }
-  }, [renderingEngine])
+      wrapper.removeEventListener("dblclick", toggleViewportSize);
+    };
+  }, [renderingEngine]);
 
   const detectModalityFromImageData = (imageData) => {
     if (!imageData) {
-      console.log('No image data available for modality detection, defaulting to MR');
-      return 'MR';
+      console.log(
+        "No image data available for modality detection, defaulting to MR",
+      );
+      return "MR";
     }
 
     try {
-      const values = Array.from(imageData).filter(v => !isNaN(v) && isFinite(v));
+      const values = Array.from(imageData).filter(
+        (v) => !isNaN(v) && isFinite(v),
+      );
       if (values.length === 0) {
-        console.log('No valid image values found, defaulting to MR');
-        return 'MR';
+        console.log("No valid image values found, defaulting to MR");
+        return "MR";
       }
 
       values.sort((a, b) => a - b);
@@ -100,18 +109,25 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
       const range = max - min;
 
       // Calculate some additional statistics for better detection
-      const negativeCount = values.filter(v => v < 0).length;
+      const negativeCount = values.filter((v) => v < 0).length;
       const negativePercentage = negativeCount / values.length;
 
-      console.log(`Image data analysis - Range: ${min}-${max} (${range}), Mean: ${mean.toFixed(2)}, Negative: ${(negativePercentage * 100).toFixed(1)}%`);
+      console.log(
+        `Image data analysis - Range: ${min}-${max} (${range}), Mean: ${mean.toFixed(2)}, Negative: ${(negativePercentage * 100).toFixed(1)}%`,
+      );
 
-      // CT characteristics: 
+      // CT characteristics:
       // - Has significant negative values (air ~-1000 HU)
       // - Wide range including high positive values (bone 400-3000+ HU)
       // - Typically ranges from -1000 to +3000 or more
-      if (negativePercentage > 0.05 && min < -200 && max > 1000 && range > 2000) {
-        console.log('Detected CT based on Hounsfield Unit characteristics');
-        return 'CT';
+      if (
+        negativePercentage > 0.05 &&
+        min < -200 &&
+        max > 1000 &&
+        range > 2000
+      ) {
+        console.log("Detected CT based on Hounsfield Unit characteristics");
+        return "CT";
       }
 
       // PET characteristics:
@@ -119,8 +135,8 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
       // - Narrow range, usually 0-50 SUV, rarely exceeds 100
       // - Mean typically in low single digits for most tissues
       if (min >= 0 && max < 100 && mean > 0.05 && mean < 20 && range < 100) {
-        console.log('Detected PET based on SUV-like characteristics');
-        return 'PT';
+        console.log("Detected PET based on SUV-like characteristics");
+        return "PT";
       }
 
       // MR characteristics:
@@ -131,8 +147,8 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
       if (negativePercentage < 0.01 && min >= 0 && max > 100) {
         // Further distinguish between PET and MR based on typical ranges
         if (max > 1000 || (max > 500 && mean > 50)) {
-          console.log('Detected MR based on typical intensity characteristics');
-          return 'MR';
+          console.log("Detected MR based on typical intensity characteristics");
+          return "MR";
         }
       }
 
@@ -140,52 +156,50 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
 
       // Very high dynamic range suggests CT with contrast or metal artifacts
       if (range > 5000) {
-        console.log('Detected CT based on very high dynamic range');
-        return 'CT';
+        console.log("Detected CT based on very high dynamic range");
+        return "CT";
       }
 
       // Very low range with positive values suggests PET
       if (min >= 0 && range < 50 && max < 50) {
-        console.log('Detected PET based on low dynamic range');
-        return 'PT';
+        console.log("Detected PET based on low dynamic range");
+        return "PT";
       }
 
       // Default fallback based on most common characteristics
       if (negativePercentage > 0.01) {
-        console.log('Defaulting to CT due to presence of negative values');
-        return 'CT';
+        console.log("Defaulting to CT due to presence of negative values");
+        return "CT";
       } else {
-        console.log('Defaulting to MR for positive-only intensity range');
-        return 'MR';
+        console.log("Defaulting to MR for positive-only intensity range");
+        return "MR";
       }
-
     } catch (error) {
-      console.warn('Error analyzing image data for modality detection:', error);
-      return 'MR'; // Safe default
+      console.warn("Error analyzing image data for modality detection:", error);
+      return "MR"; // Safe default
     }
   };
 
   // Set default preset based on modality
   const getDefaultPresetForModality = (modality, currentPreset) => {
     // If a preset is already explicitly set, use it
-    if (currentPreset && currentPreset !== 'CT-MIP') return currentPreset;
+    if (currentPreset && currentPreset !== "CT-MIP") return currentPreset;
 
     switch (modality?.toUpperCase()) {
-      case 'PT':
-      case 'PET':
-        return 'CT-AAA';
-      case 'MR':
-      case 'MRI':
-        return 'MR-Angio';
-      case 'CT':
+      case "PT":
+      case "PET":
+        return "CT-AAA";
+      case "MR":
+      case "MRI":
+        return "MR-Angio";
+      case "CT":
       default:
-        return 'CT-MIP';
+        return "CT-MIP";
     }
   };
 
   useEffect(() => {
     const setup = async () => {
-
       const viewportInputArray = {
         viewportId,
         type: Enums.ViewportType.VOLUME_3D,
@@ -207,8 +221,8 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
       await setVolumesForViewports(
         renderingEngine,
         [{ volumeId }],
-        [viewportId]
-      )
+        [viewportId],
+      );
 
       // Detect modality if not provided (for any volume type)
       let effectiveModality = modality;
@@ -218,17 +232,27 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
           if (volume) {
             const scalarData = volume.getScalarData();
             effectiveModality = detectModalityFromImageData(scalarData);
-            console.log(`Auto-detected modality for preset selection: ${effectiveModality}`);
+            console.log(
+              `Auto-detected modality for preset selection: ${effectiveModality}`,
+            );
           }
         } catch (error) {
-          console.warn('Error detecting modality for preset, using default:', error);
-          effectiveModality = 'MR';
+          console.warn(
+            "Error detecting modality for preset, using default:",
+            error,
+          );
+          effectiveModality = "MR";
         }
       }
 
       // Set default preset based on modality
-      const defaultPreset = getDefaultPresetForModality(effectiveModality, preset3d);
-      console.log(`Setting preset: ${defaultPreset} for modality: ${effectiveModality}`);
+      const defaultPreset = getDefaultPresetForModality(
+        effectiveModality,
+        preset3d,
+      );
+      console.log(
+        `Setting preset: ${defaultPreset} for modality: ${effectiveModality}`,
+      );
 
       await viewport.setProperties({
         preset: defaultPreset,
@@ -236,7 +260,7 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
 
       // Notify parent if preset was auto-selected and differs from current
       if (defaultPreset !== preset3d) {
-        dispatch(setOption({ key: 'preset', value: defaultPreset }));
+        dispatch(setOption({ key: "preset", value: defaultPreset }));
       }
 
       // // Apply all active segmentations to the viewport
@@ -255,12 +279,11 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
       //   );
       // }
 
-
       // Render the image
-      viewport.render()
-    }
+      viewport.render();
+    };
 
-    setup()
+    setup();
     return () => {
       segmentation.removeAllSegmentationRepresentations();
     };
@@ -298,7 +321,6 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
   //   viewport.render();
   // }, [preset3d]);
 
-
   return (
     <div
       id={viewportId}
@@ -306,7 +328,7 @@ function VolumeViewport3d({ viewportId, renderingEngine, toolGroup, volumeId, or
       onContextMenu={(e) => e.preventDefault()}
       className="volume-viewport viewport"
     ></div>
-  )
+  );
 }
 
 export default VolumeViewport3d;

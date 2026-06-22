@@ -42,7 +42,7 @@ export default function RouteNiftiReviewVR() {
           vr,
           "file=",
           file,
-          fileList
+          fileList,
         );
         setLoaded(true);
       }

@@ -1,6 +1,6 @@
-import React from 'react';
+import React from "react";
 
-import './LabelingPanel.css';
+import "./LabelingPanel.css";
 
 export default function LabelingPanel({ config, onLabel }) {
   return (
@@ -8,10 +8,7 @@ export default function LabelingPanel({ config, onLabel }) {
       <ul>
         {config.map((item, index) => (
           <li key={index}>
-            <button
-              title={item.name}
-              onClick={() => onLabel(item.action)}
-            >
+            <button title={item.name} onClick={() => onLabel(item.action)}>
               {item.name}
             </button>
           </li>

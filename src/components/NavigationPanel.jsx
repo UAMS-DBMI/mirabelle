@@ -4,8 +4,8 @@ import MaterialButtonSet from "@/components/MaterialButtonSet";
 import "./NavigationPanel.css";
 
 function NavigationPanel({
-  onNext = () => { },
-  onPrevious = () => { },
+  onNext = () => {},
+  onPrevious = () => {},
   currentId,
   idLabel = "IEC",
 }) {

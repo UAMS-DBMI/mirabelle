@@ -1,34 +1,34 @@
-import { createSlice } from '@reduxjs/toolkit';
-import * as cornerstone from '@cornerstonejs/core';
+import { createSlice } from "@reduxjs/toolkit";
+import * as cornerstone from "@cornerstonejs/core";
 
 export const Enums = {
   ViewOptions: Object.freeze({
-    VOLUME: 'volume',
-    PROJECTION: 'projection',
-    STACK: 'stack',
+    VOLUME: "volume",
+    PROJECTION: "projection",
+    STACK: "stack",
   }),
   FunctionOptions: Object.freeze({
-    MASK: 'mask',
-    BLACKOUT: 'blackout',
-    SLICE_REMOVE: 'slice_remove',
+    MASK: "mask",
+    BLACKOUT: "blackout",
+    SLICE_REMOVE: "slice_remove",
   }),
   FormOptions: Object.freeze({
-    CUBOID: 'cuboid',
-    CYLINDER: 'cylinder',
+    CUBOID: "cuboid",
+    CYLINDER: "cylinder",
   }),
   LeftClickOptions: Object.freeze({
-    SELECTION: 'selection',
-    WINDOW_LEVEL: 'window_level',
-    CROSSHAIRS: 'crosshairs',
+    SELECTION: "selection",
+    WINDOW_LEVEL: "window_level",
+    CROSSHAIRS: "crosshairs",
   }),
   RightClickOptions: Object.freeze({
-    ZOOM: 'zoom',
-    PAN: 'pan',
+    ZOOM: "zoom",
+    PAN: "pan",
   }),
-}
+};
 
 const presentationSlice = createSlice({
-  name: 'presentation',
+  name: "presentation",
   initialState: {
     // Panel Configuration
     panelConfig: {
@@ -52,7 +52,7 @@ const presentationSlice = createSlice({
     toolsConfig: {
       viewToolGroup: {
         visible: false,
-        defaultValue: 'volume',
+        defaultValue: "volume",
         visibility: {
           volume: false,
           projection: false,
@@ -61,7 +61,7 @@ const presentationSlice = createSlice({
       },
       functionToolGroup: {
         visible: false,
-        defaultValue: 'blackout',
+        defaultValue: "blackout",
         visibility: {
           mask: false,
           blackout: false,
@@ -70,7 +70,7 @@ const presentationSlice = createSlice({
       },
       formToolGroup: {
         visible: false,
-        defaultValue: 'cuboid',
+        defaultValue: "cuboid",
         visibility: {
           cuboid: false,
           cylinder: false,
@@ -83,20 +83,20 @@ const presentationSlice = createSlice({
       },
       leftClickToolGroup: {
         visible: false,
-        defaultValue: 'selection',
+        defaultValue: "selection",
         visibility: {
           windowLevel: false,
           rectangleScissors: false,
           crossHairs: false,
-        }
+        },
       },
       rightClickToolGroup: {
         visible: false,
-        defaultValue: 'zoom',
+        defaultValue: "zoom",
         visibility: {
           zoom: false,
           pan: false,
-        }
+        },
       },
       opacityToolGroup: {
         visible: false,
@@ -107,7 +107,7 @@ const presentationSlice = createSlice({
       },
       presetToolGroup: {
         visible: false,
-        defaultValue: 'CT-MIP',
+        defaultValue: "CT-MIP",
       },
       decimateToolGroup: {
         visible: false,
@@ -168,30 +168,34 @@ const presentationSlice = createSlice({
 
     maximumIntensityProjection: false,
 
-    presets: cornerstone.CONSTANTS.VIEWPORT_PRESETS.map((preset) => preset.name),
+    presets: cornerstone.CONSTANTS.VIEWPORT_PRESETS.map(
+      (preset) => preset.name,
+    ),
   },
   reducers: {
     reset: (state, action) => {
       const initial = presentationSlice.getInitialState();
       return {
         ...initial,
-      }
+      };
     },
 
     // Set the entire toolsConfig
     setToolsConfig: (state, action) => {
-      state.toolsConfig = { ...state.toolsConfig, ...action.payload }
+      state.toolsConfig = { ...state.toolsConfig, ...action.payload };
     },
     setPresets: (state, action) => {
-      state.presets = action.payload
+      state.presets = action.payload;
     },
     addPreset: (state, action) => {
       if (!state.presets.includes(action.payload)) {
-        state.presets.push(action.payload)
+        state.presets.push(action.payload);
       }
     },
     removePreset: (state, action) => {
-      state.presets = state.presets.filter(preset => preset !== action.payload)
+      state.presets = state.presets.filter(
+        (preset) => preset !== action.payload,
+      );
     },
 
     // toggle just the left/right booleans
@@ -204,7 +208,6 @@ const presentationSlice = createSlice({
 
     // Sets the configuration for the Masker Route
     setMaskerConfig: (state, action) => {
-
       // const oldstate = { ...state };
       // // Reset to initialState manually
       // Object.assign(state,
@@ -226,12 +229,14 @@ const presentationSlice = createSlice({
       state.toolsConfig.filterToolGroup.visible = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
-      state.toolsConfig.leftClickToolGroup.defaultValue = Enums.LeftClickOptions.WINDOW_LEVEL;
+      state.toolsConfig.leftClickToolGroup.defaultValue =
+        Enums.LeftClickOptions.WINDOW_LEVEL;
       state.toolsConfig.leftClickToolGroup.visibility.windowLevel = true;
       state.toolsConfig.leftClickToolGroup.visibility.rectangleScissors = true;
 
       state.toolsConfig.rightClickToolGroup.visible = true;
-      state.toolsConfig.rightClickToolGroup.defaultValue = Enums.RightClickOptions.ZOOM;
+      state.toolsConfig.rightClickToolGroup.defaultValue =
+        Enums.RightClickOptions.ZOOM;
       state.toolsConfig.rightClickToolGroup.visibility.zoom = true;
       state.toolsConfig.rightClickToolGroup.visibility.pan = true;
 
@@ -263,11 +268,13 @@ const presentationSlice = createSlice({
       state.panelConfig.open.right = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
-      state.toolsConfig.leftClickToolGroup.defaultValue = Enums.LeftClickOptions.WINDOW_LEVEL;
+      state.toolsConfig.leftClickToolGroup.defaultValue =
+        Enums.LeftClickOptions.WINDOW_LEVEL;
       state.toolsConfig.leftClickToolGroup.visibility.windowLevel = true;
 
       state.toolsConfig.rightClickToolGroup.visible = true;
-      state.toolsConfig.rightClickToolGroup.defaultValue = Enums.RightClickOptions.ZOOM;
+      state.toolsConfig.rightClickToolGroup.defaultValue =
+        Enums.RightClickOptions.ZOOM;
       state.toolsConfig.rightClickToolGroup.visibility.zoom = true;
       state.toolsConfig.rightClickToolGroup.visibility.pan = true;
 
@@ -299,11 +306,13 @@ const presentationSlice = createSlice({
       state.panelConfig.open.right = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
-      state.toolsConfig.leftClickToolGroup.defaultValue = Enums.LeftClickOptions.WINDOW_LEVEL;
+      state.toolsConfig.leftClickToolGroup.defaultValue =
+        Enums.LeftClickOptions.WINDOW_LEVEL;
       state.toolsConfig.leftClickToolGroup.visibility.windowLevel = true;
 
       state.toolsConfig.rightClickToolGroup.visible = true;
-      state.toolsConfig.rightClickToolGroup.defaultValue = Enums.RightClickOptions.ZOOM;
+      state.toolsConfig.rightClickToolGroup.defaultValue =
+        Enums.RightClickOptions.ZOOM;
       state.toolsConfig.rightClickToolGroup.visibility.zoom = true;
       state.toolsConfig.rightClickToolGroup.visibility.pan = true;
 
@@ -329,7 +338,8 @@ const presentationSlice = createSlice({
       state.toolsConfig.viewToolGroup.defaultValue = Enums.ViewOptions.STACK;
       state.toolsConfig.viewToolGroup.visibility.stack = true;
 
-      state.toolsConfig.functionToolGroup.defaultValue = Enums.FunctionOptions.BLACKOUT;
+      state.toolsConfig.functionToolGroup.defaultValue =
+        Enums.FunctionOptions.BLACKOUT;
       state.toolsConfig.functionToolGroup.visibility.blackout = true;
 
       state.toolsConfig.formToolGroup.defaultValue = Enums.FormOptions.CUBOID;
@@ -349,7 +359,8 @@ const presentationSlice = createSlice({
       state.toolsConfig.viewToolGroup.visibility.projection = true;
       state.toolsConfig.viewToolGroup.visibility.stack = false;
 
-      state.toolsConfig.functionToolGroup.defaultValue = Enums.FunctionOptions.BLACKOUT;
+      state.toolsConfig.functionToolGroup.defaultValue =
+        Enums.FunctionOptions.BLACKOUT;
       state.toolsConfig.functionToolGroup.visibility.mask = true;
       state.toolsConfig.functionToolGroup.visibility.blackout = true;
       state.toolsConfig.functionToolGroup.visibility.sliceRemove = true;
@@ -388,10 +399,8 @@ const presentationSlice = createSlice({
 
       return state;
     },
-
-
-  }
-})
+  },
+});
 
 export const {
   setPresets,
@@ -407,6 +416,6 @@ export const {
   setStackConfig,
   setVolumeConfig,
   setNiftiConfig,
-} = presentationSlice.actions
+} = presentationSlice.actions;
 
-export default presentationSlice.reducer 
+export default presentationSlice.reducer;

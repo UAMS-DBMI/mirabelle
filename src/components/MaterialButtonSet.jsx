@@ -29,7 +29,11 @@ import MaterialIcon from "./MaterialIcon";
 
 import "./MaterialButtonSet.css";
 
-function MaterialButtonSet({ buttonConfig, initialActiveButton, noRemember=false }) {
+function MaterialButtonSet({
+  buttonConfig,
+  initialActiveButton,
+  noRemember = false,
+}) {
   const [activeButton, setActiveButton] = useState(initialActiveButton);
 
   function buttonClick(item) {

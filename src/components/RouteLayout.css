@@ -1,13 +1,11 @@
 #main {
-    @apply
-        w-full
+  @apply w-full
         h-full
         grid
         /* rounded-lg */
         gap-2
         p-2
-        overflow-hidden
-    ;
+        overflow-hidden;
 }
 
 /* #main top-panel {
@@ -19,8 +17,7 @@
 } */
 
 .side-panel {
-    @apply
-        flex
+  @apply flex
         flex-col
         gap-2
         bg-blue-100 dark:bg-blue-900
@@ -29,85 +26,81 @@
         overflow-hidden
         flex-1
         whitespace-nowrap
-        w-72
-    ;
+        w-72;
 }
 
 html.windows .side-panel .wrapper {
-    @apply pl-[1rem] mx-[-1rem] overflow-x-hidden;
+  @apply pl-[1rem] mx-[-1rem] overflow-x-hidden;
 }
 
 html:not(.windows) .side-panel .wrapper {
-    @apply px-[1rem] mx-[-1rem];
+  @apply px-[1rem] mx-[-1rem];
 }
 
 /* make the track & thumb transparent by default */
 .side-panel .wrapper {
-    @apply overflow-y-scroll gap-3 flex flex-col rounded-lg;
-    scrollbar-color: transparent transparent;
+  @apply overflow-y-scroll gap-3 flex flex-col rounded-lg;
+  scrollbar-color: transparent transparent;
 }
 
 .side-panel .wrapper::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 .side-panel .wrapper::-webkit-scrollbar-thumb {
-    background-color: transparent;
-    border-radius: 4px;
-    transition: background-color 0.2s, background 0.2s;
+  background-color: transparent;
+  border-radius: 4px;
+  transition:
+    background-color 0.2s,
+    background 0.2s;
 }
 
 /* on hover–show both track & thumb */
 .side-panel .wrapper:hover {
-    /* Firefox */
-    scrollbar-color: rgba(0, 0, 0, 0.4) transparent;
+  /* Firefox */
+  scrollbar-color: rgba(0, 0, 0, 0.4) transparent;
 }
 
 .side-panel .wrapper:hover::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .side-panel .wrapper:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 @-moz-document url-prefix() {
-    html.windows .side-panel .wrapper {
-        padding-right: 1rem;
-    }
+  html.windows .side-panel .wrapper {
+    padding-right: 1rem;
+  }
 }
 
 .side-panel h2#title {
-    @apply 
-        /* border-2 */
+  @apply /* border-2 */
         bg-transparent
         dark:bg-blue-950/100
         /* border-blue-950 */
         p-2
         rounded-lg
         font-bold
-        text-center
-    ; 
+        text-center;
 }
 
 #main #middle-panel {
-    @apply
-        grid
+  @apply grid
         grid-rows-[1fr,auto]
-        gap-2
-    ;
+        gap-2;
 }
 
-#main #left-panel, #main #right-panel {
-    @apply
-        flex
+#main #left-panel,
+#main #right-panel {
+  @apply flex
         flex-col
         overflow-hidden
         /* rounded-lg */
         gap-2
-        w-72
-    ;
-    /* 
+        w-72;
+  /* 
         Animating the side-panels breaks the resize behavior of the viewports.
         transition: width 0.3s ease-in-out;
         will-change: width;
@@ -116,8 +109,8 @@ html:not(.windows) .side-panel .wrapper {
 
 #main #left-panel.collapsed,
 #main #right-panel.collapsed {
-    width: 0;
-    pointer-events: none;
+  width: 0;
+  pointer-events: none;
 }
 
 /* #main #filler-panel {
@@ -130,46 +123,35 @@ html:not(.windows) .side-panel .wrapper {
 } */
 
 .viewer {
-    @apply
-    border-4
+  @apply border-4
     p-2
     rounded-lg
-    border-blue-500
+    border-blue-500;
 }
 
 .viewport {
-    @apply
-        w-full
+  @apply w-full
         h-full
         rounded-lg
-        overflow-hidden
-    ;
+        overflow-hidden;
 }
 
 /* all three panels */
 .main--3col {
-    @apply
-        grid-cols-[auto,1fr,auto]
-    ;
+  @apply grid-cols-[auto,1fr,auto];
 }
 
 /* left + middle */
 .main--2col-left {
-    @apply
-        grid-cols-[auto,1fr]
-    ;
+  @apply grid-cols-[auto,1fr];
 }
 
 /* middle + right */
 .main--2col-right {
-    @apply
-        grid-cols-[1fr,auto]
-    ;
+  @apply grid-cols-[1fr,auto];
 }
 
 /* only middle */
 .main--1col {
-    @apply
-        grid-cols-[1fr]
-    ;
+  @apply grid-cols-[1fr];
 }

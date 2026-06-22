@@ -1,30 +1,23 @@
 /* This file contains the CSS styles for the DetailsPanel component */
 
 #details-panel button {
-    @apply 
-        text-white 
+  @apply text-white 
         bg-green-700 
-        hover:bg-green-800 
-    ;
+        hover:bg-green-800;
 }
 
 #details-panel .detail-item {
-    @apply
-        break-words
+  @apply break-words
         /*border-b 
-        border-gray-300*/
-    ;
+        border-gray-300*/;
 }
 
 #details-panel p#key {
-    @apply
-        font-bold
-    ;
+  @apply font-bold;
 }
 
 #details-panel p#value {
-    @apply 
-    bg-white
+  @apply bg-white
     dark:bg-slate-900/20
     bg-opacity-100
     min-h-[1.3lh]
@@ -40,32 +33,32 @@
 /* Quince button */
 
 #details-panel p.detail-value-with-action {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 
 #details-panel span.detail-iec-value {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 #details-panel button.quince-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0px;
-    border: none;
-    background-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0px;
+  border: none;
+  background-color: transparent;
 }
 
 #details-panel button.quince-button:focus,
 #details-panel button.quince-button:focus-visible {
-    outline: none;
-    box-shadow: none;
+  outline: none;
+  box-shadow: none;
 }
 
 #details-panel button.quince-button img {
-    width: 25px;
-    height: 25px;
+  width: 25px;
+  height: 25px;
 }

@@ -1,11 +1,11 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import React from "react";
+import { useSelector } from "react-redux";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
-import './LoadingOverlay.css';
+import "./LoadingOverlay.css";
 
 /**
- * Display a simple loading overlay with a spinner, 
+ * Display a simple loading overlay with a spinner,
  * when the loading state is true.
  */
 export default function LoadingOverlay({ children }) {
@@ -21,4 +21,4 @@ export default function LoadingOverlay({ children }) {
       {children}
     </>
   );
-};
+}

@@ -1,6 +1,5 @@
 #app {
-    @apply
-        grid
+  @apply grid
         grid-rows-[auto,1fr]
         /* gap-2 */
         w-screen
@@ -8,6 +7,5 @@
         min-w-[1440px]
         bg-white
         /* p-2 */
-        dark:bg-blue-950
-    ;
+        dark:bg-blue-950;
 }

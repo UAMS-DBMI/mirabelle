@@ -1,6 +1,5 @@
 /* Header.css */
 div#header {
-    @apply
-        m-2
+  @apply m-2
         mb-0;
 }

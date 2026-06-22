@@ -6,7 +6,16 @@ import DicomReviewIEC from "@/features/dicom-review/DicomReviewIEC";
 
 import "./DicomReviewVR.css";
 
-export default function DicomReviewVR({ vr, iec, noIecs, reviewStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
+export default function DicomReviewVR({
+  vr,
+  iec,
+  noIecs,
+  reviewStatus,
+  dicomType,
+  dicomTypeOptions,
+  onNext,
+  onPrevious,
+}) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
   useHotkeys("right", handleNext);

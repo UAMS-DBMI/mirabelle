@@ -1,26 +1,22 @@
+import React, { useLayoutEffect } from "react";
+import { Link } from "react-router-dom";
 
-import React, { useLayoutEffect } from 'react';
-import { Link } from 'react-router-dom';
+import RouteLayout from "@/components/RouteLayout";
+import { useDispatch } from "react-redux";
+import { setTitle } from "@/features/optionSlice";
 
-import RouteLayout from '@/components/RouteLayout';
-import { useDispatch } from 'react-redux';
-import { setTitle } from '@/features/optionSlice';
-
-import './home.css';
+import "./home.css";
 
 export default function Home() {
   const dispatch = useDispatch();
 
   useLayoutEffect(() => {
-    dispatch(setTitle('Home'));  // <-- set the title on mount
+    dispatch(setTitle("Home")); // <-- set the title on mount
   }, [dispatch]);
 
   const content = (
     <div id="home">
-      <p>
-        This is a dev/testing page with links to a number of
-        examples.
-      </p>
+      <p>This is a dev/testing page with links to a number of examples.</p>
       <h2>Examples of all routes</h2>
       <ul>
         <li>Masking</li>
@@ -70,9 +66,5 @@ export default function Home() {
     </div>
   );
 
-  return (
-    <RouteLayout
-      middlePanel={content}
-    />
-  );
+  return <RouteLayout middlePanel={content} />;
 }

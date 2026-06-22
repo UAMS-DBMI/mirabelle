@@ -1,18 +1,17 @@
 #seg-panel {
-    @apply flex-none max-h-[50%];
+  @apply flex-none max-h-[50%];
 }
 
 #seg-panel ul {
-    @apply overflow-y-scroll gap-1;
+  @apply overflow-y-scroll gap-1;
 }
 
 #seg-panel div.seg-color {
-    @apply flex-shrink-0 w-[15px] h-[15px] rounded-full;
+  @apply flex-shrink-0 w-[15px] h-[15px] rounded-full;
 }
 
 #seg-panel li {
-    @apply 
-        flex
+  @apply flex
         shrink-0
         items-center
         p-2
@@ -20,25 +19,20 @@
         whitespace-nowrap
         bg-white/50
         dark:bg-slate-900/20
-        cursor-pointer
-    ;
+        cursor-pointer;
 }
 
 #seg-panel li.selected {
-    @apply
-        bg-white/100
+  @apply bg-white/100
         dark:bg-slate-900/100;
 }
 
-#seg-panel li:hover{
-    @apply
-        bg-white/80
+#seg-panel li:hover {
+  @apply bg-white/80
         dark:bg-slate-900/40;
 }
 
 #seg-panel li.selected:hover {
-    @apply
-        bg-white/100
+  @apply bg-white/100
         dark:bg-slate-900/80;
 }
-

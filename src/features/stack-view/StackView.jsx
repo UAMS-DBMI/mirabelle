@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
-import { RenderingEngine } from "@cornerstonejs/core"
-import * as cornerstone from "@cornerstonejs/core"
-import * as cornerstoneTools from '@cornerstonejs/tools';
-import useRendererResize from '@/hooks/useRendererResize';
-import { setOption } from '@/features/optionSlice';
-import { useDispatch } from 'react-redux';
+import { RenderingEngine } from "@cornerstonejs/core";
+import * as cornerstone from "@cornerstonejs/core";
+import * as cornerstoneTools from "@cornerstonejs/tools";
+import useRendererResize from "@/hooks/useRendererResize";
+import { setOption } from "@/features/optionSlice";
+import { useDispatch } from "react-redux";
 
-import StackViewport from '@/components/StackViewport';
-import { ToolsPanel } from '@/features/tools';
+import StackViewport from "@/components/StackViewport";
+import { ToolsPanel } from "@/features/tools";
 
-import ViewerResizer from '@/components/ViewerResizer';
+import ViewerResizer from "@/components/ViewerResizer";
 
-import './StackView.css';
+import "./StackView.css";
 
 const {
   ToolGroupManager,
@@ -25,8 +25,7 @@ const {
 
 const { MouseBindings } = csToolsEnums;
 
-const toolGroupId = 'STACK_TOOL_GROUP_ID';
-
+const toolGroupId = "STACK_TOOL_GROUP_ID";
 
 export default function StackView({
   frames,
@@ -50,7 +49,6 @@ export default function StackView({
       renderingEngine = new RenderingEngine("re1");
     }
 
-
     // TODO: this is for debu use only
     window.ToolGroupManager = ToolGroupManager;
     window.renderingEngine = renderingEngine;
@@ -58,18 +56,19 @@ export default function StackView({
 
     setRenderingEngine(renderingEngine);
 
-    cornerstone.triggerEvent(cornerstone.eventTarget, 'VolumeReallyLoaded', {});
+    cornerstone.triggerEvent(cornerstone.eventTarget, "VolumeReallyLoaded", {});
 
     // Teardown function
-    return () => {
-    };
+    return () => {};
   }, []);
 
   function handleImageChange(imageId) {
-    dispatch(setOption({
-      key: 'currentImageId',
-      value: imageId,
-    }));
+    dispatch(
+      setOption({
+        key: "currentImageId",
+        value: imageId,
+      }),
+    );
   }
 
   if (renderingEngine == null) {
@@ -77,8 +76,7 @@ export default function StackView({
   }
 
   return (
-    <div id="stack-view"
-      className="viewer">
+    <div id="stack-view" className="viewer">
       <ViewerResizer />
 
       {/* <div id="viewer-resizer">
