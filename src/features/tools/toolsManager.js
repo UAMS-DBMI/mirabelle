@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import * as cornerstoneTools from '@cornerstonejs/tools';
-import { useSelector, useDispatch } from 'react-redux'
-import { setFunction, setForm } from '@/features/maskingSlice'
-import { Enums } from '@/features/presentationSlice'
-import { setOption } from '@/features/optionSlice'
+import React, { useState, useEffect, useRef } from "react";
+import * as cornerstoneTools from "@cornerstonejs/tools";
+import { useSelector, useDispatch } from "react-redux";
+import { setFunction, setForm } from "@/features/maskingSlice";
+import { Enums } from "@/features/presentationSlice";
+import { setOption } from "@/features/optionSlice";
 
 // Use this global to track when the tools have been added globally
 let toolsLoaded = false;
@@ -22,8 +22,6 @@ const {
 } = cornerstoneTools;
 
 const { MouseBindings } = csToolsEnums;
-
-
 
 /**
  * Get the active tools for a given tool group and mouse button
@@ -136,17 +134,17 @@ export default function useToolsManager({
     console.log(console.log(toolGroup));
 
     function getReferenceLineColor(viewportId) {
-
-      return {'axial2d': 'rgb(200, 0, 0)',
-          'sagittal2d': 'rgb(200,200,0)',
-          'coronal2d': 'rgb(0,200,0)'
+      return {
+        axial2d: "rgb(200, 0, 0)",
+        sagittal2d: "rgb(200,200,0)",
+        coronal2d: "rgb(0,200,0)",
       }[viewportId];
     }
 
     toolGroup.addTool(CrosshairsTool.toolName, {
       getReferenceLineColor,
     });
-    
+
     toolGroup.addTool(PanTool.toolName);
     toolGroup.addTool(ZoomTool.toolName);
 
@@ -166,7 +164,6 @@ export default function useToolsManager({
 
     switchLeftClickMode(defaultLeftClickMode);
     switchRightClickMode(defaultRightClickMode);
-
   }, [toolGroup]);
 
   return {

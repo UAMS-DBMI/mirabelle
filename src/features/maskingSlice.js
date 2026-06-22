@@ -1,21 +1,21 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from "@reduxjs/toolkit";
 
 const maskingSlice = createSlice({
-  name: 'masking',
+  name: "masking",
   initialState: {
     function: "mask",
     form: "cylinder",
   },
   reducers: {
     setFunction: (state, action) => {
-      state.function = action.payload
+      state.function = action.payload;
     },
     setForm: (state, action) => {
-      state.form = action.payload
+      state.form = action.payload;
     },
-  }
-})
+  },
+});
 
-export const { setFunction, setForm } = maskingSlice.actions
+export const { setFunction, setForm } = maskingSlice.actions;
 
-export default maskingSlice.reducer 
+export default maskingSlice.reducer;

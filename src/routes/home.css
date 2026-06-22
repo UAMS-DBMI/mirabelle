@@ -1,30 +1,25 @@
-#home ul, #home li {
-	display: block;
-	padding-bottom: 0;
-	@apply
-		
-	pl-3;
+#home ul,
+#home li {
+  display: block;
+  padding-bottom: 0;
+  @apply pl-3;
 }
 #home li a {
-	@apply
-		pl-5;
+  @apply pl-5;
 }
 /* #RouteHome { */
 /* 	@apply */
 /* 		p-3; */
 /* } */
 #home h2 {
-	@apply
-		text-xl
-		mt-3
+  @apply text-xl
+		mt-3;
 }
 #home hr {
-	@apply
-		mt-10
-		mb-10
+  @apply mt-10
+		mb-10;
 }
 
 #home {
-	@apply
-	overflow-y-auto;
+  @apply overflow-y-auto;
 }

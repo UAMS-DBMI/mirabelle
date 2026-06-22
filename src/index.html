@@ -2,71 +2,106 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-<script>
-(function () {
-  // dev-only guard; tweak as needed
-  var isDevHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
-  if (!isDevHost) return;
+    <script>
+      (function () {
+        // dev-only guard; tweak as needed
+        var isDevHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+        if (!isDevHost) return;
 
-  function isKnown(ev) {
-    var e = ev && (ev.reason || ev.error || ev);
-    // Customize your match here:
-    return (e && e.name === 'KnownAppError') ||
-           (e && typeof e.message === 'string' &&
-            e.message.indexOf("Cannot read properties of undefined (reading 'segmentationId')") !== -1);
-  }
+        function isKnown(ev) {
+          var e = ev && (ev.reason || ev.error || ev);
+          // Customize your match here:
+          return (
+            (e && e.name === "KnownAppError") ||
+            (e &&
+              typeof e.message === "string" &&
+              e.message.indexOf(
+                "Cannot read properties of undefined (reading 'segmentationId')",
+              ) !== -1)
+          );
+        }
 
-  var origAdd = window.addEventListener;
-  var queued = { error: [], unhandledrejection: [] };
+        var origAdd = window.addEventListener;
+        var queued = { error: [], unhandledrejection: [] };
 
-  // Intercept future registrations so we can decide whether to forward to them
-  window.addEventListener = function (type, listener, options) {
-    if (type === 'error' || type === 'unhandledrejection') {
-      queued[type].push({ listener: listener, options: options });
-      return;
-    }
-    return origAdd.call(window, type, listener, options);
-  };
+        // Intercept future registrations so we can decide whether to forward to them
+        window.addEventListener = function (type, listener, options) {
+          if (type === "error" || type === "unhandledrejection") {
+            queued[type].push({ listener: listener, options: options });
+            return;
+          }
+          return origAdd.call(window, type, listener, options);
+        };
 
-  function dispatch(type, ev) {
-    if (isKnown(ev)) {
-      ev.preventDefault && ev.preventDefault();
-      ev.stopImmediatePropagation && ev.stopImmediatePropagation();
-      // Keep a breadcrumb in dev:
-      console.warn('[dev] Suppressed known ' + type + ':', ev.reason || ev.error || ev);
-      return; // DO NOT forward to overlay/listeners
-    }
-    // Forward to any listeners registered after our patch (e.g., overlay)
-    var arr = queued[type];
-    for (var i = 0; i < arr.length; i++) {
-      try { arr[i].listener.call(window, ev); } catch (e) { /* avoid loops */ }
-    }
-  }
+        function dispatch(type, ev) {
+          if (isKnown(ev)) {
+            ev.preventDefault && ev.preventDefault();
+            ev.stopImmediatePropagation && ev.stopImmediatePropagation();
+            // Keep a breadcrumb in dev:
+            console.warn(
+              "[dev] Suppressed known " + type + ":",
+              ev.reason || ev.error || ev,
+            );
+            return; // DO NOT forward to overlay/listeners
+          }
+          // Forward to any listeners registered after our patch (e.g., overlay)
+          var arr = queued[type];
+          for (var i = 0; i < arr.length; i++) {
+            try {
+              arr[i].listener.call(window, ev);
+            } catch (e) {
+              /* avoid loops */
+            }
+          }
+        }
 
-  // Our earliest, capturing listeners
-  origAdd.call(window, 'error', function (ev) { dispatch('error', ev); }, { capture: true });
-  origAdd.call(window, 'unhandledrejection', function (ev) { dispatch('unhandledrejection', ev); }, { capture: true });
+        // Our earliest, capturing listeners
+        origAdd.call(
+          window,
+          "error",
+          function (ev) {
+            dispatch("error", ev);
+          },
+          { capture: true },
+        );
+        origAdd.call(
+          window,
+          "unhandledrejection",
+          function (ev) {
+            dispatch("unhandledrejection", ev);
+          },
+          { capture: true },
+        );
 
-  // Last-resort: classic handler (some overlays respect this short-circuit)
-  window.onerror = function (msg, url, line, col, error) {
-    if (isKnown({ error: error, message: msg })) return true; // prevent default
-  };
-})();
-</script>
+        // Last-resort: classic handler (some overlays respect this short-circuit)
+        window.onerror = function (msg, url, line, col, error) {
+          if (isKnown({ error: error, message: msg })) return true; // prevent default
+        };
+      })();
+    </script>
 
-    <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    />
     <link rel="icon" type="image/svg+xml" href="/mira/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mirabelle v3.0</title>
     <script>
-    (function () {
-      // Set the title based on dev/release status
-      var isDevHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
-      if (!isDevHost) return;
-      document.title = "DEVELOPMENT - Mirabelle 3.0";
-    })();
+      (function () {
+        // Set the title based on dev/release status
+        var isDevHost = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+        if (!isDevHost) return;
+        document.title = "DEVELOPMENT - Mirabelle 3.0";
+      })();
     </script>
   </head>
   <body>

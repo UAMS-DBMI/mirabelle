@@ -1,26 +1,26 @@
 import React from "react";
 
-import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { getValuesForDicomVR } from '@/utilities';
+import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { getValuesForDicomVR } from "@/utilities";
 
 import "./FilterPanel.css";
 
-function FilterPanel({ 
+function FilterPanel({
   type: initialType,
-  vr: initialVr, 
-  iec: initialIec, 
-  file: initialFile, 
-  series: initialSeries, 
-  timepoint: initialTimepoint, 
-  maskingStatus: initialMaskingStatus, 
-  reviewStatus: initialReviewStatus, 
+  vr: initialVr,
+  iec: initialIec,
+  file: initialFile,
+  series: initialSeries,
+  timepoint: initialTimepoint,
+  maskingStatus: initialMaskingStatus,
+  reviewStatus: initialReviewStatus,
   processingStatus: initialProcessingStatus,
-  dicomType: initialDicomType, 
+  dicomType: initialDicomType,
   dicomTypeOptions: providedDicomTypeOptions,
-  onAction 
+  onAction,
 }) {
-  const filterConfig = useSelector(state => state.presentation.filterConfig);
+  const filterConfig = useSelector((state) => state.presentation.filterConfig);
 
   // Local state for all supported fields (only visible ones will render)
   const [type, setType] = useState(initialType || "All");
@@ -29,20 +29,26 @@ function FilterPanel({
   const [file, setFile] = useState(initialFile || "");
   const [series, setSeries] = useState(initialSeries || "");
   const [timepoint, setTimepoint] = useState(initialTimepoint || "");
-  const [maskingStatus, setMaskingStatus] = useState(initialMaskingStatus || "All");
-  const [reviewStatus, setReviewStatus] = useState(initialReviewStatus || "All");
-  const [processingStatus, setProcessingStatus] = useState(initialProcessingStatus || "All");
+  const [maskingStatus, setMaskingStatus] = useState(
+    initialMaskingStatus || "All",
+  );
+  const [reviewStatus, setReviewStatus] = useState(
+    initialReviewStatus || "All",
+  );
+  const [processingStatus, setProcessingStatus] = useState(
+    initialProcessingStatus || "All",
+  );
   const [dicomType, setDicomType] = useState(initialDicomType || "All");
   const [dicomTypeOptions, setDicomTypeOptions] = useState(
     Array.isArray(providedDicomTypeOptions) && providedDicomTypeOptions.length
       ? providedDicomTypeOptions
-      : ["All"]
+      : ["All"],
   );
 
   // Keep state in sync if route props change
   useEffect(() => {
     setType(initialType || "All");
-  }, [initialType]);  
+  }, [initialType]);
   useEffect(() => {
     setVr(initialVr || "");
   }, [initialVr]);
@@ -73,7 +79,10 @@ function FilterPanel({
 
   // Prefer provided options when available; otherwise fetch
   useEffect(() => {
-    if (Array.isArray(providedDicomTypeOptions) && providedDicomTypeOptions.length) {
+    if (
+      Array.isArray(providedDicomTypeOptions) &&
+      providedDicomTypeOptions.length
+    ) {
       setDicomTypeOptions(providedDicomTypeOptions);
       return;
     }
@@ -88,11 +97,11 @@ function FilterPanel({
           new Set(
             (values?.dicom_file_types || [])
               .map((it) => it?.dicom_file_type)
-              .filter(Boolean)
-          )
+              .filter(Boolean),
+          ),
         );
         const opts = ["All", ...list];
-        if (dicomType && dicomType !== 'All' && !opts.includes(dicomType)) {
+        if (dicomType && dicomType !== "All" && !opts.includes(dicomType)) {
           opts.splice(1, 0, dicomType);
         }
         setDicomTypeOptions(opts);
@@ -102,7 +111,6 @@ function FilterPanel({
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialVr, providedDicomTypeOptions]);
-
 
   const submitOnEnter = (e) => {
     if (e.key === "Enter") handleFilter();
@@ -138,15 +146,14 @@ function FilterPanel({
 
   return (
     <div id="filter-panel">
-
-      {visibility.type && (        
+      {visibility.type && (
         <label>
           <span>Type:</span>
-          <select 
+          <select
             id="filter-type"
             value={type}
             onChange={(e) => setType(e.target.value)}
-            onKeyDown={submitOnEnter}            
+            onKeyDown={submitOnEnter}
           >
             <option>All</option>
             <option>DICOM</option>
@@ -166,12 +173,12 @@ function FilterPanel({
             size="10"
             value={vr}
             onChange={(e) => setVr(e.target.value)}
-            onKeyDown={submitOnEnter}            
+            onKeyDown={submitOnEnter}
           />
         </label>
       )}
 
-      {visibility.iec && (        
+      {visibility.iec && (
         <label>
           <span>IEC:</span>
           <input
@@ -182,12 +189,12 @@ function FilterPanel({
             size="10"
             value={iec}
             onChange={(e) => setIec(e.target.value)}
-            onKeyDown={submitOnEnter}            
+            onKeyDown={submitOnEnter}
           />
         </label>
-      )}      
+      )}
 
-      {visibility.file && (        
+      {visibility.file && (
         <label>
           <span>File:</span>
           <input
@@ -198,12 +205,12 @@ function FilterPanel({
             size="10"
             value={file}
             onChange={(e) => setFile(e.target.value)}
-            onKeyDown={submitOnEnter}            
+            onKeyDown={submitOnEnter}
           />
         </label>
-      )}      
+      )}
 
-      {visibility.series && (        
+      {visibility.series && (
         <label>
           <span>Series:</span>
           <input
@@ -213,12 +220,12 @@ function FilterPanel({
             size="50"
             value={series}
             onChange={(e) => setSeries(e.target.value)}
-            onKeyDown={submitOnEnter}            
+            onKeyDown={submitOnEnter}
           />
         </label>
-      )}      
+      )}
 
-      {visibility.timepoint && (        
+      {visibility.timepoint && (
         <label>
           <span>Timepoint:</span>
           <input
@@ -229,10 +236,10 @@ function FilterPanel({
             size="10"
             value={timepoint}
             onChange={(e) => setTimepoint(e.target.value)}
-            onKeyDown={submitOnEnter}            
+            onKeyDown={submitOnEnter}
           />
         </label>
-      )} 
+      )}
 
       {visibility.maskingStatus && (
         <label>
@@ -253,10 +260,10 @@ function FilterPanel({
         </label>
       )}
 
-      {visibility.reviewStatus && (      
+      {visibility.reviewStatus && (
         <label>
           <span>Review Status:</span>
-          <select 
+          <select
             id="filter-review-status"
             value={reviewStatus}
             onChange={(e) => setReviewStatus(e.target.value)}
@@ -272,12 +279,12 @@ function FilterPanel({
             <option>Flagged</option>
           </select>
         </label>
-      )}      
+      )}
 
       {visibility.processingStatus && (
         <label>
           <span>Processing Status:</span>
-          <select 
+          <select
             id="filter-processing-status"
             value={processingStatus}
             onChange={(e) => setProcessingStatus(e.target.value)}
@@ -291,18 +298,20 @@ function FilterPanel({
       {visibility.dicomType && (
         <label>
           <span>Image Type:</span>
-          <select 
+          <select
             id="filter-dicom-type"
             value={dicomType}
             onChange={(e) => setDicomType(e.target.value)}
             onKeyDown={submitOnEnter}
           >
             {dicomTypeOptions.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
             ))}
           </select>
-        </label>        
-      )}      
+        </label>
+      )}
 
       <button onClick={handleFilter}>Filter</button>
     </div>

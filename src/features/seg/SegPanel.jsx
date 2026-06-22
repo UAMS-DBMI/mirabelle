@@ -9,7 +9,7 @@ export default function SegPanel({ segments }) {
   // This is here to force a re-render of this component whenever
   // a new viewport mounts. Over in VolumeViewport the viewport
   // option is updated whenever a new viewport is mounted.
-  const _ = useSelector(state => state.options.viewport)
+  const _ = useSelector((state) => state.options.viewport);
 
   const [colors, setColors] = useState();
 
@@ -42,11 +42,12 @@ export default function SegPanel({ segments }) {
 
     for (const segmentIndex of segmentIndices) {
       for (const segId of segmentationIds) {
-        const color = cornerstoneTools.segmentation.config.color.getSegmentIndexColor(
-          firstViewportId,
-          segId,
-          segmentIndex,
-        );
+        const color =
+          cornerstoneTools.segmentation.config.color.getSegmentIndexColor(
+            firstViewportId,
+            segId,
+            segmentIndex,
+          );
         // Yes this will repeat for several indexes but they should
         // share the same color anyway
         console.log("Setting color for", segmentIndex, "to", color);
@@ -58,8 +59,6 @@ export default function SegPanel({ segments }) {
   }, [segments, viewportIds.length]);
 
   const handleToggle = (segmentIndex, event) => {
-
-
     const visible = event.currentTarget.classList.toggle("selected");
 
     // For each viewport:
@@ -105,11 +104,11 @@ export default function SegPanel({ segments }) {
         <>
           <ul className="wrapper">
             {displaySegments.map(({ segmentIndex, label }) => (
-              <li key={segmentIndex}
+              <li
+                key={segmentIndex}
                 className="selected"
-                onClick={
-                  (event) => handleToggle(segmentIndex, event)
-                }>
+                onClick={(event) => handleToggle(segmentIndex, event)}
+              >
                 {colors && colors[segmentIndex] && (
                   <div
                     className="seg-color"

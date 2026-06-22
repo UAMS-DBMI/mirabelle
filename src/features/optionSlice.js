@@ -1,5 +1,5 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { Enums } from '@/features/presentationSlice';
+import { createSlice } from "@reduxjs/toolkit";
+import { Enums } from "@/features/presentationSlice";
 
 const initialState = {
   left: false,
@@ -13,14 +13,14 @@ const initialState = {
   leftClick: Enums.LeftClickOptions.SELECTION,
   rightClick: Enums.RightClickOptions.ZOOM,
   opacity: 0.3,
-  preset: 'CT-MIP',
+  preset: "CT-MIP",
   decimate: 0,
   persistent: true,
   loading: false,
 };
 
 const optionSlice = createSlice({
-  name: 'options',
+  name: "options",
   initialState,
   reducers: {
     setOption: (state, action) => {
@@ -28,9 +28,9 @@ const optionSlice = createSlice({
       state[key] = value;
     },
     resetOptions: (state) => {
-      Object.keys(state).forEach(key => {
-        if (key !== 'function' && key !== 'form' && key !== 'persistent') {
-          if ((state.persistent && (key === 'decimate'))) {
+      Object.keys(state).forEach((key) => {
+        if (key !== "function" && key !== "form" && key !== "persistent") {
+          if (state.persistent && key === "decimate") {
           } else {
             state[key] = initialState[key];
           }
@@ -46,5 +46,6 @@ const optionSlice = createSlice({
   },
 });
 
-export const { setOption, resetOptions, setTitle, setLoading } = optionSlice.actions;
+export const { setOption, resetOptions, setTitle, setLoading } =
+  optionSlice.actions;
 export default optionSlice.reducer;

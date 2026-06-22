@@ -103,7 +103,7 @@
 }
 
 .decimate-tooltip::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -6px;
   left: 50%;

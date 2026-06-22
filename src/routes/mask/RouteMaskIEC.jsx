@@ -1,18 +1,17 @@
-import React, { useEffect } from 'react';
-import { useLoaderData } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux'
-import { resetOptions } from '@/features/optionSlice';
+import React, { useEffect } from "react";
+import { useLoaderData } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { resetOptions } from "@/features/optionSlice";
 
-import MaskIEC from '@/features/mask/MaskIEC';
+import MaskIEC from "@/features/mask/MaskIEC";
 
 // import { getDetails } from '@/masking.js';
 
-import { setMaskerConfig, reset } from '@/features/presentationSlice'
+import { setMaskerConfig, reset } from "@/features/presentationSlice";
 
-import './RouteMaskIEC.css';
+import "./RouteMaskIEC.css";
 
 export async function loader({ params }) {
-
   // const details = await getDetails(params.iec);
   // return { details, iec: params.iec };
 
@@ -21,7 +20,7 @@ export async function loader({ params }) {
 
 export default function RouteMaskIEC() {
   const dispatch = useDispatch();
-  const viewState = useSelector(state => state.options.view);
+  const viewState = useSelector((state) => state.options.view);
 
   let { iec } = useLoaderData();
 
@@ -31,7 +30,5 @@ export default function RouteMaskIEC() {
     dispatch(setMaskerConfig());
   }, []);
 
-  return (
-    <MaskIEC iec={iec} />
-  );
+  return <MaskIEC iec={iec} />;
 }

@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useEffect, useState, useContext } from "react";
+import { useSelector } from "react-redux";
 import quinceLogo from "@/assets/quince-small-logo.svg";
 
-import './DetailsPanel.css';
-import { re } from 'mathjs';
+import "./DetailsPanel.css";
+import { re } from "mathjs";
 
 function downloadFile(details) {
   // Fetch the file from the path specified in details["path"]
@@ -35,13 +35,12 @@ function download(details) {
   document.body.removeChild(link);
 }
 
-
 export default function DetailsPanel({ details }) {
-  const title = useSelector(state => state.options.title);
+  const title = useSelector((state) => state.options.title);
 
   const ignoredKeys = ["download_path", "download_name"];
 
-  const handleDownload = 'File ID' in details ? downloadFile : download;
+  const handleDownload = "File ID" in details ? downloadFile : download;
 
   function handleOpenInQuince(iec) {
     const url = `https://tcia-posda-rh-1.ad.uams.edu/viewer/iec/${iec}`;

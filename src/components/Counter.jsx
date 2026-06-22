@@ -1,14 +1,18 @@
-import React from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { decrement, increment, incrementByAmount } from '../features/counterSlice'
+import React from "react";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  decrement,
+  increment,
+  incrementByAmount,
+} from "../features/counterSlice";
 
-import MaterialButtonSet from './MaterialButtonSet';
+import MaterialButtonSet from "./MaterialButtonSet";
 
-import './Counter.css';
+import "./Counter.css";
 
 export function Counter() {
-  const count = useSelector((state) => state.counter.value)
-  const dispatch = useDispatch()
+  const count = useSelector((state) => state.counter.value);
+  const dispatch = useDispatch();
 
   const buttonConfig = [
     {
@@ -35,7 +39,7 @@ export function Counter() {
         <MaterialButtonSet buttonConfig={buttonConfig} />
       </div>
     </div>
-  )
+  );
 }
 
 export default Counter;

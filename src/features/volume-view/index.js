@@ -1,1 +1,1 @@
-export { default as VolumeView } from './VolumeView';
+export { default as VolumeView } from "./VolumeView";
