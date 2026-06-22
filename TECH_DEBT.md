@@ -23,10 +23,11 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ## 🟠 Engineering hygiene
 
-- [ ] **Add CI** (none today — would be a new adoption; GitHub Actions is the likely choice
-  if the repo stays on GitHub). Minimal pipeline:
-  `bun install --frozen-lockfile && bunx vitest run && bun run build`. Especially important
-  because the `patch-package` patches break silently on dependency drift.
+- [x] **Add CI.** Done: GitHub Actions workflow (`.github/workflows/ci.yml`) with three
+  parallel jobs — `lint` (non-blocking via `continue-on-error`), `test` (`vitest run`), and
+  `build` (`webpack --mode production`) — on push to main/develop and on PRs. Each does a
+  frozen `bun install` (so the `patch-package` postinstall is exercised). NOTE: the `test`
+  job is red until the `masking.test.js` failures are resolved.
 
 - [ ] **Increase test coverage.** Only `src/masking.test.js` exists (~9,200 lines of source).
   It covers `convertCoordinates` (the risky math); the rest of `utilities.js`, the Redux
