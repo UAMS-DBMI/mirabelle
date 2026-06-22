@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# Covers .env.local / .env.*.local (personal backend overrides).
+# Committed env files: .env.example, .env.development, .env.production, .env.aries
 *.local
 
 # Editor directories and files

@@ -9,15 +9,12 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ## 🔴 Build / config — address first
 
-- [ ] **Move proxy config (target + token) into `.env` files** (`webpack.config.js:83-108`).
-  The committed bearer tokens are *not* real production credentials (per the dev team), so
-  this is config hygiene rather than a credential leak — no rotation needed. Goals:
-  - Read `process.env.MIRA_API_TARGET` / `MIRA_API_TOKEN` in `webpack.config.js` instead of
-    hardcoding. The proxy runs in Node at config-eval time, so bun's built-in `.env` loading
-    is enough — no `dotenv` dependency or `DefinePlugin` required.
-  - Use per-environment files (`.env.development`, `.env.production`, plus ARIES), selected by
-    `NODE_ENV` / a custom `MIRA_ENV`, with `.env*.local` gitignored and a committed
-    `.env.example`. This also replaces the current commenting/uncommenting of proxy blocks.
+- [x] **Move proxy config (target + token) into `.env` files** (was `webpack.config.js:83-108`).
+  Done: `webpack.config.js` reads `MIRA_API_TARGET` / `MIRA_API_TOKEN` from the environment
+  (required only when serving); per-environment files `.env.development` / `.env.production` /
+  `.env.aries` are loaded via `bun --env-file=.env.$(ENV)` from the Makefile
+  (`make serve ENV=...`); `.env.local` is gitignored and `.env.example` documents the vars.
+  No `dotenv`/`DefinePlugin` needed. The committed tokens are non-sensitive dev/test tokens.
 
 - [ ] **Don't hardcode `mode: 'development'`** (`webpack.config.js:6`). `make build` currently
   ships an unminified dev-React bundle with full source maps. Drive `mode` from
