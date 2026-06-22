@@ -1,0 +1,16 @@
+# Build output / vendor
+node_modules
+dist
+
+# Generated / binary / non-source
+bun.lock
+patches
+public
+tags
+*.xd
+
+# Env files (not Prettier-parseable; keep as-is)
+.env*
+
+# Markdown left as hand-authored for now (AGENTS.md, TECH_DEBT.md, docs/)
+*.md
