@@ -28,7 +28,8 @@ and webpack `publicPath`), typically behind nginx in deployment.
 Use the Makefile (it wraps bun) or bun directly:
 
 ```bash
-make serve      # bun run start  -> webpack dev server (the default `make` target)
+make serve      # webpack dev server against the UAMS backend (the default `make` target)
+make serve ENV=development   # ...against a local backend  (ENV: development | production | aries)
 make build      # bun run build  -> production-ish webpack build
 make node_modules   # bun install --frozen-lockfile  (equivalent of `npm ci`)
 make clean      # rm -rf node_modules dist
@@ -100,9 +101,12 @@ The app calls an external API proxied by the webpack dev server:
 - **`/files/...`** — static image files served by nginx; referenced as
   `wadouri:/files/<path>` image ids.
 
-Both are configured in `webpack.config.js` under `devServer.proxy` (target host +
-`Authorization` header). The active target is selected by commenting/uncommenting proxy
-entries (local / prod / ARIES). Adjust there to point at a different environment.
+The proxy is configured in `webpack.config.js` under `devServer.proxy`, which reads
+`MIRA_API_TARGET` and `MIRA_API_TOKEN` from the environment. Those come from per-environment
+`.env` files (`.env.development` = localhost, `.env.production` = UAMS, `.env.aries`), loaded
+by bun via `bun --env-file=.env.<ENV>` — driven by the Makefile's `ENV` variable
+(`make serve ENV=aries`). Personal overrides go in a gitignored `.env.local`; `.env.example`
+documents the variables. The committed tokens are non-sensitive dev/test tokens.
 
 ## Conventions
 

@@ -2,8 +2,12 @@
 
 default: serve
 
+# Backend env: development (localhost) | production (UAMS, default) | aries.
+# Override per-invocation, e.g. `make serve ENV=aries`.
+ENV ?= production
+
 serve: node_modules
-	bun run start
+	bun --env-file=.env.$(ENV) run start
 
 build: node_modules
 	bun run build
