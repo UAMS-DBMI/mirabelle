@@ -37,10 +37,9 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ## 🟡 Maintainability
 
-- [ ] **Delete dead code (~1,400 lines).**
-  - `src/viewer.js` (~901 lines) — not imported anywhere; only a commented-out webpack entry
-    (`webpack.config.js:7`). Appears to be the pre-refactor entrypoint.
-  - `src/config/config_old.js` (~513 lines) — referenced nowhere.
+- [x] **Delete dead code (~1,400 lines).** Done: removed `src/viewer.js` (~901 lines, the
+  pre-refactor entrypoint, unimported) and `src/config/config_old.js` (~513 lines, unreferenced).
+  Build verified green afterward; docs updated.
 
 - [ ] **Reduce shipped logging.** ~115 `console.*` calls across `src` end up in the bundle.
   Gate behind `debug.js` or strip in production builds.

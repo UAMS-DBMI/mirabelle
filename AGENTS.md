@@ -76,7 +76,7 @@ add/move files. High level (`src/`):
   component is a `.jsx` + sibling `.css` pair.
 - `config/config.js` — declarative per-task UI configuration (`TASK_CONFIGS`): which panels
   and tools are visible for each layout (Masker, MaskerReview, VisualReview) × viewport
-  layout (stack/volume). `config_old.js` is legacy/deprecated.
+  layout (stack/volume).
 - `store.js` — Redux store wiring the four slices.
 - `masking.js`, `visualreview.js`, `utilities.js` — API calls and coordinate/volume math.
   `masking.test.js` covers `convertCoordinates`.
