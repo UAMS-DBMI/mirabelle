@@ -7,25 +7,26 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ---
 
-## 🔴 Security / correctness — address first
+## 🔴 Build / config — address first
 
-- [ ] **Remove live API bearer tokens from `webpack.config.js`** (`:94`, `:100`; commented at
-  `:88`, `:106`). Real tokens and internal UAMS hostnames are committed to git.
-  - Move secrets/targets to a gitignored `.env` / `webpack.config.local.js`.
-  - **Rotate** the exposed tokens — deleting them from the current file does not remove them
-    from git history.
+- [ ] **Move proxy config (target + token) into `.env` files** (`webpack.config.js:83-108`).
+  The committed bearer tokens are *not* real production credentials (per the dev team), so
+  this is config hygiene rather than a credential leak — no rotation needed. Goals:
+  - Read `process.env.MIRA_API_TARGET` / `MIRA_API_TOKEN` in `webpack.config.js` instead of
+    hardcoding. The proxy runs in Node at config-eval time, so bun's built-in `.env` loading
+    is enough — no `dotenv` dependency or `DefinePlugin` required.
+  - Use per-environment files (`.env.development`, `.env.production`, plus ARIES), selected by
+    `NODE_ENV` / a custom `MIRA_ENV`, with `.env*.local` gitignored and a committed
+    `.env.example`. This also replaces the current commenting/uncommenting of proxy blocks.
 
 - [ ] **Don't hardcode `mode: 'development'`** (`webpack.config.js:6`). `make build` currently
   ships an unminified dev-React bundle with full source maps. Drive `mode` from
   `argv.mode` / `NODE_ENV` so `bun run build` produces an optimized production bundle.
 
-- [ ] **Stop switching environments by commenting/uncommenting proxy blocks**
-  (`webpack.config.js:83-108`). Local / PROD / ARIES should be selected via an env var, not
-  hand-edited (easy to commit the wrong target).
-
 ## 🟠 Engineering hygiene
 
-- [ ] **Add CI** (no `.github/workflows` today). Minimal pipeline:
+- [ ] **Add CI** (none today — would be a new adoption; GitHub Actions is the likely choice
+  if the repo stays on GitHub). Minimal pipeline:
   `bun install --frozen-lockfile && bunx vitest run && bun run build`. Especially important
   because the `patch-package` patches break silently on dependency drift.
 
