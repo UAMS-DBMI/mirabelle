@@ -1,8 +1,8 @@
 {
   "name": "Mirabelle",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Web tool for viewing DICOM/NIfTI image volumes and applying masks to remove PHI from medical images.",
+  "private": true,
   "scripts": {
     "test": "bunx vitest",
     "start": "webpack serve --mode development",
@@ -10,8 +10,8 @@
 	"postinstall": "patch-package"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "UAMS-DBMI (University of Arkansas for Medical Sciences, Dept. of Biomedical Informatics)",
+  "license": "MIT",
   "engines": {
     "bun": ">=1.3.0",
     "node": ">=22.0.0"
