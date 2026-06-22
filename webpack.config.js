@@ -93,6 +93,12 @@ module.exports = {
                 target: 'http://tcia-posda-rh-1.ad.uams.edu',
                 headers: { 'Authorization': 'Bearer e9a63bc2-bfa5-4299-afb3-c844fb2ef38b' },
             },
+            {
+                // PROD - Files (nginx-static-files)
+                context: ['/files'],
+                target: 'http://tcia-posda-rh-1.ad.uams.edu',
+                headers: { 'Authorization': 'Bearer e9a63bc2-bfa5-4299-afb3-c844fb2ef38b' },
+            },
             //{
             //    // ARIES
             //    context: ['/papi'],
