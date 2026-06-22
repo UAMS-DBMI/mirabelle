@@ -34,7 +34,9 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 - [x] **Pin tool versions.** Done: added a `package.json` `engines` floor (`bun >=1.3.0`,
   `node >=22.0.0`) and a `.tool-versions` file (`bun 1.3`, `nodejs 22`) for mise/asdf.
-  Floors rather than exact pins; Node floored at 22 since 20 is EOL (April 2026).
+  Floors rather than exact pins; Node floored at 22 since 20 is EOL (April 2026). Because
+  bun does not enforce `engines`, a `check-tools` Makefile target (order-only prereq of
+  `node_modules`) actually fails serve/build/install on a too-old bun/node.
 
 ## 🟡 Maintainability
 
