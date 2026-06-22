@@ -22,6 +22,8 @@ and webpack `publicPath`), typically behind nginx in deployment.
 - **Tailwind CSS v3** + PostCSS, alongside per-component `.css` files.
 - **Vitest** (+ Testing Library, jsdom) for tests.
 - **Bun** is the package manager / task runner (`bun.lock`). Node is not used to run scripts.
+  Required versions are floored in `package.json` `engines` and `.tool-versions`
+  (bun ≥ 1.3, node ≥ 22).
 
 ## Commands
 
@@ -30,7 +32,7 @@ Use the Makefile (it wraps bun) or bun directly:
 ```bash
 make serve      # webpack dev server against the UAMS backend (the default `make` target)
 make serve ENV=development   # ...against a local backend  (ENV: development | production | aries)
-make build      # bun run build  -> production-ish webpack build
+make build      # bun run build  -> minified production webpack build (--mode production)
 make node_modules   # bun install --frozen-lockfile  (equivalent of `npm ci`)
 make clean      # rm -rf node_modules dist
 
