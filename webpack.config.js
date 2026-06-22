@@ -15,11 +15,17 @@ if (process.env.WEBPACK_SERVE === 'true' && (!apiTarget || !apiToken)) {
   );
 }
 
-module.exports = {
-  mode: 'development',  // Set to 'production' or 'development' as needed
-  // entry: './src/viewer.js',
-  // devtool: 'inline-source-map',
-  devtool: 'source-map',
+module.exports = (env, argv) => {
+  // Mode comes from the `--mode` flag (see the start/build npm scripts); fall back
+  // to development when running the dev server, production otherwise.
+  const mode =
+    argv.mode || (process.env.WEBPACK_SERVE === 'true' ? 'development' : 'production');
+  const isProduction = mode === 'production';
+
+  return {
+  mode,
+  // Separate source maps in prod (debuggable, not inlined); fast rebuilds in dev.
+  devtool: isProduction ? 'source-map' : 'eval-source-map',
   entry: './src/index.js',
   output: {
     //path: path.resolve(__dirname, 'dist'),
@@ -117,4 +123,5 @@ module.exports = {
         __COMMIT_HASH__: JSON.stringify(process.env.MIRABELLE_COMMIT || 'unknown'),
       }),
   ],
+  };
 };
