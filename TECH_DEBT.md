@@ -56,9 +56,9 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
   2-space/double-quoted). Add a committed Prettier config + ESLint with
   `eslint-plugin-react-hooks` (relevant given the `useEffect(..., [])` patterns in routes).
 
-- [ ] **Fix stale `package.json` metadata.** Empty `description`/`author`; `license: "ISC"`
-  (likely unintended for a UAMS internal tool); `"main": "index.js"` points at a
-  non-existent root file.
+- [x] **Fix stale `package.json` metadata.** Done: added a real `description`, set
+  `author` to UAMS-DBMI, changed `license` to `MIT` (+ added a `LICENSE` file), removed the
+  bogus `"main": "index.js"`, and added `"private": true` (app, not a published package).
 
 ---
 
