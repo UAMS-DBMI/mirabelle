@@ -48,6 +48,9 @@ bun run format  # prettier . --write   (format:check for a non-mutating check)
   Cornerstone's WASM/SharedArrayBuffer paths) — keep those if you touch `devServer`.
 - `MIRABELLE_COMMIT` env var is baked in as `__COMMIT_HASH__` at build time (logged to
   console on startup). It defaults to `'unknown'`.
+- **CI**: `.github/workflows/ci.yml` runs `lint` / `test` / `build` as parallel jobs on
+  push to main/develop and on PRs. `lint` is non-blocking (`continue-on-error`); `test` and
+  `build` are the real gates.
 
 ## Dependency patches (important)
 
