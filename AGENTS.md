@@ -39,6 +39,8 @@ make clean      # rm -rf node_modules dist
 bun run start   # webpack serve directly
 bun run test    # bunx vitest -> run tests (watch mode)
 bunx vitest run # single, non-watch test run
+bun run lint    # eslint src
+bun run format  # prettier . --write   (format:check for a non-mutating check)
 ```
 
 - The dev server opens at `http://localhost:8082/mira` per `.vscode/` config, or webpack's
@@ -112,13 +114,16 @@ documents the variables. The committed tokens are non-sensitive dev/test tokens.
 
 ## Conventions
 
-There is no enforced linter and no lint/format npm script, though **Prettier 3 is installed**
-— match the existing code and optionally run `bunx prettier` on files you touch.
+Formatting is owned by **Prettier** (`.prettierrc.json`); run `bun run format` (or
+`format:check`). Code-quality/React-hooks linting is **ESLint** (`eslint.config.js`,
+flat config, lints `src/`): `bun run lint`. ESLint currently reports many pre-existing
+warnings and a few errors — in CI the lint job is **non-blocking** (informational), so
+don't feel obligated to fix unrelated findings, but do keep new code clean. The whole tree
+was reformatted once with Prettier; that commit is listed in `.git-blame-ignore-revs`.
 
-De-facto style in this codebase:
+De-facto style (enforced by Prettier):
 
-- 2-space indentation, semicolons, double quotes in newer files (some older files use
-  single quotes — follow the file you're in).
+- 2-space indentation, semicolons, double quotes, trailing commas, 80-col width.
 - Functional React components with hooks. Redux via Toolkit slices + `useSelector` /
   `useDispatch`.
 - Use the **`@/` import alias** for `src/` (configured in webpack `resolve.alias`,
