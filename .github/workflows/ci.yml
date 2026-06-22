@@ -1,8 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches: [main, develop]
+  push: # all branches (low branch volume on this repo)
   pull_request:
 
 # Cancel superseded runs on the same ref.
