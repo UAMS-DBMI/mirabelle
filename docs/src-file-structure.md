@@ -16,7 +16,6 @@ src/
 ├── masking.test.js          # Masking tests
 ├── store.js                 # Redux store configuration
 ├── utilities.js             # Utility functions
-├── viewer.js                # Viewer functionality
 └── visualreview.js          # Visual review functionality
 ```
 
@@ -96,8 +95,7 @@ Configuration files:
 
 ```
 config/
-├── config.js                        # Current configuration
-└── config_old.js                    # Legacy configuration (deprecated)
+└── config.js                        # Current configuration
 ```
 
 ## features/
@@ -231,10 +229,10 @@ test/
 ## Summary
 
 The src folder contains:
-- **13 root-level files**: Core application files including entry points, utilities, and tests
+- **12 root-level files**: Core application files including entry points, utilities, and tests
 - **7 asset files**: Logo and icon resources
 - **52 component files** (26 pairs of .jsx + .css): Reusable UI components
-- **2 config files**: Current and legacy application configuration
+- **1 config file**: Application configuration (`config.js`)
 - **4 Redux slice files**: State management for counter, masking, options, and presentation
 - **7 feature modules**: Organized by functionality (details, dicom-review, mask, mask-review, nifti-review, seg, stack-view, tools, volume-view)
 - **2 custom hooks**: React hooks for configuration and resizing
@@ -249,4 +247,4 @@ The src folder contains:
 - **NIfTI**: Neuroimaging Informatics Technology Initiative
 
 ### Total File Count
-Approximately **148 files** in the src directory (excluding .DS_Store files).
+Approximately **146 files** in the src directory (excluding .DS_Store files).
