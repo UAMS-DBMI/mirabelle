@@ -41,9 +41,6 @@ function StackViewport({
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    //console.log("[StackViewport] useEffect triggered");
-    //console.log("frames:", frames);
-
     const setup = async () => {
       if (frames === undefined) {
         return;

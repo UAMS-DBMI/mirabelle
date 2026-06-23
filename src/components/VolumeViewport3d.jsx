@@ -269,7 +269,6 @@ function VolumeViewport3d({
       //   // a way to signal when the expand has happened and it's safe to display?
       //   // note that currently it is being applied directly from elsewhere
       //   const nonMaskSegmentationIds = segmentationIds.filter(segmentationId => !segmentationId.startsWith('mask-'));
-      //   console.log("VolumeViewport3d: Applying segmentationIds=", nonMaskSegmentationIds);
       //   await segmentation.addSegmentationRepresentations(
       //     viewportId,
       //     nonMaskSegmentationIds.map((segmentationId) => ({
@@ -313,7 +312,6 @@ function VolumeViewport3d({
   }, [renderingEngine, viewportId, opacity]);
 
   // useEffect(() => {
-  //   console.log("[VolumeViewport3d] preset3d changed", preset3d);
   //   const viewport = renderingEngine.getViewport(viewportId);
   //   viewport.setProperties({
   //     preset: preset3d,
