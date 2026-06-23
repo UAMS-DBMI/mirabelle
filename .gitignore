@@ -31,3 +31,4 @@ obj
 tags
 /bin
 /launch-webpack-vs.js
+pnpm-lock.yaml

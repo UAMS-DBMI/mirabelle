@@ -66,7 +66,7 @@ function transformDetails(details) {
   };
 }
 
-export default function NiftiReviewFile({ file, vr, onNext, onPrevious, routeName }) {
+export default function NiftiReviewFile({ file, vr, onNext = () => { }, onPrevious = () => { }, routeName }) {
   console.log("[NiftiReviewFile] rendering, file:", file);
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);

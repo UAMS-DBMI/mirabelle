@@ -88,7 +88,7 @@ function transformDetails(details, imageId) {
 }
 
 
-export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicomTypeOptions, onNext, onPrevious, routeName }) {
+export default function DicomReviewIEC({ iec, vr, reviewStatus, dicomType, dicomTypeOptions, onNext = () => { }, onPrevious = () => { }, routeName }) {
   console.log("[DicomReviewIEC] rendering, iec:", iec);
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);

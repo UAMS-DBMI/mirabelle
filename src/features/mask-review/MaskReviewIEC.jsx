@@ -76,7 +76,7 @@ function transformDetails(details, maskingDetails) {
   }
 }
 
-export default function MaskReviewIEC({ iec, vr, noIecs, maskingStatus, dicomType, dicomTypeOptions, onNext, onPrevious }) {
+export default function MaskReviewIEC({ iec, vr, noIecs, maskingStatus, dicomType, dicomTypeOptions, onNext = () => { }, onPrevious = () => { } }) {
 
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
