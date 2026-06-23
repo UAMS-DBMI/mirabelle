@@ -48,7 +48,6 @@ function VolumeViewport({
   const [initialized, setInitialized] = useState(false);
   const dispatch = useDispatch();
 
-  // console.log("[VolumeViewport] rendering, volumeId=", volumeId)
   const elementRef = useRef(null);
 
   window.re = renderingEngine;
@@ -92,8 +91,6 @@ function VolumeViewport({
 
   useEffect(() => {
     const setup = async () => {
-      // console.log("[VolumeViewport] setup running");
-
       // Remove any leftover minimized/expanded classes on volume change
       const wrapper = elementRef.current;
       if (wrapper && wrapper.parentNode) {
@@ -111,7 +108,6 @@ function VolumeViewport({
       // elementRef.current.addEventListener(
       //   cornerstone.Enums.Events.VOLUME_LOADED,
       //   (evt) => {
-      //     console.log("Volume rendered:", evt.detail);
       //   }
       // );
 

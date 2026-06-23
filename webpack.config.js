@@ -1,6 +1,7 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const webpack = require("webpack");
+const TerserPlugin = require("terser-webpack-plugin");
 
 // Backend the dev server proxies /papi and /files to. Provided via .env files,
 // loaded by bun (see `make serve ENV=...`). Only required when running the dev
@@ -111,6 +112,19 @@ module.exports = (env, argv) => {
       ],
       // historyApiFallback: true, // This helps with routing; ensure it's true if using React Router
       // compress: true,
+    },
+    optimization: {
+      // Strip debug-level console calls from production bundles. console.warn /
+      // console.error are kept (real error reporting). Some console.log calls
+      // are arguably worth promoting to warn/error so they survive — that's a
+      // follow-up; for now nothing at log/info/debug level ships to prod.
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            compress: { drop_console: ["log", "info", "debug"] },
+          },
+        }),
+      ],
     },
     plugins: [
       new HtmlWebpackPlugin({

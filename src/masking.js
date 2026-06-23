@@ -81,8 +81,6 @@ export async function setParameters(
     noise,
     fill,
   });
-  // console.log("setParameters", body);
-
   const response = await fetch(`/papi/v1/masking/${iec}/parameters`, {
     method: "POST",
     headers: {
@@ -93,30 +91,6 @@ export async function setParameters(
   const details = await response.json();
 
   return details;
-}
-
-export async function tests() {
-  const iec = 3;
-
-  // console.log("getDetails");
-  // console.log(await getDetails(iec));
-
-  // console.log("flagForMasking");
-  // console.log(await flagForMasking(iec));
-
-  // console.log("setParameters");
-  let lr = 212;
-  let pa = 47;
-  let s = 24;
-  let i = 1;
-  let d = 200;
-  // console.log(await setParameters(iec, { lr, pa, s, i, d }));
-
-  // console.log("getFiles");
-  // console.log(await getFiles(iec));
-
-  // console.log("getIECsForVR");
-  // console.log(await getIECsForVR(1));
 }
 
 export async function submitFinalCoords(

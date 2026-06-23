@@ -151,8 +151,6 @@ export default function MaskIEC({
 
   let viewer;
 
-  // console.log("MaskIEC renderingEngine:", renderingEngine);
-
   // Fire a resize event whenever the right and left panels toggle
   useEffect(() => {
     window.dispatchEvent(new Event("resize"));
@@ -328,7 +326,6 @@ export default function MaskIEC({
 
   // function handleApplyDecimate(decimateValue) {
 
-  //   console.log("Applying decimate with value:", decimateValue);
   //   if (Number.isFinite(decimateValue) && decimateValue > 0) {
   //     setAppliedDecimate(decimateValue);
   //     return;

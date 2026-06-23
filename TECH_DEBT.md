@@ -48,8 +48,13 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
   pre-refactor entrypoint, unimported) and `src/config/config_old.js` (~513 lines, unreferenced).
   Build verified green afterward; docs updated.
 
-- [ ] **Reduce shipped logging.** ~115 `console.*` calls across `src` end up in the bundle.
-  Gate behind `debug.js` or strip in production builds.
+- [x] **Reduce shipped logging.** Done: production builds now strip `console.log`/`info`/
+  `debug` via Terser (`compress.drop_console` in `webpack.config.js`); `console.warn`/`error`
+  are kept for real error reporting. Verified the built bundle contains no `console.log`
+  statements (only vendored feature-detection *references*). Also removed all commented-out
+  `// console.log` corpses and a dead `tests()` harness in `masking.js`. Follow-up: some
+  surviving `console.log` call sites are arguably worth promoting to `warn`/`error` so they
+  ship to prod — left for a later pass to identify them individually.
 
 - [ ] **Split oversized files** (vs. the small-function preference): `utilities.js` (~741,
   mixes API fetches + volume math + image-id construction), `MaskIEC.jsx` (~588),

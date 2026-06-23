@@ -227,7 +227,6 @@ export default function DicomReviewIEC({
       setIsSeg(isSeg);
 
       //if (optionsView === 'stack') {
-      //  console.log("DicomReviewIEC: forcing stack view");
       //  volumetric = false; // force stack view
       //}
 

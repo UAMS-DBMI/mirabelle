@@ -186,7 +186,6 @@ export async function getIECInfo(
     volumetric = fileInfo.volumetric;
 
     for (let file of fileInfo.frames) {
-      //console.log(file);
       for (let i = 0; i < file.num_of_frames; i++) {
         if (file.num_of_frames > 1) {
           frames.push(`wadouri:/files/${file.path}?frame=${i}`);
