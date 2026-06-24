@@ -25,7 +25,8 @@ Tear down with `docker compose down`.
 
 - **Self-signed cert.** TLS uses a self-signed certificate in `certs/`
   (CN/SAN `localhost`). Your browser will warn on first visit — accept the
-  exception once. The `certs/` directory is gitignored; regenerate with:
+  exception once. The cert and key are committed for convenience since this is
+  a throwaway test harness — do not reuse them anywhere real. Regenerate with:
 
   ```bash
   mkdir -p certs && openssl req -x509 -nodes -newkey rsa:2048 \
