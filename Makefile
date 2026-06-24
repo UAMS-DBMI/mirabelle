@@ -1,4 +1,4 @@
-.PHONY: default check-tools tags clean build
+.PHONY: default check-tools tags clean build test
 
 default: serve
 
@@ -30,6 +30,9 @@ serve: node_modules
 	bun --env-file=.env.$(ENV) run start
 
 build: dist
+
+test: node_modules
+	bun run test
 
 live-test: dist
 	cd live-test && docker compose up
