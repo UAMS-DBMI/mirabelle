@@ -1,0 +1,14 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # The freshly built app.
+      - ../dist:/usr/share/nginx/html:ro
+      # Reverse-proxy + static-serving config.
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      # Self-signed TLS cert + key.
+      - ./certs:/etc/nginx/certs:ro
+    restart: unless-stopped
