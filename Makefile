@@ -1,4 +1,4 @@
-.PHONY: default check-tools tags clean build test
+.PHONY: default check-tools tags clean build test live-test
 
 default: serve
 
