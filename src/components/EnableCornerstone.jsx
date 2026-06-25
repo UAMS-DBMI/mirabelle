@@ -5,6 +5,7 @@ import {
   Enums,
   volumeLoader,
   cornerstoneStreamingImageVolumeLoader,
+  imageLoadPoolManager,
 } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
 import { init as csRenderInit, imageLoader } from "@cornerstonejs/core";
@@ -31,10 +32,27 @@ function EnableCornerstone({ children }) {
           polySeg,
         },
       });
+      // Scale decode workers to the machine: navigator.hardwareConcurrency
+      // is the number of logical cores (fallback to 4 on the rare browser
+      // that doesn't report it). We subtract one and floor at 1 to leave a
+      // core for the main/UI thread — decode isn't our bottleneck (read
+      // speed off the server's storage is), so on the low-spec systems this
+      // runs on it's better to keep the UI responsive than to squeeze out
+      // marginally faster decode by claiming every core.
+      const maxWebWorkers = Math.max(1, (navigator.hardwareConcurrency || 4) - 1);
       dicomImageLoaderInit({
-        maxWebWorkers: 5,
+        maxWebWorkers,
         startWebWorkersOnDemand: true,
       });
+
+      // Volume frame loads run through the image-load pool as Prefetch
+      // requests, which cornerstone caps at 5 concurrent by default. Raise
+      // it so more frames download in parallel. Decode runs on the web
+      // worker pool above (maxWebWorkers), so keep the two roughly balanced.
+      imageLoadPoolManager.setMaxSimultaneousRequests(
+        Enums.RequestType.Prefetch,
+        20,
+      );
 
       imageLoader.registerImageLoader("nifti", cornerstoneNiftiImageLoader);
 
