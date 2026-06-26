@@ -9,6 +9,8 @@ import ReactDOM from "react-dom/client";
 import store from "./store";
 import { Provider } from "react-redux";
 
+import installGlobalErrorHandlers from "@/lib/installGlobalErrorHandlers";
+
 import EnableCornerstone from "@/components/EnableCornerstone";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
