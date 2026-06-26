@@ -90,6 +90,15 @@ module.exports = (env, argv) => {
     },
     devServer: {
       open: ["/mira/"],
+      client: {
+        overlay: {
+          // Keep the overlay for compile errors, but don't let runtime errors
+          // (handled globally and surfaced as toasts) hijack the page.
+          errors: true,
+          warnings: false,
+          runtimeErrors: false,
+        },
+      },
       historyApiFallback: {
         index: "/mira/index.html",
       },
