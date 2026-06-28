@@ -1,5 +1,10 @@
 /* MaskReviewIEC.css */
 
+/*
+ * Two-row layout (viewer + operations) for the mask review VR route, since
+ * the filter panel is hidden (see `showFilterPanel` in MaskReviewIEC.jsx).
+ * If the filter panel is re-enabled, restore grid-rows-[auto,1fr,auto].
+ */
 #main.mask-review-vr #middle-panel {
-  @apply grid-rows-[auto,1fr,auto];
+  @apply grid-rows-[1fr,auto];
 }

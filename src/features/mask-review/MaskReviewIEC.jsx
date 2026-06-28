@@ -95,6 +95,11 @@ export default function MaskReviewIEC({
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // Hide the filter panel in the mask review VR route UI while keeping the
+  // implementation intact. To bring it back, flip this to `true` and restore
+  // grid-rows-[auto,1fr,auto] in MaskReviewIEC.css.
+  const showFilterPanel = false;
+
   const showLeftPanel = useSelector(
     (s) => s.presentation.panelConfig.open.left,
   );
@@ -328,7 +333,7 @@ export default function MaskReviewIEC({
         }
         middlePanel={
           <>
-            {vr && (
+            {showFilterPanel && vr && (
               <FilterPanel
                 vr={vr}
                 maskingStatus={maskingStatus}
@@ -415,7 +420,7 @@ export default function MaskReviewIEC({
       }
       middlePanel={
         <>
-          {vr && (
+          {showFilterPanel && vr && (
             <FilterPanel
               vr={vr}
               maskingStatus={maskingStatus}
