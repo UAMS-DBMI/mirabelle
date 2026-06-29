@@ -22,6 +22,32 @@ const DURATION = {
   info: 3500,
 };
 
+// Transient non-error toasts (success / info) occupy a single "slot": a new one
+// dismisses the toast currently in the slot — so react-hot-toast plays that
+// box's exit animation — while the new one mounts and plays its entrance
+// animation. The whole box visibly leaves as the replacement arrives, with no
+// in-place text swap. Errors and loading toasts are exempt: errors require
+// manual dismissal, and loading toasts are tied to a specific async op.
+const NON_ERROR_TOAST_ID = "app-non-error-toast";
+
+let nonErrorSeq = 0; // makes each slot toast id unique
+let activeSlotId = null; // id of the toast most recently put in the slot
+
+/**
+ * Show a non-error toast in the shared slot. `show(id)` performs the actual
+ * `toast.*` call with the given (unique) id. Dismissing a stale/expired id is a
+ * harmless no-op, so the slot needs no expiry bookkeeping. Returns the id.
+ */
+function showInSlot(show) {
+  if (activeSlotId != null) {
+    toast.dismiss(activeSlotId); // animate the current box out
+  }
+  const id = `${NON_ERROR_TOAST_ID}-${++nonErrorSeq}`;
+  activeSlotId = id;
+  show(id); // new box animates in
+  return id;
+}
+
 // Info toasts use react-hot-toast's plain variant, which has no icon, so we
 // supply one (Material Symbols font, colored via the --toast-info token).
 const INFO_ICON = React.createElement(
@@ -70,20 +96,26 @@ function toErrorDetail(error) {
 
 export const notify = {
   success(message, options) {
-    return toast.success(message, {
-      duration: DURATION.success,
-      className: "app-toast app-toast--success",
-      ...options,
-    });
+    return showInSlot((id) =>
+      toast.success(message, {
+        duration: DURATION.success,
+        className: "app-toast app-toast--success",
+        ...options,
+        id,
+      }),
+    );
   },
 
   info(message, options) {
-    return toast(message, {
-      duration: DURATION.info,
-      className: "app-toast app-toast--info",
-      icon: INFO_ICON,
-      ...options,
-    });
+    return showInSlot((id) =>
+      toast(message, {
+        duration: DURATION.info,
+        className: "app-toast app-toast--info",
+        icon: INFO_ICON,
+        ...options,
+        id,
+      }),
+    );
   },
 
   loading(message, options) {
