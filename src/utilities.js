@@ -25,11 +25,15 @@ export function expandSegTo3D(segmentationId) {
   // I tested it twice, this is more than 10x faster
   let scalarData = voxelManager.getCompleteScalarDataArray();
 
-  const [i_size, j_size, k_size] = dimensions;
+  const [i_size, j_size] = dimensions;
 
   const [[imin, imax], [jmin, jmax], [kmin, kmax]] =
     voxelManager.getBoundsIJK();
 
+  // Fill the entire bounding box of the selection, edge-to-edge. The 3D box is
+  // drawn separately as its own actor (see addMaskBox), so we don't need to
+  // leave a margin for a marching-cubes surface — both the 2D overlay and the
+  // submitted mask cover the full selection, including the outermost voxels.
   for (let k = kmin; k <= kmax; k++) {
     for (let j = jmin; j <= jmax; j++) {
       for (let i = imin; i <= imax; i++) {
