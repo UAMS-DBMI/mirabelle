@@ -37,6 +37,7 @@ import {
 import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
 import { submitFinalCoords } from "@/masking";
+import { addMaskBox, removeMaskBox } from "@/lib/maskBox";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { VolumeView } from "@/features/volume-view";
@@ -394,6 +395,10 @@ export default function MaskIEC({
   }
 
   async function handleExpand() {
+    // An empty selection is allowed: cornerstone reports the full-volume bounds
+    // when nothing is painted, so expanding it masks the whole volume.
+    // (isSegFlat returns false for an empty selection precisely because of those
+    // full bounds, so it doesn't block this case.)
     if (!expanded && isSegFlat(segmentationId)) {
       notify.info(messages.maskValidation.flatSelection);
       return;
@@ -405,20 +410,16 @@ export default function MaskIEC({
       segmentationId,
     );
 
+    // Draw the expanded region as a box in the 3D viewport(s). We render it as
+    // its own actor (rather than a labelmap-derived surface) so the labelmap
+    // can fill the volume edge-to-edge without breaking 3D — see addMaskBox.
     // TODO I don't like this being here, perhaps put it inside VolumeView
     // and expose a callback that can be called from here?
     const renderingEngine = cornerstone.getRenderingEngines()[0];
-    const viewports = renderingEngine.getViewports();
-    viewports.forEach(async (item) => {
-      let viewportId = item.id;
-      if (viewportId.startsWith("coronal3d")) {
-        console.log("[MaskIEC] Adding surface representation to", viewportId);
-        await segmentation.addSegmentationRepresentations(viewportId, [
-          {
-            segmentationId,
-            type: csToolsEnums.SegmentationRepresentations.Surface,
-          },
-        ]);
+    const volume = cornerstone.cache.getVolume(volumeId);
+    renderingEngine.getViewports().forEach((item) => {
+      if (item.id.startsWith("coronal3d")) {
+        addMaskBox(item, volume, coords);
       }
     });
 
@@ -428,6 +429,14 @@ export default function MaskIEC({
   }
 
   function handleClear() {
+    // Clear the 3D selection box (added by handleExpand) from any 3D viewport.
+    const renderingEngine = cornerstone.getRenderingEngines()[0];
+    renderingEngine?.getViewports().forEach((item) => {
+      if (item.id.startsWith("coronal3d")) {
+        removeMaskBox(item);
+      }
+    });
+
     if (volumetric) {
       // Delete the current segmentation and add a new one (and activate it)
       // using a new randomly-named segmentation ID. This gets around a bug
