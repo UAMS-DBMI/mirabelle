@@ -1,1 +1,7 @@
 /* StackViewport.css */
+
+/* Anchor the absolutely-positioned overlays (data-boundary frame and selection
+   box) to the viewport element. */
+.stack-viewport {
+  position: relative;
+}

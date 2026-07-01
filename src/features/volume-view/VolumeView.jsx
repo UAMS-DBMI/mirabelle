@@ -16,6 +16,7 @@ import OperationsPanel from "@/components/OperationsPanel";
 
 import "./VolumeView.css";
 import ViewerResizer from "@/components/ViewerResizer";
+import { ClampedRectangleScissorsTool } from "@/lib/clampedRectangleScissors";
 
 const {
   ToolGroupManager,
@@ -48,7 +49,7 @@ export default function VolumeView({
   useEffect(() => {
     cornerstoneTools.addTool(TrackballRotateTool);
     cornerstoneTools.addTool(BrushTool);
-    cornerstoneTools.addTool(SingleSelectionRectangleScissorsTool);
+    cornerstoneTools.addTool(ClampedRectangleScissorsTool);
     cornerstoneTools.addTool(StackScrollTool);
 
     if (!voiSynchronizer) {
