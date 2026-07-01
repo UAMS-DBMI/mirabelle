@@ -37,6 +37,9 @@ function MaterialButtonSet({
   const [activeButton, setActiveButton] = useState(initialActiveButton);
 
   function buttonClick(item) {
+    if (item.disabled) {
+      return; // ignore clicks on disabled buttons
+    }
     item.action(); // call the supplied callback
     if (!noRemember) {
       setActiveButton(item.name);
@@ -58,7 +61,8 @@ function MaterialButtonSet({
           <button
             title={item.name}
             onClick={() => buttonClick(item)}
-            className={getActiveClass(item.name)}
+            className={`${getActiveClass(item.name)}${item.disabled ? " disabled" : ""}`}
+            disabled={item.disabled}
           >
             <MaterialIcon icon={item.icon} />
           </button>
