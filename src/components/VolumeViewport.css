@@ -14,3 +14,27 @@
 .volume-viewport.minimized {
   @apply w-[1px] h-[1px];
 }
+
+/* Frame marking the data (drawing) limits of a 2D viewport. Positioned and
+   sized imperatively from worldToCanvas (see lib/viewportFrame). */
+.viewport-data-frame {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+  border: 2px solid rgba(147, 197, 253, 0.2);
+  border-radius: 6px;
+  z-index: 10;
+}
+
+/* Outline of the expanded mask-selection box in the slice plane (see
+   lib/viewportFrame). Drawn by us because Cornerstone omits the labelmap
+   outline where the mask meets the image edge. */
+.viewport-mask-box {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+  border: 2px solid rgba(74, 222, 128, 0.95);
+  background: rgba(74, 222, 128, 0.18);
+  border-radius: 6px;
+  z-index: 11;
+}

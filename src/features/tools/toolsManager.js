@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { setFunction, setForm } from "@/features/maskingSlice";
 import { Enums } from "@/features/presentationSlice";
 import { setOption } from "@/features/optionSlice";
+import { ClampedRectangleScissorsTool } from "@/lib/clampedRectangleScissors";
 
 // Use this global to track when the tools have been added globally
 let toolsLoaded = false;
@@ -12,7 +13,6 @@ const {
   ToolGroupManager,
   TrackballRotateTool,
   BrushTool,
-  RectangleScissorsTool,
   StackScrollTool,
   WindowLevelTool,
   CrosshairsTool,
@@ -54,7 +54,7 @@ export default function useToolsManager({
 
   if (!toolsLoaded) {
     // add tools globally to cornerstone, but only once ever
-    cornerstoneTools.addTool(RectangleScissorsTool);
+    cornerstoneTools.addTool(ClampedRectangleScissorsTool);
     cornerstoneTools.addTool(StackScrollTool);
     cornerstoneTools.addTool(WindowLevelTool);
     cornerstoneTools.addTool(CrosshairsTool);
@@ -79,7 +79,7 @@ export default function useToolsManager({
         break;
 
       case Enums.LeftClickOptions.SELECTION:
-        newTool = RectangleScissorsTool;
+        newTool = ClampedRectangleScissorsTool;
         break;
     }
 
@@ -128,7 +128,7 @@ export default function useToolsManager({
 
   useEffect(() => {
     // add tools and setup default toolGroup actions
-    toolGroup.addTool(RectangleScissorsTool.toolName);
+    toolGroup.addTool(ClampedRectangleScissorsTool.toolName);
     toolGroup.addTool(StackScrollTool.toolName);
     toolGroup.addTool(WindowLevelTool.toolName);
     console.log(console.log(toolGroup));

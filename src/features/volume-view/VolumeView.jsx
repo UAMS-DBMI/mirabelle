@@ -15,12 +15,12 @@ import OperationsPanel from "@/components/OperationsPanel";
 
 import "./VolumeView.css";
 import ViewerResizer from "@/components/ViewerResizer";
+import { ClampedRectangleScissorsTool } from "@/lib/clampedRectangleScissors";
 
 const {
   ToolGroupManager,
   TrackballRotateTool,
   BrushTool,
-  RectangleScissorsTool,
   StackScrollTool,
   Enums: csToolsEnums,
 } = cornerstoneTools;
@@ -48,7 +48,7 @@ export default function VolumeView({
   useEffect(() => {
     cornerstoneTools.addTool(TrackballRotateTool);
     cornerstoneTools.addTool(BrushTool);
-    cornerstoneTools.addTool(RectangleScissorsTool);
+    cornerstoneTools.addTool(ClampedRectangleScissorsTool);
     cornerstoneTools.addTool(StackScrollTool);
 
     if (!voiSynchronizer) {
