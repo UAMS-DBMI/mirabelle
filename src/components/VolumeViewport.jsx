@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { attachDataFrame, removeMaskBox2D } from "@/lib/viewportFrame";
+import { MARGIN_ZOOM } from "@/lib/viewportView";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -33,11 +34,6 @@ const {
 const { segmentation: segmentationUtils } = cstUtils;
 
 const { ViewportType } = Enums;
-
-// Zoom the 2D viewports out slightly so the image doesn't touch the panel edge.
-// This keeps the mask outline, the data-boundary frame, and any selection drawn
-// to the edge of the image visible inside the panel.
-const MARGIN_ZOOM = 0.92;
 
 window.eventTarget = eventTarget;
 

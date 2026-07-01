@@ -8,12 +8,9 @@ import * as cornerstoneTools from "@cornerstonejs/tools";
 import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { attachDataFrame } from "@/lib/viewportFrame";
+import { MARGIN_ZOOM } from "@/lib/viewportView";
 
 import "./StackViewport.css";
-
-// Zoom out a touch so the image doesn't touch the panel edge — keeps the
-// selection box and the data-boundary frame visible. Matches VolumeViewport.
-const MARGIN_ZOOM = 0.92;
 
 const {
   PanTool,

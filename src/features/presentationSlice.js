@@ -227,6 +227,7 @@ const presentationSlice = createSlice({
       state.toolsConfig.functionToolGroup.visible = true;
       state.toolsConfig.formToolGroup.visible = true;
       state.toolsConfig.filterToolGroup.visible = true;
+      state.toolsConfig.resetToolGroup.visible = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
       // The selection (scissors) is the mask route's real left-click tool. It
@@ -281,6 +282,8 @@ const presentationSlice = createSlice({
       state.toolsConfig.rightClickToolGroup.visibility.zoom = true;
       state.toolsConfig.rightClickToolGroup.visibility.pan = true;
 
+      state.toolsConfig.resetToolGroup.visible = true;
+
       state.buttonConfig.maskerReview.visible = true;
       state.buttonConfig.maskerReview.visibility.accepted = true;
       state.buttonConfig.maskerReview.visibility.rejected = true;
@@ -318,6 +321,8 @@ const presentationSlice = createSlice({
         Enums.RightClickOptions.ZOOM;
       state.toolsConfig.rightClickToolGroup.visibility.zoom = true;
       state.toolsConfig.rightClickToolGroup.visibility.pan = true;
+
+      state.toolsConfig.resetToolGroup.visible = true;
 
       state.buttonConfig.visualReview.visible = true;
       state.buttonConfig.visualReview.visibility.good = true;

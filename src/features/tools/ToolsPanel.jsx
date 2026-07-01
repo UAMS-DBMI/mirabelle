@@ -8,6 +8,8 @@ import * as cornerstoneTools from "@cornerstonejs/tools";
 
 import MaterialButtonSet from "@/components/MaterialButtonSet";
 
+import { resetViewportsView } from "@/lib/viewportView";
+
 import useToolsManager from "./toolsManager";
 import useToolsConfigs from "./toolsConfig";
 
@@ -190,6 +192,22 @@ export default function ToolsPanel({
             <MaterialButtonSet
               buttonConfig={toolsConfigs.rightClickGroupButtonConfig}
               initialActiveButton={toTitleCase(globalStateValues.rightClick)}
+            />
+          </div>
+        )}
+        {globalToolsConfig.resetToolGroup.visible && (
+          <div>
+            <p>Reset Viewports:</p>
+            {/* One-shot action, so noRemember keeps it from staying highlighted. */}
+            <MaterialButtonSet
+              noRemember
+              buttonConfig={[
+                {
+                  name: "Reset Zoom & Pan",
+                  icon: "restart_alt",
+                  action: () => resetViewportsView(),
+                },
+              ]}
             />
           </div>
         )}
