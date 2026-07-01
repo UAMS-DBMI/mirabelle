@@ -226,6 +226,12 @@ export default function DicomReviewIEC({
       }
       setIsSeg(isSeg);
 
+      // A SEG is rendered as a volume with its mask overlaid whenever we have
+      // a base image series to attach it to — regardless of that series'
+      // `volumetric` flag. Only plain (non-SEG) series follow their own flag.
+      const hasSegBase = isSeg && segBaseIEC != null;
+      const renderAsVolume = hasSegBase || (!isSeg && volumetric);
+
       //if (optionsView === 'stack') {
       //  console.log("DicomReviewIEC: forcing stack view");
       //  volumetric = false; // force stack view
@@ -264,12 +270,12 @@ export default function DicomReviewIEC({
       setImageIds(imageIds);
 
       setVolumeId(volumeId);
-      setVolumetric(volumetric); // still update state
+      setVolumetric(renderAsVolume); // still update state
       setSegmentationId(segmentationId);
 
       let segLoadingId;
       try {
-        if (volumetric) {
+        if (renderAsVolume) {
           if (!isSeg) {
             // Load the volume directly if it's not a seg. No need to
             // pass a callback, we don't care about when it finishes
