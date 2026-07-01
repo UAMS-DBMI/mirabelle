@@ -138,6 +138,10 @@ export default function MaskIEC({
   const optionsNoise = useSelector((state) => state.options.noise);
   const optionsFill = useSelector((state) => state.options.fill);
   const optionsDecimate = useSelector((state) => state.options.decimate);
+  // The selection box is only movable/resizable while the selection tool is the
+  // active left-click. Under window level / crosshairs it's frozen and
+  // click-through so those tools receive the clicks (see refreshSelectionBoxes).
+  const leftClickTool = useSelector((state) => state.options.leftClick);
   const [renderingEngine, setRenderingEngine] = useState(
     cornerstone.getRenderingEngine("re1"),
   );
@@ -431,6 +435,56 @@ export default function MaskIEC({
         bounds = imageIds?.length ? getCoordsForStackSeg(imageIds) : null;
       }
 
+      // Commit a drag-resize of the selection box. The selection is defined
+      // solely by its IJK bounding box (the mask is a cuboid/cylinder built
+      // from these coords — the labelmap voxels are never submitted). Writing
+      // the resized bounds onto the labelmap's voxel manager makes
+      // getLabelmapBounds — and so every box overlay and handleAccept — reflect
+      // the resize. We set the tracked bounds rather than rewriting voxels: the
+      // raw labelmap is hidden, and its now-stale voxels never resurface
+      // because the bounds only grow from here as new rectangles are drawn.
+      const commitResize = (newCoords) => {
+        const segVolume = cornerstone.cache.getVolume(segmentationId);
+        if (!segVolume?.voxelManager) return;
+        segVolume.voxelManager.setBounds([
+          [newCoords.i.min, newCoords.i.max],
+          [newCoords.j.min, newCoords.j.max],
+          [newCoords.k.min, newCoords.k.max],
+        ]);
+        segmentation.triggerSegmentationEvents.triggerSegmentationDataModified(
+          segmentationId,
+        );
+      };
+
+      // Stack equivalent of commitResize. A stack has no tracked bounds —
+      // getCoordsForStackSeg derives the box by scanning labelmap pixels — so we
+      // materialise the new box: clear every labelmap image and fill the resized
+      // rectangle (i, j) on the frames (k) it covers. The raw labelmap is
+      // hidden, so only the overlay box shows; handleAccept reads the same
+      // scanned bounds. Mirrors how handleClear mutates the stack pixels.
+      const commitStackResize = (newCoords) => {
+        const labelmapImageIds =
+          segmentation.getLabelmapImageIds(segmentationId);
+        if (!labelmapImageIds?.length) return;
+        labelmapImageIds.forEach((imgId, k) => {
+          const img = cornerstone.cache.getImage(imgId);
+          const pixelData = img?.getPixelData();
+          if (!pixelData) return;
+          pixelData.fill(0);
+          if (k < newCoords.k.min || k > newCoords.k.max) return;
+          const { columns } = img;
+          for (let j = newCoords.j.min; j <= newCoords.j.max; j += 1) {
+            const rowStart = j * columns;
+            for (let i = newCoords.i.min; i <= newCoords.i.max; i += 1) {
+              pixelData[rowStart + i] = 1;
+            }
+          }
+        });
+        segmentation.triggerSegmentationEvents.triggerSegmentationDataModified(
+          segmentationId,
+        );
+      };
+
       renderingEngine.getViewports().forEach((item) => {
         const is3d = is3dViewport(item.id);
         const is2d = is2dViewport(item.id);
@@ -446,6 +500,17 @@ export default function MaskIEC({
           addMaskBox2D(item, bounds, {
             ...SELECTION_BOX_STYLE.box2d,
             gateBySlice: volumetric,
+            // Move/resize handles are enabled only while the selection tool is
+            // active — under window level / crosshairs the box is frozen and
+            // click-through so those tools receive the clicks. Volume and stack
+            // commit the change differently (voxel-manager bounds vs. rewriting
+            // labelmap pixels), so each supplies its own handler.
+            onResize:
+              leftClickTool === Enums.LeftClickOptions.SELECTION
+                ? volumetric
+                  ? commitResize
+                  : commitStackResize
+                : undefined,
           });
         }
       });
@@ -462,6 +527,11 @@ export default function MaskIEC({
       handler,
     );
 
+    // Redraw immediately so a left-click tool change re-renders any existing box
+    // with the right interactivity (frozen vs. movable) without waiting for the
+    // next segmentation edit. No-op when nothing has been drawn yet.
+    refreshSelectionBoxes();
+
     return () => {
       cornerstone.eventTarget.removeEventListener(
         csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,
@@ -474,7 +544,7 @@ export default function MaskIEC({
         else if (is2dViewport(item.id)) removeMaskBox2D(item);
       });
     };
-  }, [segmentationId, volumeId, volumetric]);
+  }, [segmentationId, volumeId, volumetric, leftClickTool]);
 
   async function handleOperationAction(action) {
     switch (action) {

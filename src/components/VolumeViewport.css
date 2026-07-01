@@ -38,3 +38,22 @@
   border-radius: 6px;
   z-index: 11;
 }
+
+/* Drag handles on the mask-selection box for resizing it in the slice plane.
+   A non-editable box is click-through (pointer-events: none); an editable one
+   opts into pointer events in JS (see attachBoxInteractions) so its body can be
+   dragged to move it. Handles always take pointer events so they can be grabbed
+   for resizing. Positioned at the box corners/edges via left/top percentages,
+   then centred on that point. */
+.viewport-mask-box-handle {
+  position: absolute;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  background: rgba(74, 222, 128, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: 2px;
+  pointer-events: auto;
+  z-index: 12;
+}
