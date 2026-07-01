@@ -421,6 +421,45 @@ export default function MaskIEC({
     // 2D mask viewports: the volume orthographic panes and the stack pane.
     const is2dViewport = (id) => id.endsWith("2d") || id === "myviewport";
 
+    // Live preview of the selection box while a 2D handle drag is in flight.
+    // The dragged pane updates its own overlay each mousemove, but the other
+    // views — the 3D box actor and the other 2D orthographic panes — would
+    // otherwise only rebuild on release (via the segmentation-data-modified
+    // event fired on commit). Redraw them from the in-progress coords so every
+    // view tracks the drag. We coalesce to one redraw per animation frame so a
+    // fast drag doesn't queue a volume render per mousemove, and we only touch
+    // the box overlays — never the labelmap — so nothing is committed until
+    // release.
+    let previewRaf = 0;
+    let previewCoords = null;
+    const drawPreviewBoxes = () => {
+      previewRaf = 0;
+      const renderingEngine = cornerstone.getRenderingEngines()[0];
+      if (!renderingEngine || !previewCoords) return;
+      const volume = volumetric ? cornerstone.cache.getVolume(volumeId) : null;
+      renderingEngine.getViewports().forEach((item) => {
+        if (is3dViewport(item.id)) {
+          // Rebuild the box actor (same call the commit path uses) rather than
+          // mutating the existing actor's points in place — an in-place point
+          // update doesn't reliably re-render on the 3D volume viewport.
+          if (volume) {
+            addMaskBox(item, volume, previewCoords, SELECTION_BOX_STYLE.box3d);
+          }
+        } else if (is2dViewport(item.id)) {
+          // Push the in-progress coords into each 2D box so the non-dragged
+          // panes follow. The dragged pane already updated itself, so re-setting
+          // it to the same coords is a harmless no-op.
+          item.element?.__maskBox2dSetLive?.(previewCoords);
+        }
+      });
+    };
+    const schedulePreview = (liveCoords) => {
+      previewCoords = liveCoords;
+      if (!previewRaf) {
+        previewRaf = requestAnimationFrame(drawPreviewBoxes);
+      }
+    };
+
     const refreshSelectionBoxes = () => {
       const renderingEngine = cornerstone.getRenderingEngines()[0];
       if (!renderingEngine) return;
@@ -517,6 +556,10 @@ export default function MaskIEC({
                   ? commitResize
                   : commitStackResize
                 : undefined,
+            // Mirror the in-progress box into the other panes (the 3D box and
+            // the other 2D orthographic panes) while dragging so they track the
+            // resize live.
+            onLiveResize: schedulePreview,
           });
         }
       });
@@ -543,6 +586,7 @@ export default function MaskIEC({
         csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,
         handler,
       );
+      if (previewRaf) cancelAnimationFrame(previewRaf);
       // Clear the boxes so they don't linger onto the next segmentation / IEC.
       const renderingEngine = cornerstone.getRenderingEngines()[0];
       renderingEngine?.getViewports().forEach((item) => {
