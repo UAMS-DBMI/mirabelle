@@ -330,7 +330,13 @@ export async function getFilteredIECsForMaskReviewVR(
 }
 
 export async function getOtherIECsForFOR(iec) {
-  return requestJSON(`/papi/v1/iecs/${iec}/other_iecs_in_for`);
+  const iecs = await requestJSON(`/papi/v1/iecs/${iec}/other_iecs_in_for`);
+  // The server returns every other series sharing the frame of reference,
+  // including other SEG objects. A SEG can't serve as the base image to
+  // overlay a segmentation onto, so drop them here. If that leaves nothing,
+  // the caller sees an empty list just as it would if no siblings existed.
+  if (!Array.isArray(iecs)) return iecs;
+  return iecs.filter((item) => item.modality !== "SEG");
 }
 
 export async function getFilesForNiftiVR(nifti_visual_review_id) {
