@@ -73,11 +73,16 @@ function boxFaceCells() {
  * @param {object} viewport A cornerstone VOLUME_3D viewport.
  * @param {object} volume The cornerstone volume the box is measured against
  *   (its imageData defines the IJK→world transform).
- * @param {{i,j,k}} coords IJK min/max bounds returned by expandSegTo3D.
+ * @param {{i,j,k}} coords IJK min/max bounds (from getLabelmapBounds).
  * @param {{color?: [number,number,number], opacity?: number}} [options]
  */
 export function addMaskBox(viewport, volume, coords, options = {}) {
-  const { color = [0.3, 0.85, 0.3], opacity = 1 } = options;
+  const {
+    color = [0.3, 0.85, 0.3],
+    opacity = 0.8,
+    edgeColor = [0.6, 1, 0.6],
+    edgeWidth = 2,
+  } = options;
 
   removeMaskBox(viewport);
 
@@ -90,8 +95,17 @@ export function addMaskBox(viewport, volume, coords, options = {}) {
 
   const actor = vtkActor.newInstance();
   actor.setMapper(mapper);
-  actor.getProperty().setColor(...color);
-  actor.getProperty().setOpacity(opacity);
+
+  const property = actor.getProperty();
+  property.setColor(...color);
+  property.setOpacity(opacity);
+  // Draw the 12 box edges so the box reads clearly through the translucent
+  // fill. (vtk has no rounded-cube primitive, so the corners stay square; the
+  // visible edges are what make it look like a deliberate box rather than a
+  // flat slab.)
+  property.setEdgeVisibility(true);
+  property.setEdgeColor(...edgeColor);
+  property.setLineWidth(edgeWidth);
 
   viewport.addActor({ uid: MASK_BOX_ACTOR_UID, actor });
   viewport.render();

@@ -283,10 +283,29 @@ function VolumeViewport3d({
     };
 
     setup();
-    return () => {
-      segmentation.removeAllSegmentationRepresentations();
-    };
+    // No segmentation-representation cleanup here. `loadVolumeAndSegmentation`
+    // already calls removeAllSegmentationRepresentations() inside volume.load(),
+    // right before it re-creates the segmentation and fires "VolumeReallyLoaded"
+    // — a non-racy cleanup in the same async flow. Doing it again here raced the
+    // re-render's cleanup against that event: on a cached/fast load the event
+    // fired first (rep added + activated), then this cleanup wiped the new rep,
+    // leaving the scissors with "No active segmentation detected".
   }, [elementRef, volumeId]);
+
+  // On unmount (leaving this route), remove the 3D viewport from the shared
+  // rendering engine so it doesn't linger and re-render with stale volume/box
+  // actors, which breaks the next route (e.g. the stack viewer). We do this only
+  // on unmount — not on every volumeId change — so volume↔volume navigation
+  // keeps the viewport and its active segmentation intact.
+  useEffect(() => {
+    return () => {
+      try {
+        renderingEngine?.disableElement(viewportId);
+      } catch (error) {
+        console.warn("[VolumeViewport3d] disableElement failed", error);
+      }
+    };
+  }, []);
 
   // Update scalar opacity
   useEffect(() => {
