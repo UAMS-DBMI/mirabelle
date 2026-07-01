@@ -197,7 +197,7 @@ export default function ToolsPanel({
         )}
         {globalToolsConfig.resetToolGroup.visible && (
           <div>
-            <p>Reset Viewports:</p>
+            <p>Reset Camera:</p>
             {/* One-shot action, so noRemember keeps it from staying highlighted. */}
             <MaterialButtonSet
               noRemember
