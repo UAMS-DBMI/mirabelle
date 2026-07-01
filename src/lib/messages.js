@@ -47,6 +47,13 @@ export const messages = {
     segVolume: "Loading volume for segmentation…",
   },
 
+  // Informational notices (non-error feedback about what happened).
+  info: {
+    segNoBaseImage: (iec) =>
+      `No matching image series was found for segmentation IEC ${iec}; ` +
+      `showing the segmentation on its own.`,
+  },
+
   // Neutral viewport empty states (never styled as errors).
   viewport: {
     noImage: "No image to display",

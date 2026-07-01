@@ -232,6 +232,13 @@ export default function DicomReviewIEC({
       const hasSegBase = isSeg && segBaseIEC != null;
       const renderAsVolume = hasSegBase || (!isSeg && volumetric);
 
+      // A SEG with no base image series can't be overlaid onto anything, so
+      // fall back to showing the segmentation's own frames as a stack and let
+      // the user know why.
+      if (isSeg && !hasSegBase) {
+        notify.info(messages.info.segNoBaseImage(iec));
+      }
+
       //if (optionsView === 'stack') {
       //  console.log("DicomReviewIEC: forcing stack view");
       //  volumetric = false; // force stack view
@@ -254,19 +261,15 @@ export default function DicomReviewIEC({
       let volumeId = `dicom-review-${iec}-decimate-${decimate_count}`;
       let segmentationId = `dicom-review-${iec}-seg`;
 
-      let imageIds = [];
-
-      if (!isSeg) {
-        const { frames } = await getIECInfo(iec, false, requestedDecimateCount);
-        imageIds = frames;
-      } else {
-        const { frames } = await getIECInfo(
-          segBaseIEC,
-          false,
-          requestedDecimateCount,
-        );
-        imageIds = frames;
-      }
+      // Load the base image series' frames for a SEG with a base; otherwise
+      // (plain series, or a SEG without a base) load the IEC's own frames.
+      const framesIEC = segBaseIEC ?? iec;
+      const { frames } = await getIECInfo(
+        framesIEC,
+        false,
+        requestedDecimateCount,
+      );
+      let imageIds = frames;
       setImageIds(imageIds);
 
       setVolumeId(volumeId);
