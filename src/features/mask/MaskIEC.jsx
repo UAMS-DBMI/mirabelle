@@ -24,10 +24,8 @@ import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
 import {
-  expandSegTo3D,
-  expandSegTo3DInWorldSpace,
   getCoordsForStackSeg,
-  isSegFlat,
+  getLabelmapBounds,
   loadIECVolumeAndSegmentation,
   loadVolumeAndSegmentation,
   getIECInfo,
@@ -38,6 +36,7 @@ import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
 import { submitFinalCoords } from "@/masking";
 import { addMaskBox, removeMaskBox } from "@/lib/maskBox";
+import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { VolumeView } from "@/features/volume-view";
@@ -59,6 +58,12 @@ const {
   Enums: csToolsEnums,
   segmentation,
 } = cornerstoneTools;
+
+// Style for the selection box overlays (green box, in 2D and 3D).
+const SELECTION_BOX_STYLE = {
+  box2d: { borderColor: "rgba(74, 222, 128, 0.95)" },
+  box3d: { color: [0.3, 0.85, 0.3], edgeColor: [0.6, 1, 0.6], opacity: 0.8 },
+};
 
 function transformDetails(details, maskingDetails) {
   const maskingParams = JSON.parse(maskingDetails.masking_parameters);
@@ -151,7 +156,6 @@ export default function MaskIEC({
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
   const [maskingDetails, setMaskingDetails] = useState(true);
-  const [expanded, setExpanded] = useState(false);
   const [coords, setCoords] = useState();
   const loadRequestRef = useRef(0);
 
@@ -163,7 +167,7 @@ export default function MaskIEC({
   }, [showLeftPanel, showRightPanel]);
 
   useEffect(() => {
-    const callback = (evt) => {
+    const callback = () => {
       // trigger a new event, to enable segmentation drawing
       console.log("[callback] AllowSegmentationDrawing firing...");
       cornerstone.triggerEvent(
@@ -175,14 +179,22 @@ export default function MaskIEC({
       );
     };
 
+    // The volume fires "VolumeReallyLoaded"; the stack fires
+    // "StackSegmentationReady". Both must enable segmentation drawing (activate
+    // the scissors), so listen for both.
     // TODO: these string based event names need to be collected into
     // a library and accessed as enums
     cornerstone.eventTarget.addEventListener("VolumeReallyLoaded", callback);
+    cornerstone.eventTarget.addEventListener("StackSegmentationReady", callback);
 
     // cleanup the callback
     return () => {
       cornerstone.eventTarget.removeEventListener(
         "VolumeReallyLoaded",
+        callback,
+      );
+      cornerstone.eventTarget.removeEventListener(
+        "StackSegmentationReady",
         callback,
       );
     };
@@ -313,6 +325,26 @@ export default function MaskIEC({
         return;
       }
 
+      // Make this IEC's segmentation active on the 2D drawing viewports, so the
+      // scissors always has an active segmentation after navigation. The
+      // per-viewport "ready" handlers can miss their event (cached load) or run
+      // before the segmentation exists; doing it here — after the segmentation
+      // is guaranteed created — is the reliable backstop.
+      cornerstone
+        .getRenderingEngines()[0]
+        ?.getViewports()
+        .forEach((vp) => {
+          if (vp.id.startsWith("coronal3d")) return; // 3D pane: no drawing
+          try {
+            cornerstoneTools.segmentation.activeSegmentation.setActiveSegmentation(
+              vp.id,
+              segmentationId,
+            );
+          } catch {
+            // Segmentation not represented in this viewport yet — ignore.
+          }
+        });
+
       setIsInitialized(true);
       dispatch(setLoading(false));
     };
@@ -357,17 +389,95 @@ export default function MaskIEC({
     );
   }
 
-  useHotkeys("e", () => handleOperationAction("expand"));
   useHotkeys("c", () => handleOperationAction("clear"));
   useHotkeys("a", () => handleOperationAction("accept"));
   useHotkeys("s", () => handleOperationAction("skip mask"));
   useHotkeys("n", () => handleOperationAction("nonmaskable mask"));
 
+  // Volume mode: the selection is the bounding box of whatever has been drawn.
+  // We hide the raw labelmap (the individual drawn rectangles) and instead show
+  // a single clean green box — the 2D filled overlays and the 3D box actor —
+  // covering that bounding box. Bounds come from the voxel manager's tracked
+  // bounds (O(1)); we never rewrite the labelmap, so drawing stays fast.
+  // (Stack mode is handled differently — see StackViewport.)
+  // The selection is the bounding box of whatever has been drawn. We hide the
+  // raw labelmap and instead show a single clean green box — the same overlay
+  // styling in both viewers: the 2D filled outline overlays, plus the 3D box
+  // actor in volume mode. Volume bounds come from the voxel manager's tracked
+  // bounds (O(1)); stack bounds come from the drawn pixels. The stack is a
+  // single image, so its 2D box isn't slice-gated.
+  useEffect(() => {
+    if (!segmentationId) return;
+
+    // (The raw labelmap is hidden where each viewport adds its representation —
+    // see VolumeViewport / StackViewport — so it's reliably hidden from the
+    // first frame regardless of this effect's timing.)
+
+    const is3dViewport = (id) => id.startsWith("coronal3d");
+    // 2D mask viewports: the volume orthographic panes and the stack pane.
+    const is2dViewport = (id) => id.endsWith("2d") || id === "myviewport";
+
+    const refreshSelectionBoxes = () => {
+      const renderingEngine = cornerstone.getRenderingEngines()[0];
+      if (!renderingEngine) return;
+
+      let bounds;
+      let volume;
+      if (volumetric) {
+        bounds = getLabelmapBounds(segmentationId);
+        volume = cornerstone.cache.getVolume(volumeId);
+      } else {
+        const imageIds = segmentation.getLabelmapImageIds(segmentationId);
+        bounds = imageIds?.length ? getCoordsForStackSeg(imageIds) : null;
+      }
+
+      renderingEngine.getViewports().forEach((item) => {
+        const is3d = is3dViewport(item.id);
+        const is2d = is2dViewport(item.id);
+        if (!is3d && !is2d) return;
+
+        if (!bounds) {
+          if (is3d) removeMaskBox(item);
+          else removeMaskBox2D(item);
+        } else if (is3d) {
+          addMaskBox(item, volume, bounds, SELECTION_BOX_STYLE.box3d);
+        } else {
+          // The stack is one image, so don't gate its box by slice.
+          addMaskBox2D(item, bounds, {
+            ...SELECTION_BOX_STYLE.box2d,
+            gateBySlice: volumetric,
+          });
+        }
+      });
+    };
+
+    const handler = (evt) => {
+      if (evt.detail?.segmentationId === segmentationId) {
+        refreshSelectionBoxes();
+      }
+    };
+
+    cornerstone.eventTarget.addEventListener(
+      csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,
+      handler,
+    );
+
+    return () => {
+      cornerstone.eventTarget.removeEventListener(
+        csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,
+        handler,
+      );
+      // Clear the boxes so they don't linger onto the next segmentation / IEC.
+      const renderingEngine = cornerstone.getRenderingEngines()[0];
+      renderingEngine?.getViewports().forEach((item) => {
+        if (is3dViewport(item.id)) removeMaskBox(item);
+        else if (is2dViewport(item.id)) removeMaskBox2D(item);
+      });
+    };
+  }, [segmentationId, volumeId, volumetric]);
+
   async function handleOperationAction(action) {
     switch (action) {
-      case "expand":
-        await handleExpand();
-        break;
       case "clear":
         handleClear();
         break;
@@ -394,46 +504,14 @@ export default function MaskIEC({
     }
   }
 
-  async function handleExpand() {
-    // An empty selection is allowed: cornerstone reports the full-volume bounds
-    // when nothing is painted, so expanding it masks the whole volume.
-    // (isSegFlat returns false for an empty selection precisely because of those
-    // full bounds, so it doesn't block this case.)
-    if (!expanded && isSegFlat(segmentationId)) {
-      notify.info(messages.maskValidation.flatSelection);
-      return;
-    }
-    const coords = expandSegTo3D(segmentationId);
-
-    //flag data as updated so it will redraw
-    cornerstoneTools.segmentation.triggerSegmentationEvents.triggerSegmentationDataModified(
-      segmentationId,
-    );
-
-    // Draw the expanded region as a box in the 3D viewport(s). We render it as
-    // its own actor (rather than a labelmap-derived surface) so the labelmap
-    // can fill the volume edge-to-edge without breaking 3D — see addMaskBox.
-    // TODO I don't like this being here, perhaps put it inside VolumeView
-    // and expose a callback that can be called from here?
-    const renderingEngine = cornerstone.getRenderingEngines()[0];
-    const volume = cornerstone.cache.getVolume(volumeId);
-    renderingEngine.getViewports().forEach((item) => {
-      if (item.id.startsWith("coronal3d")) {
-        addMaskBox(item, volume, coords);
-      }
-    });
-
-    setExpanded(true);
-    setCoords(coords);
-    notify.success(messages.mask.expanded);
-  }
-
   function handleClear() {
-    // Clear the 3D selection box (added by handleExpand) from any 3D viewport.
+    // Clear the selection box overlays from the 3D and 2D viewports.
     const renderingEngine = cornerstone.getRenderingEngines()[0];
     renderingEngine?.getViewports().forEach((item) => {
       if (item.id.startsWith("coronal3d")) {
         removeMaskBox(item);
+      } else if (item.id.endsWith("2d")) {
+        removeMaskBox2D(item);
       }
     });
 
@@ -486,16 +564,9 @@ export default function MaskIEC({
         segmentationId,
       );
     }
-
-    setExpanded(false);
   }
 
   async function handleAccept() {
-    if (volumetric && !expanded) {
-      notify.info(messages.maskValidation.expandFirst);
-      return false;
-    }
-
     let finalCoords = coords;
     let selectedForm = optionsForm;
     let selectedFunction = optionsFunction;
@@ -505,6 +576,22 @@ export default function MaskIEC({
     let spacing = null;
 
     if (volumetric) {
+      // The selection is the bounding box of the drawn voxels. Require a real
+      // 3D box: reject an empty selection or one confined to a single plane.
+      const bounds = getLabelmapBounds(segmentationId);
+      if (!bounds) {
+        notify.info(messages.maskValidation.emptySelection);
+        return false;
+      }
+      if (
+        bounds.i.min === bounds.i.max ||
+        bounds.j.min === bounds.j.max ||
+        bounds.k.min === bounds.k.max
+      ) {
+        notify.info(messages.maskValidation.notABox);
+        return false;
+      }
+      finalCoords = bounds;
       const volume = cornerstone.cache.getVolume(volumeId);
       spacing = volume.spacing;
     } else {

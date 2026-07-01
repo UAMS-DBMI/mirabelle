@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
+import { attachDataFrame, removeMaskBox2D } from "@/lib/viewportFrame";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -33,6 +34,11 @@ const { segmentation: segmentationUtils } = cstUtils;
 
 const { ViewportType } = Enums;
 
+// Zoom the 2D viewports out slightly so the image doesn't touch the panel edge.
+// This keeps the mask outline, the data-boundary frame, and any selection drawn
+// to the edge of the image visible inside the panel.
+const MARGIN_ZOOM = 0.92;
+
 window.eventTarget = eventTarget;
 
 function VolumeViewport({
@@ -49,6 +55,8 @@ function VolumeViewport({
   const dispatch = useDispatch();
 
   const elementRef = useRef(null);
+  const frameDetachRef = useRef(null);
+  const volumeLoadedListenerRef = useRef(null);
 
   window.re = renderingEngine;
 
@@ -130,15 +138,54 @@ function VolumeViewport({
       // Get the volume viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
 
-      eventTarget.addEventListener("VolumeReallyLoaded", (evt) => {
-        console.log("[VolumeViewport] VolumeReallyLoaded event caught");
-        const segmentationId = evt.detail.segmentationId;
-        if (segmentationId !== undefined) {
-          segmentation.addLabelmapRepresentationToViewport(viewportId, [
-            { segmentationId },
-          ]);
+      // Add the mask segmentation's labelmap representation to this viewport and
+      // activate it so the scissors can paint into it. Driven both by the
+      // VolumeReallyLoaded event (fresh, async volume load) AND by the immediate
+      // call below (cached load) — see that call's comment for why the event
+      // alone isn't enough.
+      const applyMaskSegmentation = (readySegmentationId) => {
+        if (
+          !readySegmentationId ||
+          !segmentation.state.getSegmentation(readySegmentationId)
+        ) {
+          return;
         }
-      });
+        // Hide the raw labelmap before adding the rep so only the clean overlay
+        // box (drawn by MaskIEC) shows — doing it here, where the rep is added,
+        // avoids a timing race with MaskIEC's effect.
+        try {
+          segmentation.config.style.setStyle(
+            {
+              segmentationId: readySegmentationId,
+              type: csToolsEnums.SegmentationRepresentations.Labelmap,
+            },
+            { renderFill: false, renderOutline: false },
+          );
+        } catch (error) {
+          console.warn("[VolumeViewport] could not hide mask labelmap", error);
+        }
+        segmentation.addLabelmapRepresentationToViewport(viewportId, [
+          { segmentationId: readySegmentationId },
+        ]);
+        // Activate it so the scissors can paint; the new segmentation isn't
+        // auto-activated on navigation (see StackViewport for the same fix).
+        segmentation.activeSegmentation.setActiveSegmentation(
+          viewportId,
+          readySegmentationId,
+        );
+      };
+
+      const onVolumeReallyLoaded = (evt) =>
+        applyMaskSegmentation(evt.detail?.segmentationId);
+      // Drop a listener left by a previous mount before adding this one, so old
+      // listeners can't fire against a now-disabled viewport and don't
+      // accumulate across navigation.
+      eventTarget.removeEventListener(
+        "VolumeReallyLoaded",
+        volumeLoadedListenerRef.current,
+      );
+      eventTarget.addEventListener("VolumeReallyLoaded", onVolumeReallyLoaded);
+      volumeLoadedListenerRef.current = onVolumeReallyLoaded;
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 
@@ -157,8 +204,25 @@ function VolumeViewport({
         })),
       });
 
+      // Leave a margin around the image so its edges (and the data-boundary
+      // frame) are visible inside the panel.
+      viewport.setZoom(MARGIN_ZOOM, false);
+
       // Render the image
       viewport.render();
+
+      // Draw the data-boundary frame (replacing any from a previous volume),
+      // and clear any stale mask-box overlay left from a previous volume.
+      frameDetachRef.current?.();
+      frameDetachRef.current = attachDataFrame(viewport, elementRef.current);
+      removeMaskBox2D(viewport);
+
+      // On a cached revisit the volume is already loaded, so VolumeReallyLoaded
+      // fired synchronously — inside MaskIEC's load, before this viewport was
+      // mounted — and won't fire again. The segmentation already exists by now,
+      // so apply it directly; without this the scissors has no active
+      // segmentation after navigating away and back.
+      applyMaskSegmentation(segmentationId);
 
       dispatch(setOption({ key: "viewport", value: viewportId }));
 
@@ -167,6 +231,26 @@ function VolumeViewport({
 
     setup();
   }, [elementRef, volumeId]);
+
+  // Tear down the data-boundary frame and remove this viewport from the shared
+  // rendering engine on unmount, so it doesn't linger and contaminate the next
+  // route (the engine is reused across routes).
+  useEffect(() => {
+    return () => {
+      frameDetachRef.current?.();
+      frameDetachRef.current = null;
+      eventTarget.removeEventListener(
+        "VolumeReallyLoaded",
+        volumeLoadedListenerRef.current,
+      );
+      volumeLoadedListenerRef.current = null;
+      try {
+        renderingEngine?.disableElement(viewportId);
+      } catch (error) {
+        console.warn("[VolumeViewport] disableElement failed", error);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Don't attempt to reset during initialization, as global
@@ -194,6 +278,8 @@ function VolumeViewport({
       viewport.resetToDefaultProperties();
     }
 
+    // Reapply the margin: resetProperties above restores a full-fit zoom.
+    viewport.setZoom(MARGIN_ZOOM, false);
     viewport.render();
   }, [viewMode]);
 

@@ -16,47 +16,6 @@ const { Cornerstone3D } = cornerstoneAdapters.adaptersSEG;
 
 import dcmjs from "dcmjs";
 
-export function expandSegTo3D(segmentationId) {
-  const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
-  const { dimensions, voxelManager } = segmentationVolume;
-
-  // It's fastest to extract the scalardata as an array
-  // and then set it back later, rather than to update individual pixels
-  // I tested it twice, this is more than 10x faster
-  let scalarData = voxelManager.getCompleteScalarDataArray();
-
-  const [i_size, j_size] = dimensions;
-
-  const [[imin, imax], [jmin, jmax], [kmin, kmax]] =
-    voxelManager.getBoundsIJK();
-
-  // Fill the entire bounding box of the selection, edge-to-edge. The 3D box is
-  // drawn separately as its own actor (see addMaskBox), so we don't need to
-  // leave a margin for a marching-cubes surface — both the 2D overlay and the
-  // submitted mask cover the full selection, including the outermost voxels.
-  for (let k = kmin; k <= kmax; k++) {
-    for (let j = jmin; j <= jmax; j++) {
-      for (let i = imin; i <= imax; i++) {
-        // offset into the array
-        let offset = k * i_size * j_size + j * i_size + i;
-        scalarData[offset] = 2;
-      }
-    }
-  }
-  voxelManager.setCompleteScalarDataArray(scalarData);
-  voxelManager.setBounds([
-    [imin, imax],
-    [jmin, jmax],
-    [kmin, kmax],
-  ]);
-
-  return {
-    i: { min: imin, max: imax },
-    j: { min: jmin, max: jmax },
-    k: { min: kmin, max: kmax },
-  };
-}
-
 export function getCoordsForStackSeg(imageIds) {
   let imin = Infinity,
     jmin = Infinity,
@@ -113,6 +72,33 @@ export function calculateDistance(point1, point2) {
   const distance = Math.sqrt(dx ** 2 + dy ** 2 + dz ** 2);
 
   return distance;
+}
+
+/*
+ * Bounding box (IJK min/max per axis) of the painted voxels in a segmentation,
+ * or null if nothing is painted.
+ *
+ * This reads the voxel manager's tracked bounds, which cornerstone narrows as
+ * voxels are painted (setAtIndex/setAtIJK call addBounds). It's O(1) — no
+ * scanning of the scalar data. The bounds start at [Infinity, -Infinity], so an
+ * untouched min of Infinity means nothing has been drawn.
+ */
+export function getLabelmapBounds(segmentationId) {
+  const voxelManager = cornerstone.cache.getVolume(segmentationId)?.voxelManager;
+  if (!voxelManager) {
+    return null;
+  }
+
+  const [[imin, imax], [jmin, jmax], [kmin, kmax]] = voxelManager.boundsIJK;
+  if (imin === Infinity) {
+    return null;
+  }
+
+  return {
+    i: { min: imin, max: imax },
+    j: { min: jmin, max: jmax },
+    k: { min: kmin, max: kmax },
+  };
 }
 
 /*
@@ -533,6 +519,14 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
       },
     },
   ]);
+
+  // Signal that the segmentation now exists so the stack viewport can add (and
+  // activate) its representation — mirrors loadVolumeAndSegmentation. Adding the
+  // representation before this point would race ahead of the segmentation. We
+  // use a stack-specific event (not "VolumeReallyLoaded") so a leftover volume
+  // viewport listener can't react to it and add a representation to a gone
+  // viewport (which renders null and throws).
+  triggerEvent(eventTarget, "StackSegmentationReady", { segmentationId });
 }
 
 function parseSegMetadata(arrayBuffer) {

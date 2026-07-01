@@ -58,8 +58,11 @@ const ERRORS = [
 ];
 
 const VALIDATION_NAV = [
-  ["Flat selection", () => notify.info(messages.maskValidation.flatSelection)],
-  ["Expand first", () => notify.info(messages.maskValidation.expandFirst)],
+  [
+    "Empty selection",
+    () => notify.info(messages.maskValidation.emptySelection),
+  ],
+  ["Not a box", () => notify.info(messages.maskValidation.notABox)],
   ["No next (IEC)", () => notify.info(messages.navigation.noNext("IEC"))],
   [
     "No previous (file)",
