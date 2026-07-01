@@ -84,10 +84,24 @@ export function addMaskBox(viewport, volume, coords, options = {}) {
     edgeWidth = 2,
   } = options;
 
-  removeMaskBox(viewport);
+  const points = boxCornerPoints(volume.imageData, coords);
+
+  // If the box is already on the viewport, just move its 8 corners in place —
+  // allocating a fresh actor/mapper/polyData and swapping actors every call is
+  // far too heavy to run each frame of a live drag. Updating the points and
+  // re-rendering keeps the 3D box in sync smoothly.
+  const existing = viewport.getActor(MASK_BOX_ACTOR_UID)?.actor;
+  if (existing) {
+    const existingPolyData = existing.getMapper().getInputData();
+    existingPolyData.getPoints().setData(points, 3);
+    existingPolyData.getPoints().modified();
+    existingPolyData.modified();
+    viewport.render();
+    return;
+  }
 
   const polyData = vtkPolyData.newInstance();
-  polyData.getPoints().setData(boxCornerPoints(volume.imageData, coords), 3);
+  polyData.getPoints().setData(points, 3);
   polyData.getPolys().setData(boxFaceCells());
 
   const mapper = vtkMapper.newInstance();

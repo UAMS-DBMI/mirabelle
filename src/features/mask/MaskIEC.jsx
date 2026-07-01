@@ -37,6 +37,19 @@ import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
 import { submitFinalCoords } from "@/masking";
 import { addMaskBox, removeMaskBox } from "@/lib/maskBox";
 import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
+import {
+  USE_RECTANGLE_ROI_FOR_STACK,
+  STACK_ROI_TOOL_NAME,
+  initStackRoiAnnotation,
+  clearStackRoi,
+  getStackRoiCoords,
+  setStackRoiRangeStart,
+  setStackRoiRangeEnd,
+} from "@/lib/maskRectangleRoi";
+import {
+  USE_RECTANGLE_ROI_FOR_VOLUME,
+  createVolumeRoiController,
+} from "@/lib/maskRectangleRoiVolume";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { VolumeView } from "@/features/volume-view";
@@ -397,6 +410,9 @@ export default function MaskIEC({
   useHotkeys("a", () => handleOperationAction("accept"));
   useHotkeys("s", () => handleOperationAction("skip mask"));
   useHotkeys("n", () => handleOperationAction("nonmaskable mask"));
+  // Stack ROI prototype: set the selection's frame-range start / end.
+  useHotkeys("[", () => adjustStackRoiRange("start"));
+  useHotkeys("]", () => adjustStackRoiRange("end"));
 
   // Volume mode: the selection is the bounding box of whatever has been drawn.
   // We hide the raw labelmap (the individual drawn rectangles) and instead show
@@ -412,6 +428,13 @@ export default function MaskIEC({
   // single image, so its 2D box isn't slice-gated.
   useEffect(() => {
     if (!segmentationId) return;
+
+    // PROTOTYPE: the native RectangleROITool selection renders and resizes
+    // itself, so skip the DOM selection-box overlay when it's enabled — in stack
+    // mode (frame range) and in volume mode (the per-pane controller owns the
+    // ortho rectangles and the 3D box actor).
+    if (!volumetric && USE_RECTANGLE_ROI_FOR_STACK) return;
+    if (volumetric && USE_RECTANGLE_ROI_FOR_VOLUME) return;
 
     // (The raw labelmap is hidden where each viewport adds its representation —
     // see VolumeViewport / StackViewport — so it's reliably hidden from the
@@ -552,6 +575,62 @@ export default function MaskIEC({
     };
   }, [segmentationId, volumeId, volumetric, leftClickTool]);
 
+  // PROTOTYPE (stack mode): when a RectangleROITool box is drawn, keep it as the
+  // only selection, colour it green, and default its frame range to the whole
+  // stack. The user narrows the range with the "[" / "]" hotkeys below.
+  useEffect(() => {
+    if (volumetric || !USE_RECTANGLE_ROI_FOR_STACK || !segmentationId) return;
+
+    // ANNOTATION_COMPLETED fires on every resize/move too, so remember which
+    // boxes we've already defaulted and only apply the full-stack range once.
+    const defaulted = new Set();
+    const onCompleted = (evt) => {
+      const ann = evt.detail?.annotation;
+      if (ann?.metadata?.toolName !== STACK_ROI_TOOL_NAME) return;
+      const viewport = getStackViewport();
+      if (!viewport) return;
+      const applyDefaultRange = !defaulted.has(ann.annotationUID);
+      defaulted.add(ann.annotationUID);
+      initStackRoiAnnotation(viewport, ann, { applyDefaultRange });
+    };
+
+    cornerstone.eventTarget.addEventListener(
+      csToolsEnums.Events.ANNOTATION_COMPLETED,
+      onCompleted,
+    );
+    return () =>
+      cornerstone.eventTarget.removeEventListener(
+        csToolsEnums.Events.ANNOTATION_COMPLETED,
+        onCompleted,
+      );
+  }, [volumetric, segmentationId]);
+
+  // PROTOTYPE (volume mode): a controller keeps one native RectangleROITool per
+  // ortho pane in sync with a single 3D box (the segmentation's voxel-manager
+  // bounds) and draws the 3D box actor. Torn down when the segmentation changes.
+  useEffect(() => {
+    if (!volumetric || !USE_RECTANGLE_ROI_FOR_VOLUME || !segmentationId) return;
+    const controller = createVolumeRoiController({ volumeId, segmentationId });
+    return () => controller.destroy();
+  }, [volumetric, segmentationId, volumeId]);
+
+  // The single stack drawing viewport (StackView passes viewportId="myviewport").
+  function getStackViewport() {
+    return cornerstone.getRenderingEngines()[0]?.getViewport("myviewport");
+  }
+
+  // "[" / "]" set the stack ROI's frame-range start / end to the current frame.
+  function adjustStackRoiRange(which) {
+    if (volumetric || !USE_RECTANGLE_ROI_FOR_STACK) return;
+    const viewport = getStackViewport();
+    if (!viewport) return;
+    const rangeStr =
+      which === "start"
+        ? setStackRoiRangeStart(viewport)
+        : setStackRoiRangeEnd(viewport);
+    if (rangeStr) notify.info(`Mask frames: ${rangeStr}`);
+  }
+
   async function handleOperationAction(action) {
     switch (action) {
       case "clear":
@@ -627,6 +706,10 @@ export default function MaskIEC({
       });
 
       setSegmentationId(newSegmentationId);
+    } else if (USE_RECTANGLE_ROI_FOR_STACK) {
+      // Stack ROI prototype: the selection is an annotation, not labelmap
+      // pixels — just remove it.
+      clearStackRoi(getStackViewport());
     } else {
       const imageIds = segmentation.getLabelmapImageIds(segmentationId);
       imageIds.forEach((imgId) => {
@@ -670,6 +753,18 @@ export default function MaskIEC({
       finalCoords = bounds;
       const volume = cornerstone.cache.getVolume(volumeId);
       spacing = volume.spacing;
+    } else if (USE_RECTANGLE_ROI_FOR_STACK) {
+      // Stack ROI prototype: read the IJK cuboid straight off the annotation
+      // (rectangle → i/j, frame range → k) rather than scanning labelmap pixels.
+      const viewport = getStackViewport();
+      finalCoords = getStackRoiCoords(viewport);
+      if (!finalCoords) {
+        notify.info(messages.maskValidation.emptySelection);
+        return false;
+      }
+      setCoords(finalCoords);
+      const image = cornerstone.cache.getImage(viewport.getCurrentImageId());
+      spacing = [image.columnPixelSpacing ?? 1, image.rowPixelSpacing ?? 1, 1];
     } else {
       const imageIds = segmentation.getLabelmapImageIds(segmentationId);
       if (!coords) {
@@ -795,6 +890,7 @@ export default function MaskIEC({
             toolGroup={toolGroup}
             toolGroup3d={toolGroup3d}
             preset3d={preset3d}
+            volumetric={volumetric}
             onPresetChange={
               (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
             }

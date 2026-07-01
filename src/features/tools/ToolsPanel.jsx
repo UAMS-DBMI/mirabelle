@@ -28,6 +28,8 @@ export default function ToolsPanel({
   preset3d,
   renderingEngine,
   onApplyDecimate,
+  // Only the mask route passes this; it selects the stack-mode selection tool.
+  volumetric,
 }) {
   const dispatch = useDispatch();
 
@@ -99,9 +101,9 @@ export default function ToolsPanel({
 
   // const [selectedPreset, setSelectedPreset] = useState(preset3d);
 
-  // The selection (scissors) button stays disabled until the image finishes
+  // The scissors selection button stays disabled until the image finishes
   // loading and its segmentation is active (AllowSegmentationDrawing fires).
-  const [selectionReady, setSelectionReady] = useState(false);
+  const [scissorsReady, setScissorsReady] = useState(false);
 
   const manager = useToolsManager({
     toolGroup,
@@ -109,7 +111,13 @@ export default function ToolsPanel({
     defaultLeftClickMode: globalToolsConfig.leftClickToolGroup.defaultValue,
     defaultRightClickMode: globalToolsConfig.rightClickToolGroup.defaultValue,
     renderingEngine,
+    volumetric,
   });
+  // The RectangleROITool needs no segmentation, so it can draw while the image
+  // is still loading — keep its button enabled from the start. Only the scissors
+  // path waits for the segmentation.
+  const selectionReady = manager.useRoi || scissorsReady;
+  const setSelectionReady = setScissorsReady;
   const toolsConfigs = useToolsConfigs({ manager, selectionReady });
 
   useEffect(() => {

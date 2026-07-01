@@ -5,6 +5,15 @@ import { setFunction, setForm } from "@/features/maskingSlice";
 import { Enums } from "@/features/presentationSlice";
 import { setOption } from "@/features/optionSlice";
 import { ClampedRectangleScissorsTool } from "@/lib/clampedRectangleScissors";
+import {
+  USE_RECTANGLE_ROI_FOR_STACK,
+  STACK_ROI_TOOL_CONFIG,
+} from "@/lib/maskRectangleRoi";
+import { USE_RECTANGLE_ROI_FOR_VOLUME } from "@/lib/maskRectangleRoiVolume";
+import {
+  MaskRectangleRoiTool,
+  MASK_ROI_TOOL_CONFIG,
+} from "@/lib/maskRectangleRoiTool";
 
 // Use this global to track when the tools have been added globally
 let toolsLoaded = false;
@@ -18,6 +27,7 @@ const {
   CrosshairsTool,
   PanTool,
   ZoomTool,
+  RectangleROITool,
   Enums: csToolsEnums,
 } = cornerstoneTools;
 
@@ -48,9 +58,28 @@ export default function useToolsManager({
   toolGroup3d,
   defaultLeftClickMode,
   defaultRightClickMode,
+  // True in volume mode, false in stack mode, undefined on other routes. Used to
+  // pick the stack-mode selection tool (RectangleROITool) — see the prototype in
+  // maskRectangleRoi.js. The strict `=== false` check below keeps every other
+  // route on the scissors tool.
+  volumetric,
 }) {
   const _maskingOperation = useSelector((state) => state.masking.operation);
   const dispatch = useDispatch();
+
+  // The mask selection tool is a native, resizable RectangleROI instead of the
+  // scissors that paint a labelmap — in stack mode (rectangle + frame range) and,
+  // when enabled, in volume mode (a rectangle per ortho pane reconciled into one
+  // 3D box, see maskRectangleRoiVolume.js).
+  const useRoi =
+    (volumetric === false && USE_RECTANGLE_ROI_FOR_STACK) ||
+    (volumetric === true && USE_RECTANGLE_ROI_FOR_VOLUME);
+
+  // Volume mode uses the filled, move-anywhere MaskRectangleRoiTool; stack mode
+  // uses the stock RectangleROITool (its frame-range feature keys off that tool).
+  const roiTool = volumetric === true ? MaskRectangleRoiTool : RectangleROITool;
+  const roiToolConfig =
+    volumetric === true ? MASK_ROI_TOOL_CONFIG : STACK_ROI_TOOL_CONFIG;
 
   if (!toolsLoaded) {
     // add tools globally to cornerstone, but only once ever
@@ -60,6 +89,8 @@ export default function useToolsManager({
     cornerstoneTools.addTool(CrosshairsTool);
     cornerstoneTools.addTool(PanTool);
     cornerstoneTools.addTool(ZoomTool);
+    cornerstoneTools.addTool(RectangleROITool);
+    cornerstoneTools.addTool(MaskRectangleRoiTool);
     toolsLoaded = true;
   }
 
@@ -88,7 +119,7 @@ export default function useToolsManager({
         break;
 
       case Enums.LeftClickOptions.SELECTION:
-        newTool = ClampedRectangleScissorsTool;
+        newTool = useRoi ? roiTool : ClampedRectangleScissorsTool;
         break;
     }
 
@@ -146,6 +177,9 @@ export default function useToolsManager({
     toolGroup.addTool(ClampedRectangleScissorsTool.toolName);
     toolGroup.addTool(StackScrollTool.toolName);
     toolGroup.addTool(WindowLevelTool.toolName);
+    if (useRoi) {
+      toolGroup.addTool(roiTool.toolName, roiToolConfig);
+    }
     console.log(console.log(toolGroup));
 
     function getReferenceLineColor(viewportId) {
@@ -177,14 +211,18 @@ export default function useToolsManager({
       });
     }
 
-    // The selection (scissors) tool needs an active segmentation, which only
+    // The scissors selection tool needs an active segmentation, which only
     // exists once the image has finished loading. Rather than falling back to
     // the window-level tool while loading — which stole the left-click from the
     // selection on every load — keep the left-click disabled here and let it be
     // enabled to the selection tool once the image is ready (see the
     // AllowSegmentationDrawing listener in ToolsPanel). Other routes (review)
     // keep activating their configured default.
-    if (defaultLeftClickMode === Enums.LeftClickOptions.SELECTION) {
+    //
+    // The RectangleROITool (useRoi) doesn't need a segmentation, so there's
+    // nothing to wait for — activate it immediately so it can draw even while
+    // the image is still loading.
+    if (defaultLeftClickMode === Enums.LeftClickOptions.SELECTION && !useRoi) {
       disableLeftClick();
     } else {
       switchLeftClickMode(defaultLeftClickMode);
@@ -193,6 +231,9 @@ export default function useToolsManager({
   }, [toolGroup]);
 
   return {
+    // Exposed so ToolsPanel can leave the selection button enabled from the
+    // start when the ROI tool (which needs no segmentation) is in use.
+    useRoi,
     switchRightClickMode,
     switchLeftClickMode,
     switchFunctionMode: (mode) => {
