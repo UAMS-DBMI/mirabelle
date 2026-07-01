@@ -47,6 +47,7 @@ function VolumeViewport({
   segmentationId,
 }) {
   const viewMode = useSelector((state) => state.options.view);
+  const activeViewport = useSelector((state) => state.options.viewport);
   const [initialized, setInitialized] = useState(false);
   const dispatch = useDispatch();
 
@@ -169,6 +170,21 @@ function VolumeViewport({
           viewportId,
           readySegmentationId,
         );
+        // Color the segment green so the scissors' in-progress draw rectangle
+        // matches the selection box (it uses the segment color even though the
+        // fill is hidden) — see StackViewport for the same fix.
+        try {
+          [1, 2].forEach((segmentIndex) =>
+            segmentation.config.color.setSegmentIndexColor(
+              viewportId,
+              readySegmentationId,
+              segmentIndex,
+              [74, 222, 128, 255],
+            ),
+          );
+        } catch (error) {
+          console.warn("[VolumeViewport] could not color mask segment", error);
+        }
         // The segmentation is now active on this viewport, so drawing is safe.
         // Signal the tools panel to enable the selection (scissors) tool, which
         // is kept disabled while loading to avoid a "No active segmentation"
@@ -293,7 +309,12 @@ function VolumeViewport({
         id={viewportId}
         ref={elementRef}
         onContextMenu={(e) => e.preventDefault()}
-        className="volume-viewport viewport"
+        onMouseDownCapture={() =>
+          dispatch(setOption({ key: "viewport", value: viewportId }))
+        }
+        className={`volume-viewport viewport${
+          activeViewport === viewportId ? " active" : ""
+        }`}
       ></div>
     </>
   );

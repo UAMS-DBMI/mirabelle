@@ -2,6 +2,7 @@
  * Simple stack display panel.
  **/
 import React, { useState, useEffect, useRef } from "react";
+import { useSelector, useDispatch } from "react-redux";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -9,6 +10,7 @@ import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { attachDataFrame } from "@/lib/viewportFrame";
 import { MARGIN_ZOOM } from "@/lib/viewportView";
+import { setOption } from "@/features/optionSlice";
 
 import "./StackViewport.css";
 
@@ -43,6 +45,8 @@ function StackViewport({
   const segReadyListenerRef = useRef(null);
 
   const [initialized, setInitialized] = useState(false);
+  const dispatch = useDispatch();
+  const activeViewport = useSelector((state) => state.options.viewport);
 
   useEffect(() => {
     const setup = async () => {
@@ -208,7 +212,12 @@ function StackViewport({
       <div
         ref={elementRef}
         onContextMenu={(e) => e.preventDefault()}
-        className="stack-viewport viewport"
+        onMouseDownCapture={() =>
+          dispatch(setOption({ key: "viewport", value: viewportId }))
+        }
+        className={`stack-viewport viewport${
+          activeViewport === viewportId ? " active" : ""
+        }`}
       ></div>
     </>
   );
