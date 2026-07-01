@@ -63,6 +63,15 @@ export default function useToolsManager({
     toolsLoaded = true;
   }
 
+  // Disable whatever tool is currently bound to the left-click, leaving nothing
+  // active on the primary button. Used to keep the left-click inert while an
+  // image loads instead of falling back to the window-level tool.
+  const disableLeftClick = () => {
+    getActiveTools(toolGroup, MouseBindings.Primary).forEach((tool) => {
+      toolGroup.setToolDisabled(tool);
+    });
+  };
+
   const switchLeftClickMode = (new_mode) => {
     getActiveTools(toolGroup, MouseBindings.Primary).forEach((tool) => {
       toolGroup.setToolDisabled(tool);
@@ -162,7 +171,18 @@ export default function useToolsManager({
       });
     }
 
-    switchLeftClickMode(defaultLeftClickMode);
+    // The selection (scissors) tool needs an active segmentation, which only
+    // exists once the image has finished loading. Rather than falling back to
+    // the window-level tool while loading — which stole the left-click from the
+    // selection on every load — keep the left-click disabled here and let it be
+    // enabled to the selection tool once the image is ready (see the
+    // AllowSegmentationDrawing listener in ToolsPanel). Other routes (review)
+    // keep activating their configured default.
+    if (defaultLeftClickMode === Enums.LeftClickOptions.SELECTION) {
+      disableLeftClick();
+    } else {
+      switchLeftClickMode(defaultLeftClickMode);
+    }
     switchRightClickMode(defaultRightClickMode);
   }, [toolGroup]);
 

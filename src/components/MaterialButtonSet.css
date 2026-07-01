@@ -14,3 +14,7 @@ li {
 .inactive {
   @apply w-full bg-white dark:bg-slate-900;
 }
+
+.disabled {
+  @apply opacity-40 cursor-not-allowed pointer-events-none;
+}
