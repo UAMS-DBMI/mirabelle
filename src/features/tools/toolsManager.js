@@ -98,6 +98,12 @@ export default function useToolsManager({
       return;
     }
 
+    // Record the active left-click tool so consumers can react to it — e.g. the
+    // mask selection box only exposes its move/resize controls while the
+    // selection tool is active, staying frozen and click-through under window
+    // level / crosshairs.
+    dispatch(setOption({ key: "leftClick", value: new_mode }));
+
     toolGroup.setToolActive(newTool.toolName, {
       bindings: [{ mouseButton: csToolsEnums.MouseBindings.Primary }],
     });
