@@ -295,6 +295,10 @@ export function addMaskBox2D(viewport, coords, options = {}) {
       setCoords: (next) => {
         liveCoords = next;
         update();
+        // Fires on every drag step (not just on release) so callers can mirror
+        // the in-progress box elsewhere — e.g. the 3D pane. onResize still
+        // commits the final bounds on mouse-up.
+        options.onLiveResize?.(liveCoords);
       },
       commit: () => options.onResize(liveCoords),
     });
@@ -303,10 +307,20 @@ export function addMaskBox2D(viewport, coords, options = {}) {
   element.addEventListener(Enums.Events.IMAGE_RENDERED, update);
   update();
 
+  // Let external code drive this box's position — used to mirror a drag
+  // happening in another pane onto this one. Reassigns the live bounds and
+  // repositions immediately; update() still gates the box to the slices it
+  // covers, so it shows only where it applies.
+  element.__maskBox2dSetLive = (next) => {
+    liveCoords = cloneCoords(next);
+    update();
+  };
+
   element.__maskBox2dCleanup = () => {
     element.removeEventListener(Enums.Events.IMAGE_RENDERED, update);
     frame.remove();
     delete element.__maskBox2dCleanup;
+    delete element.__maskBox2dSetLive;
   };
 }
 
