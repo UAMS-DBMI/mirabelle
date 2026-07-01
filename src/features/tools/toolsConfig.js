@@ -4,7 +4,7 @@ import { setOption } from "@/features/optionSlice";
 
 const maybe = (condition, item) => (condition ? [item] : []);
 
-export default function useToolsConfigs({ manager }) {
+export default function useToolsConfigs({ manager, selectionReady = true }) {
   const dispatch = useDispatch();
   const globalToolsConfig = useSelector(
     (state) => state.presentation.toolsConfig,
@@ -96,6 +96,10 @@ export default function useToolsConfigs({ manager }) {
       {
         name: "Selection",
         icon: "gesture_select",
+        // Disabled until the image finishes loading and its segmentation is
+        // active (AllowSegmentationDrawing). Clicking earlier would throw "No
+        // active segmentation detected".
+        disabled: !selectionReady,
         action: () =>
           manager.switchLeftClickMode(Enums.LeftClickOptions.SELECTION),
       },

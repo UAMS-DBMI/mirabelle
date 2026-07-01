@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { Enums } from "@/features/presentationSlice";
 
+import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
 
 import MaterialButtonSet from "@/components/MaterialButtonSet";
@@ -96,6 +97,10 @@ export default function ToolsPanel({
 
   // const [selectedPreset, setSelectedPreset] = useState(preset3d);
 
+  // The selection (scissors) button stays disabled until the image finishes
+  // loading and its segmentation is active (AllowSegmentationDrawing fires).
+  const [selectionReady, setSelectionReady] = useState(false);
+
   const manager = useToolsManager({
     toolGroup,
     toolGroup3d,
@@ -103,10 +108,39 @@ export default function ToolsPanel({
     defaultRightClickMode: globalToolsConfig.rightClickToolGroup.defaultValue,
     renderingEngine,
   });
-  const toolsConfigs = useToolsConfigs({ manager });
+  const toolsConfigs = useToolsConfigs({ manager, selectionReady });
 
   useEffect(() => {
-    const handler = () => {
+    // The left-click drawing tool stays disabled while the image loads (see
+    // toolsManager). Each viewport fires "AllowSegmentationDrawing" once its
+    // segmentation is active — the point drawing becomes safe. Enabling any
+    // earlier throws "No active segmentation detected".
+    const handler = (evt) => {
+      // Before enabling the scissors, make sure the segmentation is active on
+      // every 2D drawing pane — not just the one that fired — so drawing in any
+      // pane can't hit "No active segmentation" while the others are still
+      // finishing setup. Panes without the rep yet are skipped; they'll fire
+      // their own event and re-run this handler once they're ready.
+      const readySegmentationId = evt.detail?.segmentationId;
+      if (readySegmentationId) {
+        cornerstone
+          .getRenderingEngines()[0]
+          ?.getViewports()
+          .forEach((vp) => {
+            if (vp.id.startsWith("coronal3d")) return; // 3D pane: no drawing
+            try {
+              cornerstoneTools.segmentation.activeSegmentation.setActiveSegmentation(
+                vp.id,
+                readySegmentationId,
+              );
+            } catch {
+              // Segmentation not represented in this viewport yet — ignore.
+            }
+          });
+      }
+      // The image is loaded and its segmentation is active, so the selection
+      // (scissors) button is now safe to use — enable it.
+      setSelectionReady(true);
       manager.switchLeftClickMode(Enums.LeftClickOptions.SELECTION);
     };
     cornerstone.eventTarget.addEventListener(

@@ -229,8 +229,11 @@ const presentationSlice = createSlice({
       state.toolsConfig.filterToolGroup.visible = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
+      // The selection (scissors) is the mask route's real left-click tool. It
+      // stays disabled while the image loads and is enabled once the image is
+      // ready, rather than falling back to the window-level tool on every load.
       state.toolsConfig.leftClickToolGroup.defaultValue =
-        Enums.LeftClickOptions.WINDOW_LEVEL;
+        Enums.LeftClickOptions.SELECTION;
       state.toolsConfig.leftClickToolGroup.visibility.windowLevel = true;
       state.toolsConfig.leftClickToolGroup.visibility.rectangleScissors = true;
 

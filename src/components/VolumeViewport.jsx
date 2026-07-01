@@ -173,6 +173,14 @@ function VolumeViewport({
           viewportId,
           readySegmentationId,
         );
+        // The segmentation is now active on this viewport, so drawing is safe.
+        // Signal the tools panel to enable the selection (scissors) tool, which
+        // is kept disabled while loading to avoid a "No active segmentation"
+        // error if the user draws too early.
+        cornerstone.triggerEvent(eventTarget, "AllowSegmentationDrawing", {
+          volumeId,
+          segmentationId: readySegmentationId,
+        });
       };
 
       const onVolumeReallyLoaded = (evt) =>
