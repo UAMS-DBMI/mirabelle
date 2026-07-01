@@ -10,12 +10,6 @@ function OperationsPanel({ onAction }) {
 
   return (
     <div id="operations-panel">
-      {buttonConfig.masker.visibility.expand && (
-        <button id="expand-selection" onClick={() => onAction("expand")}>
-          Expand Selection
-        </button>
-      )}
-
       {buttonConfig.masker.visibility.clear && (
         <button id="clear-selection" onClick={() => onAction("clear")}>
           Clear Selection

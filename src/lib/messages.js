@@ -25,9 +25,9 @@ export const messages = {
 
   // Masking workflow validation (user needs to do something first).
   maskValidation: {
-    flatSelection:
-      "Can't expand a flat selection — draw in at least two planes first.",
-    expandFirst: "Expand the selection before accepting.",
+    emptySelection: "Draw a selection before accepting.",
+    notABox:
+      "The selection must be a 3D box — draw across at least two planes, not a single slice.",
   },
 
   // List navigation (next / previous item).
