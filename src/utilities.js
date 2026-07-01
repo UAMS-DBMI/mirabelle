@@ -8,6 +8,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { requestJSON } from "@/lib/http";
 import { messages } from "@/lib/messages";
+import { notify } from "@/lib/notify";
 
 const { volumeLoader, imageLoader, metaData } = cornerstone;
 const { Enums: csToolsEnums, segmentation: csToolsSegmentation } =
@@ -15,6 +16,16 @@ const { Enums: csToolsEnums, segmentation: csToolsSegmentation } =
 const { Cornerstone3D } = cornerstoneAdapters.adaptersSEG;
 
 import dcmjs from "dcmjs";
+
+function withTimeout(promise, ms, label = 'operation') {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`Timed out after ${ms}ms: ${label}`));
+    }, ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
 
 export function expandSegTo3D(segmentationId) {
   const segmentationVolume = cornerstone.cache.getVolume(segmentationId);
@@ -566,11 +577,29 @@ export async function loadSEGSegmentation(
   csToolsSegmentation.removeAllSegmentationRepresentations();
 
   // Parse the DICOM SEG metadata using adapterSEG
-  const adapterRet = await Cornerstone3D.Segmentation.createFromDICOMSegBuffer(
-    referenceImageIds,
-    arrayBuffer,
-    { metadataProvider: metaData },
-  );
+  let adapterRet;
+  try {
+    adapterRet = await withTimeout(
+      Cornerstone3D.Segmentation.createFromDICOMSegBuffer(
+        referenceImageIds,
+        arrayBuffer,
+        { metadataProvider: metaData },
+      ),
+      15,
+      'createFromDICOMSegBuffer'
+    );
+  } catch (err) {
+    // Surface a clean error to the user, log the raw one for yourself
+    console.error('SEG load failed or timed out:', err);
+    notify.error(messages.errors.segLoadError);
+
+    // Return an empty segmentation object to avoid breaking the app
+    return {
+      segments: [],
+      segmentationIds: [],
+    };
+  }
+
 
   const { labelMapImages } = adapterRet;
 

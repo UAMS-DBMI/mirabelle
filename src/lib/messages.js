@@ -70,6 +70,9 @@ export const messages = {
     missingNiftiFile: "No downloadable NIfTI file was found for this record.",
     multipleSegImages: (iec) =>
       `More than one segmentation image was found for IEC ${iec}.`,
+    segLoadError: `This segmentation file could not be loaded. 
+                   It may be corrupted or use an unsupported format.
+                   The volume will display, but no SEG will be overlayed!.`, 
   },
 };
 
