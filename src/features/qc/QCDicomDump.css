@@ -1,0 +1,24 @@
+#qc-dicom-dump {
+  @apply flex flex-col min-h-0 flex-1;
+}
+
+#qc-dicom-dump .qc-dump-subtitle {
+  @apply text-xs text-gray-600 dark:text-gray-300 mb-1;
+}
+
+#qc-dicom-dump .qc-dump-scroll {
+  @apply overflow-auto min-h-0 flex-1;
+}
+
+#qc-dicom-dump table {
+  @apply w-full text-left font-mono;
+  font-size: 0.65rem;
+}
+
+#qc-dicom-dump td {
+  @apply align-top pr-2 whitespace-nowrap;
+}
+
+#qc-dicom-dump .qc-dump-value {
+  @apply whitespace-normal break-all;
+}
