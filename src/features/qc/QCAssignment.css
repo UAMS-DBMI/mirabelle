@@ -1,0 +1,7 @@
+#qc-top-strip {
+  @apply flex gap-2 w-full items-stretch;
+}
+
+#qc-top-strip #filter-panel {
+  @apply flex-1;
+}
