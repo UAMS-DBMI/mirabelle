@@ -54,6 +54,18 @@ export const messages = {
       `showing the segmentation on its own.`,
   },
 
+  // QC (Quality Control) workflow.
+  qc: {
+    statusSet: (label) => `Series marked ${label}`,
+    noteRequired: (label) =>
+      `A note is required to mark a series ${label.toLowerCase()}.`,
+    readOnly: (userId) =>
+      `This assignment belongs to user ${userId}; QC actions are disabled.`,
+    noSeries: "No series were found for the selected filters.",
+    assignmentLoadFailed: "Couldn't load the assignment. Please try again.",
+    historyLoadFailed: "Couldn't load the series history.",
+  },
+
   // Neutral viewport empty states (never styled as errors).
   viewport: {
     noImage: "No image to display",

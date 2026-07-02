@@ -57,6 +57,8 @@ import RouteNiftiReviewVR, {
   loader as routeNiftiReviewVRLoader,
 } from "./routes/nifti/RouteNiftiReviewVR";
 
+import RouteQCAssignment from "./routes/qc/RouteQCAssignment";
+
 import RouteDump, { loader as routeDumpLoader } from "./routes/dicom/RouteDump";
 
 import RouteTests from "@/components/RouteTests";
@@ -176,6 +178,23 @@ const router = createBrowserRouter(
         {
           path: "review/dicom/vr/:vr/:iec/:reviewStatus/:dicomType",
           element: <RouteDicomReviewVR />,
+          HydrateFallback: LoadingSpinner,
+        },
+        // QC Routes
+        // ----------------------------------
+        {
+          path: "qc/assignments/:assignmentId",
+          element: <RouteQCAssignment />,
+          HydrateFallback: LoadingSpinner,
+        },
+        {
+          path: "qc/assignments/:assignmentId/:seriesUid",
+          element: <RouteQCAssignment />,
+          HydrateFallback: LoadingSpinner,
+        },
+        {
+          path: "qc/assignments/:assignmentId/:seriesUid/:qcStatus/:modality",
+          element: <RouteQCAssignment />,
           HydrateFallback: LoadingSpinner,
         },
         // Other Routes

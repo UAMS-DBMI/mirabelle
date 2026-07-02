@@ -162,8 +162,13 @@ function isFlat(bounds, eps = 1e-6) {
   return { flat: zeroI || zeroJ || zeroK, plane, extents };
 }
 
+export async function getCurrentUser() {
+  // Returns the logged-in User: { user_id, username, full_name, disabled }
+  return requestJSON(`/papi/v1/other/testme`);
+}
+
 export async function getUsername() {
-  const details = await requestJSON(`/papi/v1/other/testme`);
+  const details = await getCurrentUser();
   return details.username;
 }
 

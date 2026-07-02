@@ -148,6 +148,14 @@ const presentationSlice = createSlice({
           flag: false,
         },
       },
+      qc: {
+        visible: false,
+        visibility: {
+          approve: false,
+          reject: false,
+          flag: false,
+        },
+      },
     },
     // Filter Panel Configuration
     filterConfig: {
@@ -332,6 +340,38 @@ const presentationSlice = createSlice({
       return state;
     },
 
+    // Sets the configuration for the QC Route (always stack view)
+    setQCConfig: (state, action) => {
+      state.panelConfig.visibility.tools = true;
+      state.panelConfig.visibility.reset = true;
+
+      // Set visibility for left and right panels
+      state.panelConfig.visibility.left = true;
+      state.panelConfig.visibility.right = true;
+
+      // Set open state for left and right panels
+      state.panelConfig.open.left = true;
+      state.panelConfig.open.right = true;
+
+      state.toolsConfig.leftClickToolGroup.visible = true;
+      state.toolsConfig.leftClickToolGroup.defaultValue =
+        Enums.LeftClickOptions.WINDOW_LEVEL;
+      state.toolsConfig.leftClickToolGroup.visibility.windowLevel = true;
+
+      state.toolsConfig.rightClickToolGroup.visible = true;
+      state.toolsConfig.rightClickToolGroup.defaultValue =
+        Enums.RightClickOptions.ZOOM;
+      state.toolsConfig.rightClickToolGroup.visibility.zoom = true;
+      state.toolsConfig.rightClickToolGroup.visibility.pan = true;
+
+      state.buttonConfig.qc.visible = true;
+      state.buttonConfig.qc.visibility.approve = true;
+      state.buttonConfig.qc.visibility.reject = true;
+      state.buttonConfig.qc.visibility.flag = true;
+
+      return state;
+    },
+
     // Sets the configuration for Stacks
     setStackConfig: (state, action) => {
       state.toolsConfig.viewToolGroup.visible = true;
@@ -413,6 +453,7 @@ export const {
   setMaskerConfig,
   setMaskerReviewConfig,
   setVisualReviewConfig,
+  setQCConfig,
   setStackConfig,
   setVolumeConfig,
   setNiftiConfig,
