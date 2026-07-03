@@ -15,6 +15,8 @@ import * as cornerstoneDicomImageLoader from "@cornerstonejs/dicom-image-loader"
 import { cornerstoneNiftiImageLoader } from "@cornerstonejs/nifti-volume-loader";
 import * as polySeg from "@cornerstonejs/polymorphic-segmentation";
 
+import configureCacheSize from "@/lib/cacheSizing";
+
 import "./EnableCornerstone.css";
 
 volumeLoader.registerUnknownVolumeLoader(cornerstoneStreamingImageVolumeLoader);
@@ -35,6 +37,10 @@ function EnableCornerstone({ children }) {
         maxWebWorkers: 5,
         startWebWorkersOnDemand: true,
       });
+
+      // Size the image cache from the machine's memory (more cached exams on
+      // machines that can afford it) — must run before any volume loads.
+      configureCacheSize();
 
       imageLoader.registerImageLoader("nifti", cornerstoneNiftiImageLoader);
 

@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import logoLight from "@/assets/mirabelle-logo-light.svg";
 import logoDark from "@/assets/mirabelle-logo-dark.svg";
 import { getUsername } from "@/utilities";
+import CacheStatus from "./CacheStatus";
 
 import "./Header.css";
 
@@ -43,7 +44,8 @@ function Header() {
       <div id="title" className="flex-1 text-left ml-2">
         {title}
       </div>
-      <div id="username" className="flex-1 text-right">
+      <CacheStatus />
+      <div id="username" className="text-right">
         {username}
       </div>
     </div>

@@ -48,34 +48,52 @@ export default function RouteMaskVR() {
     };
   }, [vr]);
 
+  // Reset the per-exam UI state for every IEC (and filter change). Kept
+  // separate from the list fetch below so IEC navigation doesn't refetch.
   useEffect(() => {
     dispatch(resetOptions());
     dispatch(reset());
     dispatch(setMaskerConfig());
     dispatch(setLoading(true));
+  }, [vr, maskingStatus, dicomType, iec, dispatch]);
+
+  // The IEC list depends only on the VR and filters — never clear or refetch
+  // it on IEC navigation. Holding an arrow key navigates faster than a
+  // refetch resolves, and with the list momentarily null every keypress
+  // toasted "No next/previous IEC" long before the real ends.
+  useEffect(() => {
     setIecList(null);
 
+    let stale = false;
     getFilteredIECsForMaskVR(vr, maskingStatus, dicomType)
       .then((iecs) => {
+        if (stale) return;
         setIecList(iecs);
         if (Array.isArray(iecs) && iecs.length === 0) {
           dispatch(setLoading(false));
           notify.info(messages.filters.noResults);
-          return;
-        }
-        if ((iec === "*" || !iec) && Array.isArray(iecs) && iecs.length > 0) {
-          navigate(`/mask/vr/${vr}/${iecs[0]}/${maskingStatus}/${dicomType}`, {
-            replace: true,
-          });
         }
       })
       .catch((error) => {
+        if (stale) return;
         setIecList([]);
         dispatch(setLoading(false));
         notify.error(error, messages.filters.loadFailed);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vr, maskingStatus, dicomType, dispatch, iec, navigate]);
+
+    return () => {
+      stale = true;
+    };
+  }, [vr, maskingStatus, dicomType, dispatch]);
+
+  // Send "*" (or a missing IEC) to the first IEC once the list is known.
+  useEffect(() => {
+    if ((iec === "*" || !iec) && Array.isArray(iecList) && iecList.length > 0) {
+      navigate(`/mask/vr/${vr}/${iecList[0]}/${maskingStatus}/${dicomType}`, {
+        replace: true,
+      });
+    }
+  }, [iec, iecList, vr, maskingStatus, dicomType, navigate]);
 
   let nextIEC = null;
   let previousIEC = null;

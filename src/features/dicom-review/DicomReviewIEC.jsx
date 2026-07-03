@@ -29,6 +29,7 @@ import {
   getOtherIECsForFOR,
   getImageIdsFromIEC,
   loadStackSegmentation,
+  makeRoomForStackExam,
   loadVolume,
   loadVolumeAsync,
   loadVolumeSegmentation,
@@ -312,6 +313,9 @@ export default function DicomReviewIEC({
         } else {
           // await loadVolumeAsync(imageIds, volumeId, segmentationId);
           // await loadStackSegmentation(imageIds, segmentationId);
+          // The stack viewport loads the frames on demand as pinned wadouri
+          // images; register them so the exam-LRU eviction can free them.
+          makeRoomForStackExam(imageIds);
           dispatch(setTitle("DICOM Stack Review"));
           dispatch(reset());
           dispatch(setVisualReviewConfig());
@@ -408,9 +412,33 @@ export default function DicomReviewIEC({
   }
 
   // Load failures are surfaced as a toast; keep the viewport itself clean
-  // with a neutral placeholder rather than an error card.
+  // with a neutral placeholder rather than an error card — inside the full
+  // layout, so the navigation panel (and arrow keys) still let the user move
+  // on to the next IEC instead of being stranded on the broken one.
   if (isErrored) {
-    return <ViewportPlaceholder />;
+    return (
+      <RouteLayout
+        routeName={routeName}
+        leftPanel={
+          vr && (
+            <NavigationPanel
+              onNext={onNext}
+              onPrevious={onPrevious}
+              currentId={iec}
+              idLabel="IEC"
+            />
+          )
+        }
+        middlePanel={<ViewportPlaceholder />}
+        rightPanel={
+          <div className="side-panel">
+            <div className="wrapper" />
+          </div>
+        }
+        showLeftPanel={showLeftPanel}
+        showRightPanel={true}
+      />
+    );
   }
   // When IEC is not selected yet, render full app with controls and message
   if (!iec) {

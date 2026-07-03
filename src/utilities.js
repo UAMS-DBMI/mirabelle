@@ -8,6 +8,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { requestJSON } from "@/lib/http";
 import { messages } from "@/lib/messages";
+import { notify } from "@/lib/notify";
 
 const { volumeLoader, imageLoader, metaData } = cornerstone;
 const { Enums: csToolsEnums, segmentation: csToolsSegmentation } =
@@ -356,11 +357,237 @@ export async function loadIECVolumeAndSegmentation(
   return await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
 }
 
+// ————— Exam cache management —————
+//
+// Previously visited exams stay cached so navigating back to them is instant.
+// All exam data (source slices and labelmap slices) lives in Cornerstone's
+// fixed-size image cache — and because this app loads `wadouri:` imageIds,
+// every source slice is pinned there (the loader sets a sharedCacheKey),
+// which makes it invisible to Cornerstone's own eviction: once pinned bytes
+// fill the cache, every further load throws CACHE_SIZE_EXCEEDED and nothing
+// recovers. So we do the evicting ourselves, at whole-exam granularity,
+// before each load: least-recently-viewed exams go first, and an exam is
+// always evicted completely (volume exams with their derived labelmaps,
+// stack exams with all their slices) so nothing is ever left half-cached.
+
+// Exam key -> Date.now() of the last visit; drives LRU eviction order.
+// Volume exams are keyed by volumeId, stack exams by their first imageId
+// (stable across visits, unlike the per-visit random segmentationId).
+const examLastVisited = new Map();
+
+// Stack exam key -> the source imageIds cached for it. Stack slices belong
+// to no volume, so without this registry they could never be evicted.
+const stackExamImageIds = new Map();
+
+function stackExamKey(imageIds) {
+  return `stack:${imageIds[0]}`;
+}
+
+/**
+ * Fully remove a cached volume and its backing images.
+ *
+ * Cornerstone's removeSegmentation()/removeAllSegmentations() only drop tool
+ * state — the labelmap volume and its per-slice derived images stay in the
+ * cache. cache.removeVolumeLoadObject() alone isn't enough either: it unpins
+ * the volume's images (clears their sharedCacheKey) but leaves them counted
+ * against the cache limit. So remove the volume first (releasing the pin),
+ * then force-remove each backing image.
+ */
+export function decacheVolume(volumeId) {
+  examLastVisited.delete(volumeId);
+  const volume = cornerstone.cache.getVolume(volumeId);
+  if (!volume) return;
+  const imageIds = volume.imageIds ?? [];
+  cornerstone.cache.removeVolumeLoadObject(volumeId);
+  removeCachedImages(imageIds);
+}
+
+export function removeCachedImages(imageIds) {
+  imageIds.forEach((imageId) => {
+    // Skip images that were never loaded or are already gone.
+    if (cornerstone.cache.getImage(imageId)) {
+      cornerstone.cache.removeImageLoadObject(imageId, { force: true });
+    }
+  });
+}
+
+function decacheStackExam(examKey) {
+  removeCachedImages(stackExamImageIds.get(examKey) ?? []);
+  stackExamImageIds.delete(examKey);
+  examLastVisited.delete(examKey);
+}
+
+/**
+ * Per-frame geometry for a not-yet-loaded exam, from the already-cached
+ * DICOM metadata. wadouri metadata only exists once the file is parsed, so
+ * for a fresh exam this falls back to a full CT frame — over-reserving is
+ * safe (worst case one extra old exam gets evicted).
+ */
+function getFrameGeometry(imageIds) {
+  const middleImageId = imageIds[Math.floor(imageIds.length / 2)];
+  const pixelModule = metaData.get("imagePixelModule", middleImageId) ?? {};
+  const planeModule = metaData.get("imagePlaneModule", middleImageId) ?? {};
+  const rows = planeModule.rows ?? pixelModule.rows ?? 512;
+  const columns = planeModule.columns ?? pixelModule.columns ?? 512;
+  const bytesPerPixel =
+    ((pixelModule.bitsAllocated ?? 16) / 8) * (pixelModule.samplesPerPixel ?? 1);
+  return { rows, columns, bytesPerPixel };
+}
+
+/**
+ * Bytes an exam needs: its source slices (unless already cached from a
+ * previous visit) plus one Uint8 labelmap of the same dimensions. The 10%
+ * margin absorbs estimate slack (metadata gaps, per-image overhead).
+ */
+function estimateExamBytes(imageIds, sourceAlreadyCached) {
+  const { rows, columns, bytesPerPixel } = getFrameGeometry(imageIds);
+  const frameBytes = rows * columns;
+  const sourceBytes = sourceAlreadyCached
+    ? 0
+    : imageIds.length * frameBytes * bytesPerPixel;
+  const labelmapBytes = imageIds.length * frameBytes;
+  return Math.ceil((sourceBytes + labelmapBytes) * 1.1);
+}
+
+/**
+ * All evictable exams, least-recently-viewed first: cached volumes (derived
+ * labelmaps ride along with their parent; orphaned ones are evicted
+ * directly) plus registered stack exams. Exams never recorded in
+ * examLastVisited sort as oldest.
+ */
+function listEvictableExams(keepKeys) {
+  const volumeExams = cornerstone.cache
+    .getVolumes()
+    .filter((volume) => volume && !keepKeys.includes(volume.volumeId))
+    .filter(
+      (volume) =>
+        !volume.referencedVolumeId ||
+        !cornerstone.cache.getVolume(volume.referencedVolumeId),
+    )
+    .map((volume) => ({ key: volume.volumeId, kind: "volume" }));
+  const stackExams = Array.from(stackExamImageIds.keys())
+    .filter((key) => !keepKeys.includes(key))
+    .map((key) => ({ key, kind: "stack" }));
+
+  return [...volumeExams, ...stackExams].sort(
+    (a, b) =>
+      (examLastVisited.get(a.key) ?? 0) - (examLastVisited.get(b.key) ?? 0),
+  );
+}
+
+function evictExam({ key, kind }) {
+  if (kind === "volume") {
+    cornerstone.cache
+      .filterVolumesByReferenceId(key)
+      .forEach((derived) => decacheVolume(derived.volumeId));
+    decacheVolume(key);
+  } else {
+    decacheStackExam(key);
+  }
+}
+
+function makeRoom(bytesNeeded, keepKeys) {
+  if (cornerstone.cache.getBytesAvailable() >= bytesNeeded) return;
+  for (const exam of listEvictableExams(keepKeys)) {
+    evictExam(exam);
+    if (cornerstone.cache.getBytesAvailable() >= bytesNeeded) return;
+  }
+  // Still not enough room: proceed and let Cornerstone report the failure —
+  // this exam is too large for the cache even on its own.
+}
+
+/**
+ * Record a visit to a volume exam and evict least-recently-viewed exams
+ * until it fits in the cache. Exams in keepVolumeIds are never evicted.
+ */
+export function makeRoomForExam(imageIds, keepVolumeIds) {
+  const [volumeId] = keepVolumeIds;
+  examLastVisited.set(volumeId, Date.now());
+  const sourceAlreadyCached = Boolean(cornerstone.cache.getVolume(volumeId));
+  makeRoom(estimateExamBytes(imageIds, sourceAlreadyCached), keepVolumeIds);
+}
+
+/**
+ * Stack counterpart of makeRoomForExam. Registers the exam's source
+ * imageIds so the eviction can free them later — stack slices belong to no
+ * volume, and as pinned wadouri images Cornerstone itself never evicts them.
+ */
+export function makeRoomForStackExam(imageIds) {
+  const examKey = stackExamKey(imageIds);
+  examLastVisited.set(examKey, Date.now());
+  const sourceAlreadyCached =
+    stackExamImageIds.has(examKey) &&
+    Boolean(cornerstone.cache.getImage(imageIds[0])) &&
+    Boolean(cornerstone.cache.getImage(imageIds[imageIds.length - 1]));
+  stackExamImageIds.set(examKey, imageIds);
+  makeRoom(estimateExamBytes(imageIds, sourceAlreadyCached), [examKey]);
+}
+
+// Monotonic token for the most recent exam load. Rapid navigation abandons
+// loads mid-flight, but their async completions — volume.load callbacks,
+// awaited image loads — still fire afterward, and used to stomp the current
+// exam's segmentation state (or throw, if the abandoned volume had been
+// LRU-evicted in the meantime). Each loader captures the token and bails out
+// of any completion that is no longer the latest load.
+let examLoadGeneration = 0;
+
+/**
+ * Clone per-frame metadata onto frames whose download failed (e.g. a backend
+ * 504). wadouri metadata only exists once a file is parsed, and building the
+ * derived labelmap reads rows/columns for every frame of the volume — so a
+ * single failed frame used to sink the whole exam's labelmap ("reading
+ * 'rows'") and leave it un-maskable. The nearest loaded frame's modules are
+ * close enough: the labelmap's geometry comes from the volume itself, and
+ * the failed slice simply stays black in the source.
+ */
+function backfillMissingFrameMetadata(imageIds) {
+  const MODULES = [
+    "imagePlaneModule",
+    "imagePixelModule",
+    "generalSeriesModule",
+  ];
+  const isLoaded = (imageId) =>
+    Boolean(metaData.get("imagePlaneModule", imageId));
+
+  const loadedIndices = [];
+  imageIds.forEach((imageId, index) => {
+    if (isLoaded(imageId)) loadedIndices.push(index);
+  });
+  if (loadedIndices.length === 0 || loadedIndices.length === imageIds.length) {
+    return;
+  }
+
+  imageIds.forEach((imageId, index) => {
+    if (isLoaded(imageId)) return;
+    const donorIndex = loadedIndices.reduce((best, candidate) =>
+      Math.abs(candidate - index) < Math.abs(best - index) ? candidate : best,
+    );
+    console.warn(
+      `Frame ${index} failed to load; borrowing metadata from frame ${donorIndex}`,
+    );
+    MODULES.forEach((type) => {
+      const metadata = metaData.get(type, imageIds[donorIndex]);
+      if (metadata) {
+        cornerstone.utilities.genericMetadataProvider.add(imageId, {
+          type,
+          metadata,
+        });
+      }
+    });
+  });
+}
+
 export async function loadVolumeAndSegmentation(
   imageIds,
   volumeId,
   segmentationId,
 ) {
+  const generation = ++examLoadGeneration;
+
+  // Keep previously visited exams cached (instant back-navigation), but evict
+  // the least-recently-viewed ones if this exam wouldn't fit.
+  makeRoomForExam(imageIds, [volumeId, segmentationId]);
+
   let loadedFromCache = true;
   let volume = cornerstone.cache.getVolume(volumeId);
   if (!volume) {
@@ -379,37 +606,60 @@ export async function loadVolumeAndSegmentation(
 
   // Set the volume to load
   volume.load(() => {
-    csToolsSegmentation.removeAllSegmentations();
-    csToolsSegmentation.removeAllSegmentationRepresentations();
+    if (generation !== examLoadGeneration) {
+      console.log("Skipping stale volume load completion for", volumeId);
+      return;
+    }
+    if (!cornerstone.cache.getVolume(volumeId)) {
+      console.log("Volume evicted before load completed:", volumeId);
+      return;
+    }
 
-    // Create a segmentation of the same resolution as the source data for the CT volume
-    volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
-      volumeId: segmentationId,
-    });
+    try {
+      csToolsSegmentation.removeAllSegmentations();
+      csToolsSegmentation.removeAllSegmentationRepresentations();
 
-    csToolsSegmentation.addSegmentations([
-      {
-        segmentationId,
-        representation: {
-          // The type of segmentation
-          type: csToolsEnums.SegmentationRepresentations.Labelmap,
-          // The actual segmentation data, in the case of labelmap this is a
-          // reference to the source volume of the segmentation.
-          data: {
-            volumeId: segmentationId,
+      // Frames that failed to download have no metadata; borrow it from
+      // their nearest loaded neighbor so one bad frame can't sink the
+      // labelmap for the whole exam.
+      backfillMissingFrameMetadata(volume.imageIds ?? imageIds);
+
+      // Create a segmentation of the same resolution as the source data for the CT volume
+      volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
+        volumeId: segmentationId,
+      });
+
+      csToolsSegmentation.addSegmentations([
+        {
+          segmentationId,
+          representation: {
+            // The type of segmentation
+            type: csToolsEnums.SegmentationRepresentations.Labelmap,
+            // The actual segmentation data, in the case of labelmap this is a
+            // reference to the source volume of the segmentation.
+            data: {
+              volumeId: segmentationId,
+            },
           },
         },
-      },
-    ]);
-    // if (loadedFromCache) {
-    //   await new Promise((r) => setTimeout(r, 300));
-    // }
-    triggerEvent(eventTarget, "VolumeReallyLoaded", {
-      volumeId,
-      segmentationId,
-    });
+      ]);
+      // if (loadedFromCache) {
+      //   await new Promise((r) => setTimeout(r, 300));
+      // }
+      triggerEvent(eventTarget, "VolumeReallyLoaded", {
+        volumeId,
+        segmentationId,
+      });
 
-    console.log("Volume loaded:", volumeId);
+      console.log("Volume loaded:", volumeId);
+    } catch (error) {
+      // A frame that failed to download (e.g. a backend 504) has no
+      // metadata, so building the derived labelmap throws ("reading
+      // 'rows'"). Surface it as a load failure instead of an unhandled
+      // rejection; the exam stays undrawable but the user can navigate on.
+      console.error("Failed to prepare segmentation for", volumeId, error);
+      notify.error(error, messages.errors.loadImage);
+    }
   });
   return volume;
 }
@@ -449,6 +699,10 @@ export async function loadVolume(
   segmentationId,
   callback = null,
 ) {
+  // Same cache policy as loadVolumeAndSegmentation: keep old exams for
+  // instant revisits, evict least-recently-viewed ones when out of room.
+  makeRoomForExam(imageIds, [volumeId, segmentationId].filter(Boolean));
+
   let volume = cornerstone.cache.getVolume(volumeId);
   if (!volume) {
     console.log("Volume didn't already exist, creating it:", volumeId);
@@ -494,6 +748,12 @@ export async function loadVolumeSegmentation(
 }
 
 export async function loadStackSegmentation(imageIds, segmentationId) {
+  const generation = ++examLoadGeneration;
+
+  // Same cache policy as loadVolumeAndSegmentation: keep old exams for
+  // instant revisits, evict least-recently-viewed ones when out of room.
+  makeRoomForStackExam(imageIds);
+
   csToolsSegmentation.removeAllSegmentations();
   csToolsSegmentation.removeAllSegmentationRepresentations();
 
@@ -501,9 +761,21 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
     cornerstone.imageLoader.loadAndCacheImages(imageIds),
   );
 
+  // A newer exam load took over while the frames were loading (rapid
+  // navigation); don't create a segmentation for this abandoned one.
+  if (generation !== examLoadGeneration) {
+    console.log("Skipping stale stack segmentation for", segmentationId);
+    return;
+  }
+
   // Create a segmentation of the same resolution as the source data for the CT volume
   const segImages =
     await imageLoader.createAndCacheDerivedLabelmapImages(imageIds);
+
+  if (generation !== examLoadGeneration) {
+    console.log("Skipping stale stack segmentation for", segmentationId);
+    return;
+  }
 
   csToolsSegmentation.addSegmentations([
     {

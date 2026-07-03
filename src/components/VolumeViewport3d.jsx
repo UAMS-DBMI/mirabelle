@@ -200,6 +200,10 @@ function VolumeViewport3d({
   };
 
   useEffect(() => {
+    // Guard against stale async setup runs during rapid navigation — see
+    // VolumeViewport for the full story.
+    let cancelled = false;
+
     const setup = async () => {
       const viewportInputArray = {
         viewportId,
@@ -224,6 +228,11 @@ function VolumeViewport3d({
         [{ volumeId }],
         [viewportId],
       );
+
+      // Superseded by a newer setup run (or unmounted) during the await.
+      if (cancelled || renderingEngine.getViewport(viewportId) !== viewport) {
+        return;
+      }
 
       // Detect modality if not provided (for any volume type)
       let effectiveModality = modality;
@@ -259,6 +268,10 @@ function VolumeViewport3d({
         preset: defaultPreset,
       });
 
+      if (cancelled || renderingEngine.getViewport(viewportId) !== viewport) {
+        return;
+      }
+
       // Notify parent if preset was auto-selected and differs from current
       if (defaultPreset !== preset3d) {
         dispatch(setOption({ key: "preset", value: defaultPreset }));
@@ -283,7 +296,14 @@ function VolumeViewport3d({
       viewport.render();
     };
 
-    setup();
+    setup().catch((error) => {
+      if (cancelled) {
+        // Torn down mid-setup by navigation — expected, not a failure.
+        console.log("[VolumeViewport3d] setup aborted by navigation", error);
+        return;
+      }
+      throw error;
+    });
     // No segmentation-representation cleanup here. `loadVolumeAndSegmentation`
     // already calls removeAllSegmentationRepresentations() inside volume.load(),
     // right before it re-creates the segmentation and fires "VolumeReallyLoaded"
@@ -291,6 +311,9 @@ function VolumeViewport3d({
     // re-render's cleanup against that event: on a cached/fast load the event
     // fired first (rep added + activated), then this cleanup wiped the new rep,
     // leaving the scissors with "No active segmentation detected".
+    return () => {
+      cancelled = true;
+    };
   }, [elementRef, volumeId]);
 
   // On unmount (leaving this route), remove the 3D viewport from the shared

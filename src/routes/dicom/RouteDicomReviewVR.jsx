@@ -50,60 +50,60 @@ export default function RouteDicomReviewVR() {
     };
   }, [vr]);
 
+  // Reset the per-exam UI state for every IEC (and filter change). Kept
+  // separate from the list fetch below so IEC navigation doesn't refetch.
   useEffect(() => {
     dispatch(resetOptions());
     dispatch(reset());
     dispatch(setVisualReviewConfig());
     dispatch(setLoading(true));
+  }, [vr, reviewStatus, dicomType, iec, dispatch]);
+
+  // The IEC list depends only on the VR and filters — never clear or refetch
+  // it on IEC navigation. Holding an arrow key navigates faster than a
+  // refetch resolves, and with the list momentarily null every keypress
+  // toasted "No next/previous IEC" long before the real ends.
+  useEffect(() => {
     // Clear stale list to avoid redirecting with previous results
     setIecList(null);
 
+    let stale = false;
     getFilteredIECsForDicomVR(vr, reviewStatus, dicomType)
       .then((iecs) => {
+        if (stale) return;
         setIecList(iecs);
         if (Array.isArray(iecs) && iecs.length === 0) {
           // No results: stop loading and notify
           dispatch(setLoading(false));
           notify.info(messages.filters.noResults);
-          return;
-        }
-        // If IEC is '*' or missing, redirect to the FIRST IEC from these fresh results
-        if ((iec === "*" || !iec) && Array.isArray(iecs) && iecs.length > 0) {
-          const firstIec = (() => {
-            const item = iecs[0];
-            if (!item) return null;
-            if (typeof item === "string" || typeof item === "number")
-              return String(item);
-            return String(
-              item.image_equivalence_class_id ??
-                item.IEC ??
-                item.id ??
-                item.value,
-            );
-          })();
-
-          if (firstIec) {
-            navigate(
-              [
-                "/review",
-                "dicom",
-                "vr",
-                vr,
-                firstIec,
-                reviewStatus,
-                dicomType,
-              ].join("/"),
-              { replace: true },
-            );
-          }
         }
       })
       .catch((error) => {
+        if (stale) return;
         setIecList([]);
         dispatch(setLoading(false));
         notify.error(error, messages.filters.loadFailed);
       });
-  }, [vr, reviewStatus, dicomType, dispatch, iec, navigate]);
+
+    return () => {
+      stale = true;
+    };
+  }, [vr, reviewStatus, dicomType, dispatch]);
+
+  // If IEC is '*' or missing, redirect to the FIRST IEC once the list is known
+  useEffect(() => {
+    if ((iec !== "*" && iec) || !Array.isArray(iecList) || iecList.length === 0)
+      return;
+    const firstIec = idOf(iecList[0]);
+    if (firstIec) {
+      navigate(
+        ["/review", "dicom", "vr", vr, firstIec, reviewStatus, dicomType].join(
+          "/",
+        ),
+        { replace: true },
+      );
+    }
+  }, [iec, iecList, vr, reviewStatus, dicomType, navigate]);
 
   // calculate the next and previous IECs (supports numbers or objects)
   const idOf = (item) => {

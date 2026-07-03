@@ -1,4 +1,6 @@
 const path = require("path");
+const http = require("http");
+const https = require("https");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const webpack = require("webpack");
 const TerserPlugin = require("terser-webpack-plugin");
@@ -8,6 +10,14 @@ const TerserPlugin = require("terser-webpack-plugin");
 // server (`webpack serve`); a plain build doesn't use the proxy.
 const apiTarget = process.env.MIRA_API_TARGET;
 const apiToken = process.env.MIRA_API_TOKEN;
+
+// Reuse backend connections across the hundreds of frame requests a single
+// exam load fires through the dev proxy; without an explicit keep-alive
+// agent each proxied request can pay a fresh TCP (+TLS) handshake to the
+// remote backend, which dominates load time on high-latency links.
+const proxyAgent = apiTarget?.startsWith("https")
+  ? new https.Agent({ keepAlive: true, maxSockets: 16, maxFreeSockets: 16 })
+  : new http.Agent({ keepAlive: true, maxSockets: 16, maxFreeSockets: 16 });
 
 if (process.env.WEBPACK_SERVE === "true" && (!apiTarget || !apiToken)) {
   throw new Error(
@@ -112,11 +122,27 @@ module.exports = (env, argv) => {
       },
       proxy: [
         {
-          // /papi (POSDA API) and /files (nginx static files) share a backend.
+          // /papi (POSDA API): auth header, no caching — API responses change.
           // Target + token come from the active .env file.
-          context: ["/papi", "/files"],
+          context: ["/papi"],
           target: apiTarget,
+          agent: proxyAgent,
           headers: { Authorization: `Bearer ${apiToken || ""}` },
+        },
+        {
+          // /files (nginx static DICOM files): same backend + auth, but mark
+          // the responses long-lived so the browser's disk cache can serve
+          // re-downloads of exams the in-app exam cache has evicted. The
+          // paths are content-hashed, so a URL's bytes never change — safe to
+          // cache aggressively.
+          context: ["/files"],
+          target: apiTarget,
+          agent: proxyAgent,
+          headers: { Authorization: `Bearer ${apiToken || ""}` },
+          onProxyRes: (proxyRes) => {
+            proxyRes.headers["cache-control"] =
+              "public, max-age=604800, immutable";
+          },
         },
       ],
       // historyApiFallback: true, // This helps with routing; ensure it's true if using React Router

@@ -24,6 +24,8 @@ import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
 import {
+  decacheVolume,
+  removeCachedImages,
   getCoordsForStackSeg,
   getLabelmapBounds,
   loadIECVolumeAndSegmentation,
@@ -161,7 +163,14 @@ export default function MaskIEC({
   const [details, setDetails] = useState(true);
   const [maskingDetails, setMaskingDetails] = useState(true);
   const [coords, setCoords] = useState();
+  // Bumped by "Reload Image" to re-run the load effect after the cached exam
+  // has been dropped, re-fetching any slices that failed to download.
+  const [reloadToken, setReloadToken] = useState(0);
   const loadRequestRef = useRef(0);
+  // Tracks the segmentation currently backing the viewers, so the unmount
+  // cleanup can decache its labelmap volume (the segmentationId state captured
+  // by the effect closure is stale by then).
+  const activeSegmentationIdRef = useRef(null);
 
   let viewer;
 
@@ -274,6 +283,7 @@ export default function MaskIEC({
       setVolumeId(volumeId);
       setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
+      activeSegmentationIdRef.current = segmentationId;
 
       try {
         if (volumetric) {
@@ -372,8 +382,26 @@ export default function MaskIEC({
       setIsInitialized(false);
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
+      // removeAllSegmentations only drops tool state — free the labelmap
+      // volume (and its slice images) too, or each visit leaks a full-size
+      // volume into the fixed Cornerstone cache.
+      decacheVolume(activeSegmentationIdRef.current);
+      activeSegmentationIdRef.current = null;
     };
-  }, [iec, optionsDecimate]);
+  }, [iec, optionsDecimate, reloadToken]);
+
+  // Drop the cached exam and load it again. Failed downloads are never
+  // cached (Cornerstone skips errored frames and the browser doesn't cache
+  // the error response), so the re-load genuinely retries the missing
+  // slices against the server.
+  function handleReload() {
+    if (volumetric && volumeId) {
+      decacheVolume(volumeId);
+    } else if (imageIds?.length) {
+      removeCachedImages(imageIds);
+    }
+    setReloadToken((token) => token + 1);
+  }
 
   // function handleApplyDecimate(decimateValue) {
 
@@ -642,6 +670,9 @@ export default function MaskIEC({
       // Note: this does not prevent the error in updateSurfaceData for the
       // previous segmentation, however.
       cornerstoneTools.segmentation.removeSegmentation(segmentationId);
+      // removeSegmentation only drops tool state — free the old labelmap
+      // volume too, or every Clear leaks a full-size volume into the cache.
+      decacheVolume(segmentationId);
       let newSegmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
       volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
@@ -671,6 +702,7 @@ export default function MaskIEC({
       });
 
       setSegmentationId(newSegmentationId);
+      activeSegmentationIdRef.current = newSegmentationId;
     } else {
       const imageIds = segmentation.getLabelmapImageIds(segmentationId);
       imageIds.forEach((imgId) => {
@@ -786,9 +818,37 @@ export default function MaskIEC({
   }
 
   // Load failures are surfaced as a toast; keep the viewport itself clean
-  // with a neutral placeholder rather than an error card.
+  // with a neutral placeholder rather than an error card — inside the full
+  // layout, so the navigation panel (and arrow keys) still let the user move
+  // on to the next IEC instead of being stranded on the broken one.
   if (isErrored) {
-    return <ViewportPlaceholder />;
+    return (
+      <RouteLayout
+        routeName={vr ? "mask-vr" : undefined}
+        leftPanel={
+          vr && (
+            <NavigationPanel
+              onNext={onNext}
+              onPrevious={onPrevious}
+              currentId={iec}
+              idLabel="IEC"
+            />
+          )
+        }
+        middlePanel={
+          <ViewportPlaceholder
+            action={{ label: "Reload Image", onClick: handleReload }}
+          />
+        }
+        rightPanel={
+          <div className="side-panel">
+            <div className="wrapper" />
+          </div>
+        }
+        showLeftPanel={showLeftPanel}
+        showRightPanel={true}
+      />
+    );
   }
   if (!isInitialized) {
     // display nothing; a loading spinner will be handled elsewhere
@@ -865,7 +925,10 @@ export default function MaskIEC({
       }
       rightPanel={
         // showRightPanel ?
-        <DetailsPanel details={transformDetails(details, maskingDetails)} />
+        <DetailsPanel
+          details={transformDetails(details, maskingDetails)}
+          onReload={handleReload}
+        />
         // : null
       }
       showLeftPanel={showLeftPanel}

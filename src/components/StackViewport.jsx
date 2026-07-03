@@ -49,6 +49,10 @@ function StackViewport({
   const activeViewport = useSelector((state) => state.options.viewport);
 
   useEffect(() => {
+    // Guard against stale async setup runs during rapid navigation — see
+    // VolumeViewport for the full story.
+    let cancelled = false;
+
     const setup = async () => {
       if (frames === undefined) {
         return;
@@ -164,6 +168,11 @@ function StackViewport({
 
       await viewport.setStack(frames);
 
+      // Superseded by a newer setup run (or unmounted) during the await.
+      if (cancelled || renderingEngine.getViewport(viewportId) !== viewport) {
+        return;
+      }
+
       // Leave a margin around the image so its edges (and the data-boundary
       // frame) are visible inside the panel.
       viewport.setZoom(MARGIN_ZOOM, false);
@@ -184,7 +193,18 @@ function StackViewport({
       setInitialized(true);
     };
 
-    setup();
+    setup().catch((error) => {
+      if (cancelled) {
+        // Torn down mid-setup by navigation — expected, not a failure.
+        console.log("[StackViewport] setup aborted by navigation", error);
+        return;
+      }
+      throw error;
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [elementRef, frames]);
 
   // Tear down the data-boundary frame, the segmentation-ready listener, and the

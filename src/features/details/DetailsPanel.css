@@ -1,9 +1,13 @@
 /* This file contains the CSS styles for the DetailsPanel component */
 
 #details-panel button {
-  @apply text-white 
-        bg-green-700 
+  @apply text-white
+        bg-green-700
         hover:bg-green-800;
+}
+
+#details-panel button.reload-button {
+  @apply bg-blue-700 hover:bg-blue-800;
 }
 
 #details-panel .detail-item {

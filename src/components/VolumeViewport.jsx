@@ -95,6 +95,14 @@ function VolumeViewport({
   }, [renderingEngine]);
 
   useEffect(() => {
+    // Rapid navigation can re-run this effect (or unmount the component)
+    // while a previous setup run is still awaiting. That stale run must not
+    // keep driving the viewport: its id has been disabled or re-enabled with
+    // a new viewport object by then, and calls into the old one hit a
+    // torn-down renderer ("Cannot read properties of null (reading
+    // 'getViewUp')").
+    let cancelled = false;
+
     const setup = async () => {
       // Remove any leftover minimized/expanded classes on volume change
       const wrapper = elementRef.current;
@@ -224,6 +232,11 @@ function VolumeViewport({
         })),
       });
 
+      // Superseded by a newer setup run (or unmounted) during the await.
+      if (cancelled || renderingEngine.getViewport(viewportId) !== viewport) {
+        return;
+      }
+
       // Leave a margin around the image so its edges (and the data-boundary
       // frame) are visible inside the panel.
       viewport.setZoom(MARGIN_ZOOM, false);
@@ -249,7 +262,19 @@ function VolumeViewport({
       setInitialized(true);
     };
 
-    setup();
+    setup().catch((error) => {
+      if (cancelled) {
+        // The viewport was torn down mid-setup by navigation; the library
+        // call it was awaiting failed against the dead viewport. Expected.
+        console.log("[VolumeViewport] setup aborted by navigation", error);
+        return;
+      }
+      throw error;
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [elementRef, volumeId]);
 
   // Tear down the data-boundary frame and remove this viewport from the shared

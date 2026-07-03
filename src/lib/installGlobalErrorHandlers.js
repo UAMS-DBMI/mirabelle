@@ -22,11 +22,21 @@ const DEDUPE_MS = 4000;
 function report(error) {
   if (!error) return;
 
-  const key =
-    (typeof error === "string" && error) ||
-    error.userMessage ||
-    error.message ||
-    String(error);
+  // Failed image downloads (e.g. backend 504s on the file server) reject
+  // with {error: XMLHttpRequest} deep inside the image loader, where no
+  // caller can catch them. Report those as image-load failures under a
+  // single dedupe key — a flaky exam can fail many frames at once.
+  const isImageDownloadFailure =
+    typeof XMLHttpRequest !== "undefined" &&
+    (error instanceof XMLHttpRequest ||
+      error?.error instanceof XMLHttpRequest);
+
+  const key = isImageDownloadFailure
+    ? "image-download-failure"
+    : (typeof error === "string" && error) ||
+      error.userMessage ||
+      error.message ||
+      String(error);
 
   const now = Date.now();
   const last = recent.get(key);
@@ -34,7 +44,12 @@ function report(error) {
   recent.set(key, now);
 
   // notify.error logs the raw error and shows a friendly message + detail.
-  notify.error(error, messages.errors.generic);
+  notify.error(
+    error,
+    isImageDownloadFailure
+      ? messages.errors.framesFailed
+      : messages.errors.generic,
+  );
 }
 
 export function installGlobalErrorHandlers() {
