@@ -1,11 +1,16 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import * as cornerstoneTools from "@cornerstonejs/tools";
 
-import { Enums, setQCConfig, reset } from "@/features/presentationSlice";
-import { setTitle, setLoading, setOption } from "@/features/optionSlice";
+import { setTitle, setLoading } from "@/features/optionSlice";
 import { notify } from "@/lib/notify";
 import { messages } from "@/lib/messages";
 import {
@@ -15,21 +20,30 @@ import {
   buildFileByUrlMap,
 } from "@/qc";
 
-import RouteLayout from "@/components/RouteLayout";
-import NavigationPanel from "@/components/NavigationPanel";
-import ViewportPlaceholder from "@/components/ViewportPlaceholder";
-import { StackView } from "@/features/stack-view";
-import { ToolsPanel } from "@/features/tools";
-
-import QCProgressHeader from "./QCProgressHeader";
-import QCFilterPanel from "./QCFilterPanel";
+import QCStudyHeader from "./QCStudyHeader";
+import QCNavBar from "./QCNavBar";
+import QCViewerToolbar from "./QCViewerToolbar";
+import QCViewport from "./QCViewport";
 import QCOperationsPanel from "./QCOperationsPanel";
 import QCDicomDump from "./QCDicomDump";
 import CineControls from "./CineControls";
+import useCurrentDataSet from "./useCurrentDataSet";
+import useViewportInfo from "./useViewportInfo";
+import { buildStudyInfo } from "./dicomText";
+import { getQCViewport } from "./viewport";
 
 import "./QCAssignment.css";
 
-const { ToolGroupManager } = cornerstoneTools;
+const {
+  ToolGroupManager,
+  WindowLevelTool,
+  PanTool,
+  ZoomTool,
+  StackScrollTool,
+  Enums: csToolsEnums,
+} = cornerstoneTools;
+
+const { MouseBindings } = csToolsEnums;
 
 // Server-accepted qc_status values and their note rules.
 const QC_ACTIONS = {
@@ -38,10 +52,17 @@ const QC_ACTIONS = {
   flagged: { noteRequired: true },
 };
 
+const ZOOM_STEP = 1.2;
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 5;
+
 /**
- * Orchestrator for QC-ing one series of an assignment: stack viewer with
- * cine, QC actions with notes, progress header, and a client-side DICOM
- * dump that follows the displayed frame.
+ * The QC page for one series of an assignment, laid out per the
+ * "DICOM Stack Reviewer" design: study header, assignment nav/progress bar,
+ * stack viewer with cine, and a right panel with the review actions and a
+ * client-side DICOM dump following the displayed frame. Intentionally a
+ * standalone light-themed layout — it does not use the app's RouteLayout
+ * panel system.
  */
 export default function QCAssignment({
   assignmentId,
@@ -50,23 +71,21 @@ export default function QCAssignment({
   assignmentData,
   readOnly,
   noSeries,
+  atEnd,
   qcStatus,
   modality,
   modalityOptions,
+  seriesPosition,
+  seriesCount,
+  hasNext,
+  hasPrevious,
   onNext = () => {},
   onPrevious = () => {},
+  onActionAdvance = () => {},
   onFilter = () => {},
   onStatusChanged = () => {},
-  routeName,
 }) {
   const dispatch = useDispatch();
-
-  const showLeftPanel = useSelector(
-    (s) => s.presentation.panelConfig.open.left,
-  );
-  const showRightPanel = useSelector(
-    (s) => s.presentation.panelConfig.open.right,
-  );
 
   const [toolGroup, setToolGroup] = useState();
   const [imageIds, setImageIds] = useState();
@@ -74,15 +93,20 @@ export default function QCAssignment({
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
   const [note, setNote] = useState("");
+  const [activeTool, setActiveTool] = useState("wl");
   const noteInputRef = useRef(null);
   const loadRequestRef = useRef(0);
 
   const assignedTo = assignmentData?.assignment?.assigned_to;
 
-  // Fire a resize event whenever the right and left panels toggle
-  useEffect(() => {
-    window.dispatchEvent(new Event("resize"));
-  }, [showLeftPanel, showRightPanel]);
+  const currentImageId = useSelector((state) => state.options.currentImageId);
+  const { dataSet } = useCurrentDataSet();
+  const studyInfo = useMemo(() => buildStudyInfo(dataSet), [dataSet]);
+  const viewportInfo = useViewportInfo(currentImageId);
+
+  const frameCount = imageIds?.length ?? 0;
+  const frameIndex =
+    imageIds && currentImageId ? imageIds.indexOf(currentImageId) : -1;
 
   useLayoutEffect(() => {
     let toolGroup = ToolGroupManager.createToolGroup("toolGroup2d");
@@ -92,6 +116,39 @@ export default function QCAssignment({
       ToolGroupManager.destroyToolGroup("toolGroup2d");
     };
   }, [seriesUid]);
+
+  // Static tool bindings: wheel scrolls the stack, right-drag zooms.
+  // (addTool is a no-op for tools that are already registered globally.)
+  useEffect(() => {
+    if (!toolGroup) return;
+    cornerstoneTools.addTool(WindowLevelTool);
+    cornerstoneTools.addTool(PanTool);
+    cornerstoneTools.addTool(ZoomTool);
+    cornerstoneTools.addTool(StackScrollTool);
+
+    toolGroup.addTool(WindowLevelTool.toolName);
+    toolGroup.addTool(PanTool.toolName);
+    toolGroup.addTool(ZoomTool.toolName);
+    toolGroup.addTool(StackScrollTool.toolName);
+
+    toolGroup.setToolActive(StackScrollTool.toolName, {
+      bindings: [{ mouseButton: MouseBindings.Wheel }],
+    });
+    toolGroup.setToolActive(ZoomTool.toolName, {
+      bindings: [{ mouseButton: MouseBindings.Secondary }],
+    });
+  }, [toolGroup]);
+
+  // Left-drag follows the toolbar's Window/Level ↔ Pan toggle.
+  useEffect(() => {
+    if (!toolGroup) return;
+    const primary = activeTool === "pan" ? PanTool : WindowLevelTool;
+    const inactive = activeTool === "pan" ? WindowLevelTool : PanTool;
+    toolGroup.setToolDisabled(inactive.toolName);
+    toolGroup.setToolActive(primary.toolName, {
+      bindings: [{ mouseButton: MouseBindings.Primary }],
+    });
+  }, [toolGroup, activeTool]);
 
   useLayoutEffect(() => {
     if (!seriesUid) return; // nothing to load until a series is selected
@@ -106,19 +163,6 @@ export default function QCAssignment({
       setFileByUrl(buildFileByUrlMap(files));
 
       dispatch(setTitle("QC Review"));
-      dispatch(reset());
-      dispatch(setQCConfig());
-      dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
-      dispatch(
-        setOption({
-          key: "leftClick",
-          value: Enums.LeftClickOptions.WINDOW_LEVEL,
-        }),
-      );
-      dispatch(
-        setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
-      );
-
       setIsInitialized(true);
       dispatch(setLoading(false));
     };
@@ -138,22 +182,44 @@ export default function QCAssignment({
     };
   }, [assignmentId, seriesUid, dispatch]);
 
-  // Clear the note when moving to another series
+  // Start each series from its saved note so it can be reviewed or edited.
+  const savedNotes = series?.notes ?? "";
   useEffect(() => {
-    setNote("");
-  }, [seriesUid]);
+    setNote(savedNotes);
+  }, [seriesUid, savedNotes]);
+
+  function zoomBy(factor) {
+    const viewport = getQCViewport();
+    if (!viewport) return;
+    const zoom = Math.min(
+      Math.max(viewport.getZoom() * factor, MIN_ZOOM),
+      MAX_ZOOM,
+    );
+    viewport.setZoom(zoom);
+    viewport.render();
+  }
+
+  function resetView() {
+    const viewport = getQCViewport();
+    if (!viewport) return;
+    viewport.resetCamera();
+    viewport.resetProperties();
+    viewport.render();
+  }
 
   useHotkeys("a", () => handleQCAction("approved"));
   useHotkeys("r", () => handleQCAction("rejected"));
   useHotkeys("f", () => handleQCAction("flagged"));
-  useHotkeys("tab", onNext);
-  useHotkeys("right", onNext);
-  useHotkeys("left", onPrevious);
+  useHotkeys("tab", onNext, { preventDefault: true });
+  useHotkeys("shift+tab", onPrevious, { preventDefault: true });
+  useHotkeys("equal, shift+equal", () => zoomBy(ZOOM_STEP), {
+    preventDefault: true,
+  });
+  useHotkeys("minus", () => zoomBy(1 / ZOOM_STEP), { preventDefault: true });
 
   async function handleQCAction(action) {
     const config = QC_ACTIONS[action];
-    if (!config) {
-      console.warn("Unknown QC action:", action);
+    if (!config || !seriesUid) {
       return;
     }
     if (readOnly) {
@@ -165,6 +231,7 @@ export default function QCAssignment({
 
     const trimmedNote = note.trim();
     if (config.noteRequired && !trimmedNote) {
+      // Buttons are disabled without a note, but the hotkeys still land here.
       notify.info(messages.qc.noteRequired(action));
       noteInputRef.current?.focus();
       return;
@@ -175,37 +242,88 @@ export default function QCAssignment({
       notify.success(messages.qc.statusSet(action));
       setNote("");
       onStatusChanged();
-      onNext();
+      onActionAdvance();
     } catch (error) {
       notify.error(error, messages.errors.saveStatus);
     }
   }
 
-  const topStrip = (
-    <div id="qc-top-strip">
-      <QCFilterPanel
-        qcStatus={qcStatus}
-        modality={modality}
-        modalityOptions={modalityOptions}
-        onAction={onFilter}
-      />
-      <QCProgressHeader seriesByStatus={assignmentData?.series_by_status} />
-    </div>
-  );
+  function page(centerContent, rightContent) {
+    return (
+      <div id="qc-page">
+        <QCStudyHeader studyInfo={studyInfo} series={series} />
+        <QCNavBar
+          position={seriesPosition}
+          total={seriesCount}
+          hasPrevious={hasPrevious}
+          hasNext={hasNext}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          qcStatus={qcStatus}
+          modality={modality}
+          modalityOptions={modalityOptions}
+          onFilter={onFilter}
+          seriesByStatus={assignmentData?.series_by_status}
+        />
+        <div id="qc-main">
+          <div id="qc-center">{centerContent}</div>
+          <div id="qc-right-panel">{rightContent}</div>
+        </div>
+      </div>
+    );
+  }
 
-  const leftPanel = (
+  // No series selected: end-of-list screen, pending redirect, or the
+  // filters matched nothing.
+  if (!seriesUid) {
+    let emptyMessage = "";
+    if (atEnd) {
+      emptyMessage = messages.qc.endReached;
+    } else if (noSeries) {
+      emptyMessage = messages.qc.noSeries;
+    }
+    return page(
+      <div className="qc-empty-viewport">{emptyMessage}</div>,
+      <QCDicomDump fileByUrl={{}} frameIndex={-1} frameCount={0} />,
+    );
+  }
+
+  // Load failures are surfaced as a toast; keep the viewport area neutral.
+  if (isErrored) {
+    return page(
+      <div className="qc-empty-viewport">{messages.viewport.noImage}</div>,
+      <QCDicomDump fileByUrl={{}} frameIndex={-1} frameCount={0} />,
+    );
+  }
+
+  if (!isInitialized) {
+    return null;
+  }
+
+  return page(
     <>
-      <NavigationPanel
-        onNext={onNext}
-        onPrevious={onPrevious}
-        currentId={seriesUid}
-        idLabel="Series"
+      <QCViewerToolbar
+        activeTool={activeTool}
+        onToolChange={setActiveTool}
+        zoom={viewportInfo.zoom}
+        onZoomIn={() => zoomBy(ZOOM_STEP)}
+        onZoomOut={() => zoomBy(1 / ZOOM_STEP)}
+        onResetView={resetView}
       />
-      {toolGroup && <ToolsPanel toolGroup={toolGroup} />}
-    </>
-  );
-
-  const rightPanel = (
+      <QCViewport
+        frames={imageIds}
+        toolGroup={toolGroup}
+        studyInfo={studyInfo}
+        viewportInfo={viewportInfo}
+        frameIndex={frameIndex}
+        frameCount={frameCount}
+      />
+      <CineControls
+        key={seriesUid}
+        frameIndex={frameIndex}
+        frameCount={frameCount}
+      />
+    </>,
     <>
       <QCOperationsPanel
         series={series}
@@ -216,59 +334,11 @@ export default function QCAssignment({
         noteInputRef={noteInputRef}
         onAction={handleQCAction}
       />
-      <QCDicomDump fileByUrl={fileByUrl} />
-    </>
-  );
-
-  // Load failures are surfaced as a toast; keep the viewport itself clean
-  // with a neutral placeholder rather than an error card.
-  if (isErrored) {
-    return <ViewportPlaceholder />;
-  }
-
-  // No series selected yet (redirect pending, or the filters matched nothing)
-  if (!seriesUid) {
-    return (
-      <RouteLayout
-        routeName={routeName}
-        leftPanel={leftPanel}
-        middlePanel={
-          <>
-            {topStrip}
-            <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
-              {noSeries ? messages.qc.noSeries : ""}
-            </div>
-          </>
-        }
-        rightPanel={
-          <div className="side-panel">
-            <div className="wrapper" />
-          </div>
-        }
-        showLeftPanel={showLeftPanel}
-        showRightPanel={true}
+      <QCDicomDump
+        fileByUrl={fileByUrl}
+        frameIndex={frameIndex}
+        frameCount={frameCount}
       />
-    );
-  }
-
-  if (!isInitialized) {
-    return null;
-  }
-
-  return (
-    <RouteLayout
-      routeName={routeName}
-      leftPanel={leftPanel}
-      middlePanel={
-        <>
-          {topStrip}
-          <StackView toolGroup={toolGroup} frames={imageIds} />
-          <CineControls key={seriesUid} />
-        </>
-      }
-      rightPanel={rightPanel}
-      showLeftPanel={showLeftPanel}
-      showRightPanel={showRightPanel}
-    />
+    </>,
   );
 }

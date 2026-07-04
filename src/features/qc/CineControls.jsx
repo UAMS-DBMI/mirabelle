@@ -1,29 +1,27 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
-import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
 
 import MaterialIcon from "@/components/MaterialIcon";
+
+import { getQCViewport } from "./viewport";
 
 import "./CineControls.css";
 
 const { cine } = cornerstoneTools.utilities;
 
-const RENDERING_ENGINE_ID = "re1";
-const VIEWPORT_ID = "myviewport";
-
-const MIN_FPS = 1;
-const MAX_FPS = 60;
+const FPS_OPTIONS = [5, 10, 15, 24, 30];
 
 /**
- * Cine playback controls for the QC stack viewport: play/pause, frame
- * stepping, and playback speed. Drives the shared "myviewport" stack
- * viewport via Cornerstone Tools' cine utility, so STACK_NEW_IMAGE still
- * fires and the DICOM dump keeps following the current frame.
+ * Cine bar for the QC stack viewport: frame stepping, play/pause, a scrub
+ * slider and playback speed. Drives the shared "myviewport" stack viewport
+ * via Cornerstone Tools' cine utility, so STACK_NEW_IMAGE still fires and
+ * the overlays/dump keep following the current frame.
  *
  * Mount with a key per series so playback stops when the series changes.
  */
-export default function CineControls() {
+export default function CineControls({ frameIndex, frameCount }) {
   const [playing, setPlaying] = useState(false);
   const [fps, setFps] = useState(15);
   // The element cine is playing on, so unmount can stop it even after the
@@ -33,11 +31,6 @@ export default function CineControls() {
   useEffect(() => {
     return () => stopPlayback();
   }, []);
-
-  function getViewport() {
-    const renderingEngine = cornerstone.getRenderingEngine(RENDERING_ENGINE_ID);
-    return renderingEngine?.getViewport(VIEWPORT_ID);
-  }
 
   function stopPlayback() {
     if (playingElementRef.current) {
@@ -53,7 +46,7 @@ export default function CineControls() {
   }
 
   function startPlayback(framesPerSecond) {
-    const viewport = getViewport();
+    const viewport = getQCViewport();
     if (!viewport) return;
     cine.playClip(viewport.element, { framesPerSecond });
     playingElementRef.current = viewport.element;
@@ -68,18 +61,22 @@ export default function CineControls() {
     }
   }
 
-  function stepFrame(delta) {
+  function goToFrame(index) {
     stopPlayback();
-    const viewport = getViewport();
+    const viewport = getQCViewport();
     if (!viewport) return;
     const lastIndex = viewport.getImageIds().length - 1;
-    const next = viewport.getCurrentImageIdIndex() + delta;
-    viewport.setImageIdIndex(Math.min(Math.max(next, 0), lastIndex));
+    viewport.setImageIdIndex(Math.min(Math.max(index, 0), lastIndex));
+  }
+
+  function stepFrame(delta) {
+    const viewport = getQCViewport();
+    if (!viewport) return;
+    goToFrame(viewport.getCurrentImageIdIndex() + delta);
   }
 
   function handleFpsChange(e) {
-    const parsed = parseInt(e.target.value, 10);
-    const value = Math.min(Math.max(parsed || MIN_FPS, MIN_FPS), MAX_FPS);
+    const value = parseInt(e.target.value, 10);
     setFps(value);
     if (playing) {
       // playClip restarts the loop with the new speed.
@@ -87,28 +84,57 @@ export default function CineControls() {
     }
   }
 
+  useHotkeys("space", handlePlayPause, { preventDefault: true });
+  useHotkeys("left", () => stepFrame(-1), { preventDefault: true });
+  useHotkeys("right", () => stepFrame(1), { preventDefault: true });
+
+  const frameLabel =
+    frameIndex >= 0 && frameCount ? `${frameIndex + 1} / ${frameCount}` : "—";
+
   return (
-    <div id="cine-controls">
-      <button title="Previous frame" onClick={() => stepFrame(-1)}>
+    <div id="qc-cine-bar">
+      <button
+        className="qc-btn qc-cine-step"
+        title="Previous frame"
+        onClick={() => stepFrame(-1)}
+      >
         <MaterialIcon icon="chevron_left" />
       </button>
-      <button title={playing ? "Pause" : "Play"} onClick={handlePlayPause}>
+      <button
+        id="qc-cine-play"
+        title={playing ? "Pause" : "Play"}
+        onClick={handlePlayPause}
+      >
         <MaterialIcon icon={playing ? "pause" : "play_arrow"} />
       </button>
-      <button title="Next frame" onClick={() => stepFrame(1)}>
+      <button
+        className="qc-btn qc-cine-step"
+        title="Next frame"
+        onClick={() => stepFrame(1)}
+      >
         <MaterialIcon icon="chevron_right" />
       </button>
-      <label>
-        <span>fps:</span>
-        <input
-          id="cine-fps"
-          type="number"
-          min={MIN_FPS}
-          max={MAX_FPS}
-          value={fps}
-          onChange={handleFpsChange}
-        />
-      </label>
+
+      <input
+        id="qc-cine-scrub"
+        type="range"
+        min={0}
+        max={Math.max(frameCount - 1, 0)}
+        value={Math.max(frameIndex, 0)}
+        onChange={(e) => goToFrame(parseInt(e.target.value, 10))}
+      />
+
+      <div className="qc-cine-frame-label">{frameLabel}</div>
+
+      <div className="qc-cine-divider" />
+
+      <select id="qc-cine-fps" value={fps} onChange={handleFpsChange}>
+        {FPS_OPTIONS.map((option) => (
+          <option key={option} value={option}>
+            {option} fps
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

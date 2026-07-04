@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
-import { useSelector } from "react-redux";
 
-import { wadouri } from "@cornerstonejs/dicom-image-loader";
 import dcmjs from "dcmjs";
+
+import useCurrentDataSet from "./useCurrentDataSet";
 
 import "./QCDicomDump.css";
 
@@ -86,53 +86,69 @@ function buildRows(dataSet) {
     });
 }
 
+/** Bucket sorted rows into their DICOM groups: "(0008,....)" → "Group 0008". */
+function buildGroups(rows) {
+  const groups = [];
+  let current = null;
+  for (const row of rows) {
+    const group = row.tag.slice(1, 5);
+    if (!current || current.group !== group) {
+      current = { group, rows: [] };
+      groups.push(current);
+    }
+    current.rows.push(row);
+  }
+  return groups;
+}
+
 /**
- * Client-side DICOM dump of the currently displayed frame's file.
+ * Client-side DICOM dump of the currently displayed frame's file, grouped
+ * by tag group with sticky group headers.
  *
  * Reads the dicom-parser dataSet that the wadouri image loader has already
  * fetched and cached for the stack viewport, so no extra server round-trip
  * is needed (unlike the old /papi/v1/dump/{file_id} endpoint).
  */
-export default function QCDicomDump({ fileByUrl }) {
-  const currentImageId = useSelector((state) => state.options.currentImageId);
+export default function QCDicomDump({ fileByUrl, frameIndex, frameCount }) {
+  const { url, dataSet } = useCurrentDataSet();
 
-  const parsed = currentImageId ? wadouri.parseImageId(currentImageId) : null;
-  const url = parsed?.url;
-
-  const rows = useMemo(() => {
-    if (!url) return null;
-    const dataSet = wadouri.dataSetCacheManager.get(url);
-    return dataSet ? buildRows(dataSet) : null;
-  }, [url]);
+  const rows = useMemo(() => (dataSet ? buildRows(dataSet) : null), [dataSet]);
+  const groups = useMemo(() => (rows ? buildGroups(rows) : null), [rows]);
 
   const file = url ? fileByUrl?.[url] : null;
+  const frameLabel =
+    frameIndex >= 0 && frameCount ? `${frameIndex + 1} / ${frameCount}` : "—";
 
   return (
-    <div id="qc-dicom-dump" className="side-panel">
-      <h2 id="title">DICOM Dump</h2>
-      {rows ? (
-        <>
-          <p className="qc-dump-subtitle">
-            {file && `File ${file.file_id}`}
-            {parsed.frame !== undefined && ` · frame ${parsed.frame + 1}`}
-          </p>
-          <div className="qc-dump-scroll">
-            <table>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.tag}>
-                    <td className="qc-dump-tag">{row.tag}</td>
-                    <td className="qc-dump-name">{row.name}</td>
-                    <td className="qc-dump-vr">{row.vr}</td>
-                    <td className="qc-dump-value">{row.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+    <div id="qc-dicom-dump">
+      <div className="qc-dump-header">
+        <div className="qc-section-heading">
+          DICOM Dump — Frame {frameLabel}
+        </div>
+        <div className="qc-dump-meta">
+          {file && `File ${file.file_id} · `}
+          {rows ? `${rows.length} tags` : ""}
+        </div>
+      </div>
+
+      {groups ? (
+        <div className="qc-dump-scroll">
+          {groups.map(({ group, rows: groupRows }) => (
+            <div key={group} className="qc-dump-group">
+              <div className="qc-dump-group-header">Group {group}</div>
+              {groupRows.map((row) => (
+                <div key={row.tag} className="qc-dump-row">
+                  <div className="qc-dump-tag">{row.tag}</div>
+                  <div className="qc-dump-name">{row.name}</div>
+                  <div className="qc-dump-vr">{row.vr}</div>
+                  <div className="qc-dump-value">{row.value}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       ) : (
-        <p className="qc-dump-subtitle">No image loaded yet.</p>
+        <div className="qc-dump-empty">No image loaded yet.</div>
       )}
     </div>
   );

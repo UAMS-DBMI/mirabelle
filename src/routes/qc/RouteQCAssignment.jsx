@@ -7,7 +7,6 @@ import { messages } from "@/lib/messages";
 import { getQCAssignment, getQCAssignmentSeries } from "@/qc";
 import { getCurrentUser } from "@/utilities";
 import { resetOptions, setLoading } from "@/features/optionSlice";
-import { setQCConfig, reset } from "@/features/presentationSlice";
 import QCAssignment from "@/features/qc/QCAssignment";
 
 function seriesPath(assignmentId, seriesUid, qcStatus, modality) {
@@ -20,6 +19,10 @@ function seriesPath(assignmentId, seriesUid, qcStatus, modality) {
     modality,
   ].join("/");
 }
+
+// Sentinel :seriesUid for the end-of-list screen, reached by deciding the
+// last series. Can't collide with a real series UID (those are digits/dots).
+const END_SENTINEL = "end";
 
 /**
  * QC route: opens directly to an assignment (already claimed elsewhere) and
@@ -69,8 +72,6 @@ export default function RouteQCAssignment() {
 
   useEffect(() => {
     dispatch(resetOptions());
-    dispatch(reset());
-    dispatch(setQCConfig());
     dispatch(setLoading(true));
     // Clear stale list to avoid redirecting with previous results
     setSeriesList(null);
@@ -82,6 +83,11 @@ export default function RouteQCAssignment() {
           // No results: stop loading and notify
           dispatch(setLoading(false));
           notify.info(messages.filters.noResults);
+          return;
+        }
+        // End-of-list screen: nothing loads, so stop the spinner here
+        if (seriesUid === END_SENTINEL) {
+          dispatch(setLoading(false));
           return;
         }
         // If the series isn't specified (or is '*'), redirect to the FIRST
@@ -105,14 +111,18 @@ export default function RouteQCAssignment() {
       });
   }, [assignmentId, qcStatus, modality, seriesUid, dispatch, navigate]);
 
+  const atEnd = seriesUid === END_SENTINEL;
+
   // Calculate the next and previous series from the fetched list
   let nextUid = null;
   let previousUid = null;
+  let offset = -1;
 
-  if (seriesList && seriesUid && seriesUid !== "*") {
-    const offset = seriesList.findIndex(
-      (s) => s.series_instance_uid === seriesUid,
-    );
+  if (seriesList && atEnd && seriesList.length > 0) {
+    // From the end screen, Back returns to the last series of the list
+    previousUid = seriesList[seriesList.length - 1].series_instance_uid;
+  } else if (seriesList && seriesUid && seriesUid !== "*") {
+    offset = seriesList.findIndex((s) => s.series_instance_uid === seriesUid);
     const nextOffset = offset + 1;
     const previousOffset = offset - 1;
 
@@ -140,6 +150,14 @@ export default function RouteQCAssignment() {
     }
   };
 
+  // After a QC decision: advance to the next series, or to the end-of-list
+  // screen when the last series was just decided (staying put would show
+  // stale status data).
+  const handleActionAdvance = () => {
+    const target = nextUid || END_SENTINEL;
+    navigate(seriesPath(assignmentId, target, qcStatus, modality));
+  };
+
   const handleFilter = ({ qcStatus: newStatus, modality: newModality }) => {
     navigate(
       seriesPath(assignmentId, "*", newStatus || "All", newModality || "All"),
@@ -162,7 +180,8 @@ export default function RouteQCAssignment() {
     currentUser.user_id === assignedTo
   );
 
-  const resolvedSeriesUid = seriesUid && seriesUid !== "*" ? seriesUid : null;
+  const resolvedSeriesUid =
+    seriesUid && seriesUid !== "*" && !atEnd ? seriesUid : null;
   const noSeries = Array.isArray(seriesList) && seriesList.length === 0;
   const currentSeries =
     (resolvedSeriesUid &&
@@ -171,18 +190,23 @@ export default function RouteQCAssignment() {
 
   return (
     <QCAssignment
-      routeName="qc-assignment"
       assignmentId={assignmentId}
       seriesUid={resolvedSeriesUid}
       series={currentSeries}
       assignmentData={assignmentData}
       readOnly={readOnly}
       noSeries={noSeries}
+      atEnd={atEnd}
       qcStatus={qcStatus}
       modality={modality}
       modalityOptions={modalityOptions}
+      seriesPosition={offset >= 0 ? offset + 1 : null}
+      seriesCount={seriesList?.length ?? null}
+      hasNext={nextUid != null}
+      hasPrevious={previousUid != null}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      onActionAdvance={handleActionAdvance}
       onFilter={handleFilter}
       onStatusChanged={refreshAssignment}
     />
