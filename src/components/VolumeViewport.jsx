@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { attachDataFrame, removeMaskBox2D } from "@/lib/viewportFrame";
-import { MARGIN_ZOOM } from "@/lib/viewportView";
+import { MARGIN_ZOOM, acquisitionPaneOrientation } from "@/lib/viewportView";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -219,6 +219,26 @@ function VolumeViewport({
 
       // Set the volume on the viewport and it's default properties
       viewport.setVolumes([{ volumeId }]);
+
+      // Face the volume's own axes rather than the world axes: oblique
+      // acquisitions then render square-on and the selection box tracks the
+      // cursor exactly. Stored as the viewport's orientation too, so every
+      // resetCamera() restores this framing instead of the world-axis enum.
+      const acqOrientation = acquisitionPaneOrientation(
+        cornerstone.cache.getVolume(volumeId),
+        orientation,
+      );
+      if (acqOrientation) {
+        // Store the orientation on both slots Cornerstone reads during
+        // camera resets: resetCamera() re-applies
+        // viewportProperties.orientation (which setOrientation only fills
+        // for string enums), and options.orientation feeds the other reset
+        // paths. Without these, the next reset — e.g. the one inside the
+        // labelmap addVolumes — snaps the camera back to the world axes.
+        viewport.options.orientation = acqOrientation;
+        viewport.viewportProperties.orientation = acqOrientation;
+        viewport.setOrientation(acqOrientation);
+      }
 
       // // Apply all active segmentations to the viewport
       const segmentationIds = segmentation.state
