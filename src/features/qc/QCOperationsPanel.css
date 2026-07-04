@@ -1,56 +1,67 @@
-#qc-operations-panel .qc-series-info {
-  @apply text-xs break-all mb-2;
+#qc-review-panel {
+  @apply flex flex-col shrink-0 gap-2.5 px-5 py-4;
+  border-bottom: 1px solid var(--qc-border);
 }
 
-#qc-operations-panel .qc-series-info span {
-  @apply font-bold;
+#qc-review-panel .qc-readonly-notice {
+  @apply text-xs rounded-lg p-2.5;
+  background: var(--qc-amber-bg);
+  color: var(--qc-amber-text);
 }
 
-#qc-operations-panel .qc-readonly-notice {
-  @apply text-xs
-    text-amber-800
-    dark:text-amber-200
-    bg-amber-100
-    dark:bg-amber-900
-    rounded-md
-    p-2
-    mb-2;
+#qc-review-panel #qc-note {
+  @apply w-full resize-y text-xs rounded-lg p-2.5;
+  min-height: 64px;
+  font-family: inherit;
+  background: oklch(0.99 0.005 90);
+  border: 1px solid oklch(0.85 0.02 90);
+  color: var(--qc-text-strong);
 }
 
-#qc-operations-panel #qc-note {
-  @apply w-full
-    rounded-md
-    border
-    border-gray-300
-    p-2
-    text-sm
-    text-gray-900;
-}
-
-#qc-operations-panel #qc-note:disabled {
+#qc-review-panel #qc-note:disabled {
   @apply opacity-50;
 }
 
-#qc-operations-panel .qc-buttons {
-  @apply flex gap-2 w-full justify-center mt-2;
+#qc-review-panel .qc-note-hint {
+  @apply text-[11px] -mt-1.5;
+  color: var(--qc-text-muted);
 }
 
-#qc-operations-panel .qc-buttons button {
-  @apply text-white rounded-md px-4 h-8;
+#qc-review-panel .qc-review-buttons {
+  @apply flex gap-2;
 }
 
-#qc-operations-panel .qc-buttons button:disabled {
-  @apply opacity-50 cursor-not-allowed;
+#qc-review-panel .qc-review-button {
+  @apply flex-1 py-2 rounded-lg text-xs font-semibold cursor-pointer;
+  background: var(--qc-surface);
+  border: 1px solid var(--qc-border-strong);
+  color: var(--qc-text-strong);
 }
 
-#qc-operations-panel #qc-approve {
-  @apply bg-green-700 hover:bg-green-800;
+#qc-review-panel .qc-review-button:disabled {
+  @apply cursor-not-allowed opacity-60;
+  color: var(--qc-text-disabled);
 }
 
-#qc-operations-panel #qc-reject {
-  @apply bg-red-700 hover:bg-red-800;
+#qc-review-panel .qc-review-green.active {
+  background: var(--qc-green-bg);
+  border: 1.5px solid var(--qc-green-border);
+  color: var(--qc-green-text);
 }
 
-#qc-operations-panel #qc-flag {
-  @apply bg-yellow-700 hover:bg-yellow-800;
+#qc-review-panel .qc-review-red.active {
+  background: var(--qc-red-bg);
+  border: 1.5px solid var(--qc-red-border);
+  color: var(--qc-red-text);
+}
+
+#qc-review-panel .qc-review-amber.active {
+  background: var(--qc-amber-bg);
+  border: 1.5px solid var(--qc-amber-border);
+  color: var(--qc-amber-text);
+}
+
+#qc-review-panel .qc-review-hint {
+  @apply text-[11.5px];
+  color: var(--qc-text-muted);
 }

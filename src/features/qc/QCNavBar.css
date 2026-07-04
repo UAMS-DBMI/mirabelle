@@ -1,0 +1,23 @@
+#qc-nav-bar {
+  @apply flex items-center gap-2.5 shrink-0 px-5 py-2.5;
+  background: var(--qc-surface);
+  border-bottom: 1px solid var(--qc-border);
+}
+
+#qc-nav-bar .qc-nav-position {
+  @apply text-xs font-semibold ml-1.5 whitespace-nowrap tabular-nums;
+  color: var(--qc-text-secondary);
+}
+
+#qc-nav-bar .qc-nav-filter {
+  @apply flex items-center gap-1.5 text-xs ml-2;
+  color: var(--qc-text-muted);
+}
+
+#qc-nav-bar .qc-nav-spacer {
+  @apply flex-1;
+}
+
+#qc-nav-bar .qc-nav-pills {
+  @apply flex gap-2;
+}

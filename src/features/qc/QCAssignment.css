@@ -1,7 +1,110 @@
-#qc-top-strip {
-  @apply flex gap-2 w-full items-stretch;
+/*
+ * QC page palette and layout, from the "DICOM Stack Reviewer" Claude Design
+ * project. The QC route is intentionally its own light-themed system and
+ * does not follow the app-wide panel styling.
+ */
+#qc-page {
+  --qc-bg: oklch(0.97 0.004 90);
+  --qc-surface: #fff;
+  --qc-border: oklch(0.9 0.005 90);
+  --qc-border-strong: oklch(0.88 0.005 90);
+  --qc-border-faint: oklch(0.95 0.003 90);
+  --qc-chip-bg: oklch(0.94 0.004 90);
+  --qc-text: oklch(0.22 0.01 95);
+  --qc-text-strong: oklch(0.3 0.01 90);
+  --qc-text-secondary: oklch(0.4 0.01 90);
+  --qc-text-muted: oklch(0.52 0.01 90);
+  --qc-text-faint: oklch(0.6 0.01 90);
+  --qc-text-disabled: oklch(0.75 0.01 90);
+  --qc-accent: oklch(0.5 0.15 250);
+  --qc-green-bg: oklch(0.93 0.06 150);
+  --qc-green-text: oklch(0.4 0.1 150);
+  --qc-green-border: oklch(0.55 0.14 150);
+  --qc-red-bg: oklch(0.93 0.06 25);
+  --qc-red-text: oklch(0.45 0.13 25);
+  --qc-red-border: oklch(0.55 0.16 25);
+  --qc-amber-bg: oklch(0.93 0.08 85);
+  --qc-amber-text: oklch(0.45 0.12 75);
+  --qc-amber-border: oklch(0.6 0.14 80);
+
+  @apply flex flex-col w-full h-full overflow-hidden;
+  background: var(--qc-bg);
+  color: var(--qc-text);
 }
 
-#qc-top-strip #filter-panel {
-  @apply flex-1;
+#qc-page #qc-main {
+  @apply flex flex-1 min-h-0;
+}
+
+#qc-page #qc-center {
+  @apply flex flex-col flex-1 min-w-0;
+}
+
+#qc-page #qc-right-panel {
+  @apply flex flex-col shrink-0 min-h-0 w-[686px];
+  background: var(--qc-surface);
+  border-left: 1px solid var(--qc-border);
+}
+
+#qc-page .qc-empty-viewport {
+  @apply flex flex-1 items-center justify-center text-sm;
+  color: var(--qc-text-muted);
+}
+
+/* Shared status/count pills */
+#qc-page .qc-pill {
+  @apply text-xs font-semibold rounded-full px-3 py-1.5 whitespace-nowrap;
+}
+
+#qc-page .qc-pill-neutral {
+  background: var(--qc-chip-bg);
+  color: var(--qc-text-muted);
+}
+
+#qc-page .qc-pill-green {
+  background: var(--qc-green-bg);
+  color: var(--qc-green-text);
+}
+
+#qc-page .qc-pill-red {
+  background: var(--qc-red-bg);
+  color: var(--qc-red-text);
+}
+
+#qc-page .qc-pill-amber {
+  background: var(--qc-amber-bg);
+  color: var(--qc-amber-text);
+}
+
+/* Shared small bordered button (nav, toolbar) */
+#qc-page .qc-btn {
+  @apply text-xs font-medium rounded-[7px] px-3 py-[7px] cursor-pointer;
+  background: var(--qc-surface);
+  border: 1px solid var(--qc-border-strong);
+  color: var(--qc-text-secondary);
+}
+
+#qc-page .qc-btn:hover:not(:disabled) {
+  background: oklch(0.96 0.004 90);
+}
+
+#qc-page .qc-btn:disabled {
+  @apply cursor-not-allowed;
+  background: oklch(0.96 0.004 90);
+  border-color: oklch(0.92 0.004 90);
+  color: var(--qc-text-disabled);
+}
+
+/* Shared section heading ("STACK REVIEW", "DICOM DUMP — …") */
+#qc-page .qc-section-heading {
+  @apply text-xs font-semibold uppercase tracking-wide;
+  color: var(--qc-text-muted);
+}
+
+/* Shared select styling (filters, fps) */
+#qc-page select {
+  @apply text-xs rounded-[7px] px-2 py-1.5 cursor-pointer;
+  background: var(--qc-surface);
+  border: 1px solid var(--qc-border-strong);
+  color: var(--qc-text-strong);
 }

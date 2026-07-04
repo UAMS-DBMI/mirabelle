@@ -62,6 +62,8 @@ export const messages = {
     readOnly: (userId) =>
       `This assignment belongs to user ${userId}; QC actions are disabled.`,
     noSeries: "No series were found for the selected filters.",
+    endReached:
+      "End of the series list. Go back or change the filters to continue.",
     assignmentLoadFailed: "Couldn't load the assignment. Please try again.",
     historyLoadFailed: "Couldn't load the series history.",
   },

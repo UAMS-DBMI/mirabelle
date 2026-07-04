@@ -1,0 +1,26 @@
+#qc-viewport {
+  @apply relative flex-1 min-h-0 mx-4 my-1.5 rounded-[10px] overflow-hidden;
+  background: #000;
+}
+
+#qc-viewport .stack-viewport {
+  @apply absolute inset-0;
+}
+
+#qc-viewport .qc-viewport-overlay {
+  @apply absolute inset-0 pointer-events-none font-mono text-[11.5px] leading-normal;
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+#qc-viewport .qc-overlay-top-right {
+  @apply absolute top-2.5 right-3 text-right;
+}
+
+#qc-viewport .qc-overlay-bottom-left {
+  @apply absolute bottom-2.5 left-3;
+}
+
+#qc-viewport .qc-overlay-bottom-right {
+  @apply absolute bottom-2.5 right-3 text-right;
+}

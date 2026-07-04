@@ -1,0 +1,55 @@
+#qc-study-header {
+  @apply flex items-center gap-5 shrink-0 px-5 py-3;
+  background: var(--qc-surface);
+  border-bottom: 1px solid var(--qc-border);
+}
+
+#qc-study-header .qc-header-block {
+  @apply flex flex-col gap-0.5 min-w-0;
+}
+
+#qc-study-header .qc-header-primary {
+  @apply text-sm font-semibold truncate;
+}
+
+#qc-study-header .qc-header-secondary {
+  @apply text-xs whitespace-nowrap;
+  color: var(--qc-text-muted);
+}
+
+#qc-study-header .qc-header-divider {
+  @apply w-px h-7 shrink-0;
+  background: var(--qc-border);
+}
+
+#qc-study-header .qc-header-spacer {
+  @apply flex-1;
+}
+
+#qc-study-header .qc-shortcuts {
+  @apply relative;
+}
+
+#qc-study-header .qc-shortcuts-icon {
+  @apply text-sm;
+}
+
+#qc-study-header .qc-shortcuts-popover {
+  @apply absolute right-0 top-full mt-2 w-64 rounded-[10px] p-4 z-50 flex flex-col gap-1.5;
+  background: var(--qc-surface);
+  border: 1px solid var(--qc-border-strong);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+}
+
+#qc-study-header .qc-shortcuts-popover .qc-section-heading {
+  @apply mb-1;
+}
+
+#qc-study-header .qc-shortcut-row {
+  @apply flex justify-between text-xs;
+  color: var(--qc-text-strong);
+}
+
+#qc-study-header .qc-shortcut-row b {
+  @apply font-mono;
+}

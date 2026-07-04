@@ -1,5 +1,4 @@
 import React from "react";
-import { useSelector } from "react-redux";
 
 import { messages } from "@/lib/messages";
 
@@ -7,9 +6,10 @@ import "./QCOperationsPanel.css";
 
 /**
  * QC action buttons (Approve / Reject / Flag) plus the shared note field.
- * Reject and Flag require a note; Approve treats it as optional. In
- * read-only mode (assignment belongs to someone else) the actions are
- * disabled but the rest of the route stays usable.
+ * Reject and Flag require a note and stay disabled until one is typed;
+ * Approve treats it as optional. The button matching the series' saved
+ * status is highlighted. In read-only mode (assignment belongs to someone
+ * else) all actions are disabled but the rest of the route stays usable.
  */
 export default function QCOperationsPanel({
   series,
@@ -20,77 +20,62 @@ export default function QCOperationsPanel({
   noteInputRef,
   onAction,
 }) {
-  const buttonConfig = useSelector((state) => state.presentation.buttonConfig);
-  const visibility = buttonConfig.qc.visibility;
+  const noteMissing = !note.trim();
+  const status = series?.qc_status;
+
+  const buttonClass = (action, colorClass) =>
+    `qc-review-button ${colorClass}${status === action ? " active" : ""}`;
 
   return (
-    <div id="qc-operations-panel" className="side-panel">
-      <h2 id="title">QC Operations</h2>
-      <div className="wrapper">
-        {series && (
-          <div className="qc-series-info">
-            <p>
-              <span>Series:</span> {series.series_instance_uid}
-            </p>
-            <p>
-              <span>Modality:</span> {series.modality}
-            </p>
-            <p>
-              <span>Status:</span> {series.qc_status}
-            </p>
-            {series.notes && (
-              <p>
-                <span>Notes:</span> {series.notes}
-              </p>
-            )}
-          </div>
-        )}
+    <div id="qc-review-panel">
+      <div className="qc-section-heading">Stack Review</div>
 
-        {readOnly && assignedTo != null && (
-          <p className="qc-readonly-notice">
-            {messages.qc.readOnly(assignedTo)}
-          </p>
-        )}
+      {readOnly && assignedTo != null && (
+        <p className="qc-readonly-notice">{messages.qc.readOnly(assignedTo)}</p>
+      )}
 
-        <textarea
-          id="qc-note"
-          ref={noteInputRef}
-          value={note}
-          rows={3}
-          placeholder="Note (required for Reject and Flag)"
+      <textarea
+        id="qc-note"
+        ref={noteInputRef}
+        value={note}
+        rows={3}
+        placeholder="Add a note about this series…"
+        disabled={readOnly}
+        onChange={(e) => onNoteChange(e.target.value)}
+      />
+      <div className="qc-note-hint">
+        Optional for Approve · required for Reject / Flag
+      </div>
+
+      <div className="qc-review-buttons">
+        <button
+          id="qc-approve"
+          className={buttonClass("approved", "qc-review-green")}
           disabled={readOnly}
-          onChange={(e) => onNoteChange(e.target.value)}
-        />
+          onClick={() => onAction("approved")}
+        >
+          ✓ Approve
+        </button>
+        <button
+          id="qc-reject"
+          className={buttonClass("rejected", "qc-review-red")}
+          disabled={readOnly || noteMissing}
+          onClick={() => onAction("rejected")}
+        >
+          ✕ Reject
+        </button>
+        <button
+          id="qc-flag"
+          className={buttonClass("flagged", "qc-review-amber")}
+          disabled={readOnly || noteMissing}
+          onClick={() => onAction("flagged")}
+        >
+          ⚑ Flag
+        </button>
+      </div>
 
-        <div className="qc-buttons">
-          {visibility.approve && (
-            <button
-              id="qc-approve"
-              disabled={readOnly}
-              onClick={() => onAction("approved")}
-            >
-              Approve
-            </button>
-          )}
-          {visibility.reject && (
-            <button
-              id="qc-reject"
-              disabled={readOnly}
-              onClick={() => onAction("rejected")}
-            >
-              Reject
-            </button>
-          )}
-          {visibility.flag && (
-            <button
-              id="qc-flag"
-              disabled={readOnly}
-              onClick={() => onAction("flagged")}
-            >
-              Flag
-            </button>
-          )}
-        </div>
+      <div className="qc-review-hint">
+        Deciding advances to the next series in this assignment.
       </div>
     </div>
   );
