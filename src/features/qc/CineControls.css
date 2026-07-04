@@ -1,37 +1,29 @@
-#cine-controls {
-  @apply flex
-    items-center
-    gap-2
-    w-full
-    justify-center
-    bg-blue-100
-    dark:bg-blue-900
-    rounded-lg
-    p-2;
+#qc-cine-bar {
+  @apply flex items-center gap-3.5 shrink-0 px-4 pt-2.5 pb-4;
 }
 
-#cine-controls button {
-  @apply flex
-    items-center
-    justify-center
-    rounded-md
-    h-8
-    w-8
-    bg-blue-500
-    text-white
-    hover:bg-blue-600;
+#qc-cine-bar .qc-cine-step {
+  @apply flex items-center justify-center w-[34px] h-[34px] p-0;
+  color: var(--qc-text-strong);
 }
 
-#cine-controls label {
-  @apply flex items-center space-x-1 text-sm;
+#qc-cine-bar #qc-cine-play {
+  @apply flex items-center justify-center w-10 h-10 rounded-[9px] border-0 cursor-pointer;
+  background: var(--qc-accent);
+  color: #fff;
 }
 
-#cine-controls input {
-  @apply rounded-md
-    border
-    border-gray-300
-    h-8
-    w-16
-    px-2
-    text-gray-900;
+#qc-cine-bar #qc-cine-scrub {
+  @apply flex-1;
+  accent-color: var(--qc-accent);
+}
+
+#qc-cine-bar .qc-cine-frame-label {
+  @apply text-xs min-w-16 tabular-nums;
+  color: var(--qc-text-secondary);
+}
+
+#qc-cine-bar .qc-cine-divider {
+  @apply w-px h-5;
+  background: var(--qc-border-strong);
 }

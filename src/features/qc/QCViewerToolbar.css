@@ -1,0 +1,43 @@
+#qc-viewer-toolbar {
+  @apply flex items-center gap-2 shrink-0 px-4 pt-2.5 pb-1.5;
+}
+
+#qc-viewer-toolbar .qc-tool-toggle {
+  @apply flex gap-0.5 rounded-lg p-[3px];
+  background: var(--qc-chip-bg);
+}
+
+#qc-viewer-toolbar .qc-tool-toggle button {
+  @apply text-xs font-medium rounded-md px-3 py-1.5 cursor-pointer border-0;
+  background: transparent;
+  color: var(--qc-text-muted);
+}
+
+#qc-viewer-toolbar .qc-tool-toggle button.active {
+  background: var(--qc-surface);
+  color: var(--qc-text-strong);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+#qc-viewer-toolbar .qc-toolbar-divider {
+  @apply w-px h-5 mx-1;
+  background: var(--qc-border-strong);
+}
+
+#qc-viewer-toolbar .qc-zoom-btn {
+  @apply w-[30px] h-[30px] p-0 text-[15px] leading-none;
+}
+
+#qc-viewer-toolbar .qc-zoom-label {
+  @apply text-xs w-11 text-center tabular-nums;
+  color: var(--qc-text-muted);
+}
+
+#qc-viewer-toolbar .qc-toolbar-spacer {
+  @apply flex-1;
+}
+
+#qc-viewer-toolbar .qc-toolbar-hint {
+  @apply text-xs whitespace-nowrap;
+  color: var(--qc-text-faint);
+}
