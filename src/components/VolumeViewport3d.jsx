@@ -8,6 +8,7 @@ import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import { useSelector, useDispatch } from "react-redux";
 import { setPresets } from "@/features/presentationSlice";
 import { setOption } from "@/features/optionSlice";
+import { refit3dViewportsAfterResize } from "@/lib/viewportView";
 import ViewportLabel from "@/components/ViewportLabel";
 
 import "./VolumeViewport3d.css";
@@ -79,6 +80,9 @@ function VolumeViewport3d({
       /* A hack to force-render a 3d viewport */
       renderingEngine.resize(true, true);
       renderingEngine.render();
+      // Re-fit the 3D camera once layout settles; without it the pane comes
+      // back black after a resize (degenerate camera on the shared context).
+      refit3dViewportsAfterResize(renderingEngine);
     }
 
     wrapper.addEventListener("dblclick", toggleViewportSize);

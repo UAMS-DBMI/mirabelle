@@ -6,7 +6,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { attachDataFrame, removeMaskBox2D } from "@/lib/viewportFrame";
-import { MARGIN_ZOOM, acquisitionPaneOrientation } from "@/lib/viewportView";
+import {
+  MARGIN_ZOOM,
+  acquisitionPaneOrientation,
+  refit3dViewportsAfterResize,
+} from "@/lib/viewportView";
 import ViewportLabel from "@/components/ViewportLabel";
 
 import * as cornerstone from "@cornerstonejs/core";
@@ -92,6 +96,9 @@ function VolumeViewport({
 
       renderingEngine.resize(true, true);
       renderingEngine.render();
+      // The 3D pane comes back black after its sibling is minimized/restored
+      // (degenerate camera on the shared context); re-fit it once layout settles.
+      refit3dViewportsAfterResize(renderingEngine);
     }
 
     console.log("[VolumeViewport] adding dblclick listener to", wrapper);

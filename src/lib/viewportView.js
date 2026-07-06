@@ -181,3 +181,34 @@ export function resetViewportsView() {
     viewport.render();
   });
 }
+
+/**
+ * Re-fit the 3D pane's camera after an expand/minimize layout change.
+ *
+ * All panes share one offscreen WebGL context; while a pane is minimized to
+ * ~1px cornerstone skips rendering it, and on restore the 3D perspective
+ * camera comes back with a degenerate clipping range, leaving the pane black
+ * even though resize()+render() already ran. The 2D parallel-projection panes
+ * recover on their own; the 3D one needs its framing re-fit — the same
+ * recovery the "Reset Camera" button (resetViewportsView) uses.
+ *
+ * Deferred to the next frame so it runs after the browser has settled the new
+ * layout and after cornerstone's own resize-triggered render — the
+ * post-settle timing under which the manual reset is known to work (an inline
+ * refit in the same tick as the class toggle is why the earlier hack was
+ * unreliable).
+ */
+export function refit3dViewportsAfterResize(renderingEngine) {
+  if (!renderingEngine) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    renderingEngine.getViewports().forEach((viewport) => {
+      if (!is3dViewport(viewport.id)) {
+        return;
+      }
+      viewport.applyViewOrientation(viewport.options.orientation);
+      viewport.render();
+    });
+  });
+}
