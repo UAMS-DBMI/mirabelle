@@ -7,6 +7,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { attachDataFrame, removeMaskBox2D } from "@/lib/viewportFrame";
 import { MARGIN_ZOOM, acquisitionPaneOrientation } from "@/lib/viewportView";
+import ViewportLabel from "@/components/ViewportLabel";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -36,6 +37,13 @@ const { segmentation: segmentationUtils } = cstUtils;
 const { ViewportType } = Enums;
 
 window.eventTarget = eventTarget;
+
+// Badge text per pane orientation prop.
+const PANE_LABELS = {
+  AXIAL: "Axial",
+  CORONAL: "Coronal",
+  SAGITTAL: "Sagittal",
+};
 
 function VolumeViewport({
   viewportId,
@@ -220,10 +228,12 @@ function VolumeViewport({
       // Set the volume on the viewport and it's default properties
       viewport.setVolumes([{ volumeId }]);
 
-      // Face the volume's own axes rather than the world axes: oblique
-      // acquisitions then render square-on and the selection box tracks the
-      // cursor exactly. Stored as the viewport's orientation too, so every
-      // resetCamera() restores this framing instead of the world-axis enum.
+      // Align this pane's anatomical camera to the volume's nearest voxel
+      // axes: oblique acquisitions render square-on (so the selection box
+      // tracks the cursor exactly) while each pane keeps its anatomical view
+      // even when the voxel axes are permuted or flipped. Stored as the
+      // viewport's orientation too, so every resetCamera() restores this
+      // framing instead of the world-axis enum.
       const acqOrientation = acquisitionPaneOrientation(
         cornerstone.cache.getVolume(volumeId),
         orientation,
@@ -360,7 +370,9 @@ function VolumeViewport({
         className={`volume-viewport viewport${
           activeViewport === viewportId ? " active" : ""
         }`}
-      ></div>
+      >
+        <ViewportLabel text={PANE_LABELS[orientation] ?? orientation} />
+      </div>
     </>
   );
 }

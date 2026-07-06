@@ -83,6 +83,8 @@ components/
 ├── TestError.jsx                    # Error testing component
 ├── ViewerResizer.css
 ├── ViewerResizer.jsx                # Viewport resizing controls
+├── ViewportLabel.css
+├── ViewportLabel.jsx                # Corner badge naming a viewport's view
 ├── VolumeViewport.css
 ├── VolumeViewport.jsx               # Volume rendering viewport
 ├── VolumeViewport3d.css
