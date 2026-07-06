@@ -12,9 +12,16 @@
  */
 
 import * as cornerstoneTools from "@cornerstonejs/tools";
-import { getEnabledElement } from "@cornerstonejs/core";
+import { eventTarget, getEnabledElement } from "@cornerstonejs/core";
 
 const { RectangleScissorsTool } = cornerstoneTools;
+
+// Fired on every drag step of a fresh rectangle draw, carrying the IJK bounds
+// of the rectangle drawn so far. The scissors tool itself only fills the
+// labelmap (and so triggers SEGMENTATION_DATA_MODIFIED) on mouse-up, so
+// without this the 3D box preview and the other 2D panes only update once the
+// draw completes. Listeners merge this with any already-committed bounds.
+export const MASK_LIVE_DRAW_EVENT = "mirabelle_maskLiveDraw";
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -48,6 +55,41 @@ function clampWorldPointToVolume(evt) {
   world[2] = clamped[2];
 }
 
+// Derive the IJK bounding box of the rectangle currently being dragged from
+// its four world-space corner points and broadcast it. The two in-plane
+// corners disagree on the two in-plane axes and agree (same slice) on the
+// third, so a plain per-axis min/max needs no knowledge of which axes those
+// are.
+function broadcastLiveBounds(evt, editData) {
+  const element = evt?.detail?.element;
+  const points = editData?.annotation?.data?.handles?.points;
+  const segmentationId = editData?.segmentationId;
+  if (!element || !points || !segmentationId) {
+    return;
+  }
+
+  const imageData = getEnabledElement(element)?.viewport?.getImageData()
+    ?.imageData;
+  if (!imageData) {
+    return;
+  }
+
+  const ijkPoints = points.map((world) =>
+    imageData.worldToIndex(world, [0, 0, 0]).map(Math.round),
+  );
+  const bounds = ["i", "j", "k"].reduce((acc, key, axis) => {
+    const values = ijkPoints.map((p) => p[axis]);
+    acc[key] = { min: Math.min(...values), max: Math.max(...values) };
+    return acc;
+  }, {});
+
+  eventTarget.dispatchEvent(
+    new CustomEvent(MASK_LIVE_DRAW_EVENT, {
+      detail: { segmentationId, bounds },
+    }),
+  );
+}
+
 export class ClampedRectangleScissorsTool extends RectangleScissorsTool {
   constructor(toolProps, defaultToolProps) {
     super(toolProps, defaultToolProps);
@@ -63,7 +105,9 @@ export class ClampedRectangleScissorsTool extends RectangleScissorsTool {
     const originalDrag = this._dragCallback;
     this._dragCallback = (evt) => {
       clampWorldPointToVolume(evt);
-      return originalDrag(evt);
+      const result = originalDrag(evt);
+      broadcastLiveBounds(evt, this.editData);
+      return result;
     };
   }
 }
