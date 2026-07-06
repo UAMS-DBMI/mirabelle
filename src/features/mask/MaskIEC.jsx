@@ -37,6 +37,7 @@ import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
 import { submitFinalCoords } from "@/masking";
 import { addMaskBox, removeMaskBox } from "@/lib/maskBox";
 import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
+import { MASK_LIVE_DRAW_EVENT } from "@/lib/clampedRectangleScissors";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { VolumeView } from "@/features/volume-view";
@@ -460,6 +461,45 @@ export default function MaskIEC({
       }
     };
 
+    // Bounds already committed to the labelmap, if any — used to merge a
+    // fresh scissors draw's in-progress bounds with prior selection so
+    // extending an existing box onto a new slice doesn't preview as a shrink
+    // back to just the new stroke while the drag is still in flight.
+    const getCommittedBounds = () => {
+      if (!segmentation.state.getSegmentation(segmentationId)) return null;
+      if (volumetric) return getLabelmapBounds(segmentationId);
+      const imageIds = segmentation.getLabelmapImageIds(segmentationId);
+      return imageIds?.length ? getCoordsForStackSeg(imageIds) : null;
+    };
+
+    // Live preview of a brand-new rectangle being drawn (as opposed to a
+    // resize drag of an existing box, handled by onLiveResize below). The
+    // scissors tool only fills the labelmap on mouse-up, so
+    // ClampedRectangleScissorsTool broadcasts the in-progress rectangle's IJK
+    // bounds on every drag step instead.
+    const handleLiveDraw = (evt) => {
+      const { segmentationId: liveSegId, bounds } = evt.detail ?? {};
+      if (liveSegId !== segmentationId || !bounds) return;
+      const committed = getCommittedBounds();
+      const merged = committed
+        ? {
+            i: {
+              min: Math.min(committed.i.min, bounds.i.min),
+              max: Math.max(committed.i.max, bounds.i.max),
+            },
+            j: {
+              min: Math.min(committed.j.min, bounds.j.min),
+              max: Math.max(committed.j.max, bounds.j.max),
+            },
+            k: {
+              min: Math.min(committed.k.min, bounds.k.min),
+              max: Math.max(committed.k.max, bounds.k.max),
+            },
+          }
+        : bounds;
+      schedulePreview(merged);
+    };
+
     const refreshSelectionBoxes = () => {
       const renderingEngine = cornerstone.getRenderingEngines()[0];
       if (!renderingEngine) return;
@@ -569,6 +609,10 @@ export default function MaskIEC({
       csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,
       handler,
     );
+    cornerstone.eventTarget.addEventListener(
+      MASK_LIVE_DRAW_EVENT,
+      handleLiveDraw,
+    );
 
     // Redraw immediately so a left-click tool change re-renders any existing box
     // with the right interactivity (frozen vs. movable) without waiting for the
@@ -579,6 +623,10 @@ export default function MaskIEC({
       cornerstone.eventTarget.removeEventListener(
         csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,
         handler,
+      );
+      cornerstone.eventTarget.removeEventListener(
+        MASK_LIVE_DRAW_EVENT,
+        handleLiveDraw,
       );
       if (previewRaf) cancelAnimationFrame(previewRaf);
       // Clear the boxes so they don't linger onto the next segmentation / IEC.
