@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { attachDataFrame, removeMaskBox2D } from "@/lib/viewportFrame";
+import { attachSliceScrollbar } from "@/lib/sliceScrollbar";
 import {
   MARGIN_ZOOM,
   acquisitionPaneOrientation,
@@ -66,6 +67,7 @@ function VolumeViewport({
 
   const elementRef = useRef(null);
   const frameDetachRef = useRef(null);
+  const scrollbarDetachRef = useRef(null);
   const volumeLoadedListenerRef = useRef(null);
 
   window.re = renderingEngine;
@@ -290,6 +292,11 @@ function VolumeViewport({
       // and clear any stale mask-box overlay left from a previous volume.
       frameDetachRef.current?.();
       frameDetachRef.current = attachDataFrame(viewport, elementRef.current);
+      scrollbarDetachRef.current?.();
+      scrollbarDetachRef.current = attachSliceScrollbar(
+        viewport,
+        elementRef.current,
+      );
       removeMaskBox2D(viewport);
 
       // On a cached revisit the volume is already loaded, so VolumeReallyLoaded
@@ -326,6 +333,8 @@ function VolumeViewport({
     return () => {
       frameDetachRef.current?.();
       frameDetachRef.current = null;
+      scrollbarDetachRef.current?.();
+      scrollbarDetachRef.current = null;
       eventTarget.removeEventListener(
         "VolumeReallyLoaded",
         volumeLoadedListenerRef.current,
