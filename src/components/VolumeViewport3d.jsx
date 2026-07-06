@@ -8,7 +8,10 @@ import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import { useSelector, useDispatch } from "react-redux";
 import { setPresets } from "@/features/presentationSlice";
 import { setOption } from "@/features/optionSlice";
-import { refit3dViewportsAfterResize } from "@/lib/viewportView";
+import {
+  capture3dCamerasBeforeLayoutChange,
+  refit3dViewportsAfterResize,
+} from "@/lib/viewportView";
 import ViewportLabel from "@/components/ViewportLabel";
 
 import "./VolumeViewport3d.css";
@@ -71,6 +74,10 @@ function VolumeViewport3d({
 
     // Enable double click to toggle viewport size
     function toggleViewportSize() {
+      // Snapshot the 3D camera while the pane is still at its pre-toggle
+      // size; the refit below restores it after its black-pane recovery.
+      capture3dCamerasBeforeLayoutChange(renderingEngine);
+
       Array.from(wrapper.parentNode.children)
         .filter((child) => child !== wrapper)
         .forEach((child) => child.classList.toggle("minimized"));
@@ -80,8 +87,8 @@ function VolumeViewport3d({
       /* A hack to force-render a 3d viewport */
       renderingEngine.resize(true, true);
       renderingEngine.render();
-      // Re-fit the 3D camera once layout settles; without it the pane comes
-      // back black after a resize (degenerate camera on the shared context).
+      // The pane comes back black after a minimize/restore cycle; re-fit it
+      // next frame and restore the snapshot taken above.
       refit3dViewportsAfterResize(renderingEngine);
     }
 

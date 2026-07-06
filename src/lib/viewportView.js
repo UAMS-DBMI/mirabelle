@@ -163,6 +163,9 @@ export function resetViewportsView() {
   if (!renderingEngine) {
     return;
   }
+  // The reset framing is the new truth — drop 3D camera snapshots so a later
+  // expand/minimize refit doesn't restore the pre-reset view.
+  lastGood3dCameras.clear();
   renderingEngine.getViewports().forEach((viewport) => {
     if (is3dViewport(viewport.id)) {
       // applyViewOrientation resets pan/zoom/center itself, so no resetCamera
@@ -182,21 +185,70 @@ export function resetViewportsView() {
   });
 }
 
+// Last known-good camera per 3D viewport, captured while the pane was at a
+// real size (see capture3dCamerasBeforeLayoutChange) and re-applied after the
+// black-pane recovery in refit3dViewportsAfterResize.
+const lastGood3dCameras = new Map();
+
+// A camera whose framing values a parallel-projection render can trust.
+function isUsableCamera(camera) {
+  return (
+    camera &&
+    Number.isFinite(camera.parallelScale) &&
+    camera.parallelScale > 0 &&
+    [camera.position, camera.focalPoint, camera.viewUp].every(
+      (vec) => vec && vec.every?.(Number.isFinite),
+    )
+  );
+}
+
 /**
- * Re-fit the 3D pane's camera after an expand/minimize layout change.
+ * Snapshot the 3D pane's camera. Call at the START of an expand/minimize
+ * toggle, before any classes change, so the snapshot is taken while the pane
+ * is still laid out and rendering correctly.
  *
- * All panes share one offscreen WebGL context; while a pane is minimized to
- * ~1px cornerstone skips rendering it, and on restore the 3D perspective
- * camera comes back with a degenerate clipping range, leaving the pane black
- * even though resize()+render() already ran. The 2D parallel-projection panes
- * recover on their own; the 3D one needs its framing re-fit — the same
- * recovery the "Reset Camera" button (resetViewportsView) uses.
+ * The snapshot is skipped while the pane sits minimized (~1px): a camera read
+ * there may carry the very degenerate state the refit below recovers from, and
+ * the previous snapshot — taken when the pane was last at a real size — is the
+ * one we want to restore.
+ */
+export function capture3dCamerasBeforeLayoutChange(renderingEngine) {
+  if (!renderingEngine) {
+    return;
+  }
+  renderingEngine.getViewports().forEach((viewport) => {
+    if (!is3dViewport(viewport.id)) {
+      return;
+    }
+    if (viewport.sWidth < 8 || viewport.sHeight < 8) {
+      return;
+    }
+    const camera = viewport.getCamera();
+    if (isUsableCamera(camera)) {
+      lastGood3dCameras.set(viewport.id, camera);
+    }
+  });
+}
+
+/**
+ * Refresh the 3D pane after an expand/minimize layout change.
  *
- * Deferred to the next frame so it runs after the browser has settled the new
- * layout and after cornerstone's own resize-triggered render — the
- * post-settle timing under which the manual reset is known to work (an inline
- * refit in the same tick as the class toggle is why the earlier hack was
- * unreliable).
+ * All panes share one offscreen WebGL context; the shrink-to-~1px-and-restore
+ * cycle leaves the 3D pane black even though resize()+render() already ran.
+ * The only recovery that reliably clears it is a FULL resetCamera after layout
+ * settles (the committed applyViewOrientation fix) — a partial reset that
+ * keeps the pre-toggle focal point / parallel scale (resetPan/resetZoom/
+ * resetToCenter all false) still comes back black, i.e. the camera state
+ * carried across the minimized period is itself unusable.
+ *
+ * So: full reset first (clears the pane), then re-apply the camera snapshot
+ * taken while the pane was last at a real size (see
+ * capture3dCamerasBeforeLayoutChange) — restoring the user's rotation, pan and
+ * zoom from values that never passed through the degenerate period.
+ *
+ * Deferred to the next frame so it runs after layout has settled — the
+ * post-settle timing an inline refit lacked, which is why the earlier hack was
+ * unreliable.
  */
 export function refit3dViewportsAfterResize(renderingEngine) {
   if (!renderingEngine) {
@@ -207,7 +259,11 @@ export function refit3dViewportsAfterResize(renderingEngine) {
       if (!is3dViewport(viewport.id)) {
         return;
       }
-      viewport.applyViewOrientation(viewport.options.orientation);
+      viewport.resetCamera();
+      const saved = lastGood3dCameras.get(viewport.id);
+      if (isUsableCamera(saved)) {
+        viewport.setCamera(saved);
+      }
       viewport.render();
     });
   });

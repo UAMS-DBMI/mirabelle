@@ -9,6 +9,7 @@ import { attachDataFrame, removeMaskBox2D } from "@/lib/viewportFrame";
 import {
   MARGIN_ZOOM,
   acquisitionPaneOrientation,
+  capture3dCamerasBeforeLayoutChange,
   refit3dViewportsAfterResize,
 } from "@/lib/viewportView";
 import ViewportLabel from "@/components/ViewportLabel";
@@ -88,6 +89,10 @@ function VolumeViewport({
     if (!wrapper || !renderingEngine) return;
 
     function toggleViewportSize() {
+      // Snapshot the 3D camera while the pane is still at its pre-toggle
+      // size; the refit below restores it after its black-pane recovery.
+      capture3dCamerasBeforeLayoutChange(renderingEngine);
+
       Array.from(wrapper.parentNode.children)
         .filter((child) => child !== wrapper)
         .forEach((child) => child.classList.toggle("minimized"));
@@ -96,8 +101,8 @@ function VolumeViewport({
 
       renderingEngine.resize(true, true);
       renderingEngine.render();
-      // The 3D pane comes back black after its sibling is minimized/restored
-      // (degenerate camera on the shared context); re-fit it once layout settles.
+      // The 3D pane comes back black after a sibling is minimized/restored;
+      // re-fit it next frame and restore the snapshot taken above.
       refit3dViewportsAfterResize(renderingEngine);
     }
 
