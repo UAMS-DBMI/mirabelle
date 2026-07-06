@@ -268,3 +268,35 @@ export function refit3dViewportsAfterResize(renderingEngine) {
     });
   });
 }
+
+/**
+ * Expand `wrapper` to fill the viewport grid (or restore it if already
+ * expanded), minimizing its sibling panes to ~1px. Shared by the double-click
+ * handler and the on-pane expand button so both take exactly the same path —
+ * including the 3D black-pane recovery (capture before, refit after).
+ *
+ * Returns the wrapper's expanded state after the toggle, so a caller tracking
+ * button state stays in sync with the DOM it just mutated.
+ */
+export function toggleViewportExpanded(wrapper, renderingEngine) {
+  if (!wrapper || !renderingEngine) {
+    return false;
+  }
+  // Snapshot the 3D camera while the panes are still at their pre-toggle size;
+  // refit3dViewportsAfterResize restores it after its black-pane recovery.
+  capture3dCamerasBeforeLayoutChange(renderingEngine);
+
+  Array.from(wrapper.parentNode.children)
+    .filter((child) => child !== wrapper)
+    .forEach((child) => child.classList.toggle("minimized"));
+  const expanded = wrapper.classList.toggle("expanded");
+  wrapper.parentElement.classList.toggle("expanded");
+
+  renderingEngine.resize(true, true);
+  renderingEngine.render();
+  // The 3D pane comes back black after a sibling is minimized/restored;
+  // re-fit it next frame and restore the snapshot taken above.
+  refit3dViewportsAfterResize(renderingEngine);
+
+  return expanded;
+}

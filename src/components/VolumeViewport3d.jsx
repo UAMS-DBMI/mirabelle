@@ -1,6 +1,6 @@
 /**
  **/
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -8,11 +8,9 @@ import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import { useSelector, useDispatch } from "react-redux";
 import { setPresets } from "@/features/presentationSlice";
 import { setOption } from "@/features/optionSlice";
-import {
-  capture3dCamerasBeforeLayoutChange,
-  refit3dViewportsAfterResize,
-} from "@/lib/viewportView";
+import { toggleViewportExpanded } from "@/lib/viewportView";
 import ViewportLabel from "@/components/ViewportLabel";
+import ViewportExpandButton from "@/components/ViewportExpandButton";
 
 import "./VolumeViewport3d.css";
 
@@ -49,6 +47,7 @@ function VolumeViewport3d({
 }) {
   const dispatch = useDispatch();
   const elementRef = useRef(null);
+  const [expanded, setExpanded] = useState(false);
 
   const opacity = useSelector((state) => state.options.opacity);
   const activeViewport = useSelector((state) => state.options.viewport);
@@ -68,35 +67,22 @@ function VolumeViewport3d({
     .getSegmentations()
     .map((seg) => seg.segmentationId);
 
+  // Expand this pane to fill the grid (or restore it), keeping the button icon
+  // in sync with the DOM the toggle just mutated. Shared by the double-click
+  // gesture and the on-pane expand button.
+  const handleToggleExpand = useCallback(() => {
+    setExpanded(toggleViewportExpanded(elementRef.current, renderingEngine));
+  }, [renderingEngine]);
+
   useEffect(() => {
     const wrapper = elementRef.current;
-    if (!wrapper || !renderingEngine) return;
+    if (!wrapper) return;
 
-    // Enable double click to toggle viewport size
-    function toggleViewportSize() {
-      // Snapshot the 3D camera while the pane is still at its pre-toggle
-      // size; the refit below restores it after its black-pane recovery.
-      capture3dCamerasBeforeLayoutChange(renderingEngine);
-
-      Array.from(wrapper.parentNode.children)
-        .filter((child) => child !== wrapper)
-        .forEach((child) => child.classList.toggle("minimized"));
-      wrapper.classList.toggle("expanded");
-      wrapper.parentElement.classList.toggle("expanded");
-
-      /* A hack to force-render a 3d viewport */
-      renderingEngine.resize(true, true);
-      renderingEngine.render();
-      // The pane comes back black after a minimize/restore cycle; re-fit it
-      // next frame and restore the snapshot taken above.
-      refit3dViewportsAfterResize(renderingEngine);
-    }
-
-    wrapper.addEventListener("dblclick", toggleViewportSize);
+    wrapper.addEventListener("dblclick", handleToggleExpand);
     return () => {
-      wrapper.removeEventListener("dblclick", toggleViewportSize);
+      wrapper.removeEventListener("dblclick", handleToggleExpand);
     };
-  }, [renderingEngine]);
+  }, [handleToggleExpand]);
 
   const detectModalityFromImageData = (imageData) => {
     if (!imageData) {
@@ -387,6 +373,7 @@ function VolumeViewport3d({
       }`}
     >
       <ViewportLabel text="3D" />
+      <ViewportExpandButton expanded={expanded} onToggle={handleToggleExpand} />
     </div>
   );
 }

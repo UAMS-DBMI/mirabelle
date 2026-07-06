@@ -2,7 +2,7 @@
  * Simple volume display panel. Assumes the volume has already
  * been created and loaded into the cache. Accepts volumeId as a prop
  **/
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { attachDataFrame, removeMaskBox2D } from "@/lib/viewportFrame";
@@ -10,10 +10,10 @@ import { attachSliceScrollbar } from "@/lib/sliceScrollbar";
 import {
   MARGIN_ZOOM,
   acquisitionPaneOrientation,
-  capture3dCamerasBeforeLayoutChange,
-  refit3dViewportsAfterResize,
+  toggleViewportExpanded,
 } from "@/lib/viewportView";
 import ViewportLabel from "@/components/ViewportLabel";
+import ViewportExpandButton from "@/components/ViewportExpandButton";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -63,6 +63,7 @@ function VolumeViewport({
   const viewMode = useSelector((state) => state.options.view);
   const activeViewport = useSelector((state) => state.options.viewport);
   const [initialized, setInitialized] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const dispatch = useDispatch();
 
   const elementRef = useRef(null);
@@ -86,35 +87,22 @@ function VolumeViewport({
     .getSegmentations()
     .map((seg) => seg.segmentationId);
 
+  // Expand this pane to fill the grid (or restore it), keeping the button icon
+  // in sync with the DOM the toggle just mutated. Shared by the double-click
+  // gesture and the on-pane expand button.
+  const handleToggleExpand = useCallback(() => {
+    setExpanded(toggleViewportExpanded(elementRef.current, renderingEngine));
+  }, [renderingEngine]);
+
   useEffect(() => {
     const wrapper = elementRef.current;
-    if (!wrapper || !renderingEngine) return;
+    if (!wrapper) return;
 
-    function toggleViewportSize() {
-      // Snapshot the 3D camera while the pane is still at its pre-toggle
-      // size; the refit below restores it after its black-pane recovery.
-      capture3dCamerasBeforeLayoutChange(renderingEngine);
-
-      Array.from(wrapper.parentNode.children)
-        .filter((child) => child !== wrapper)
-        .forEach((child) => child.classList.toggle("minimized"));
-      wrapper.classList.toggle("expanded");
-      wrapper.parentElement.classList.toggle("expanded");
-
-      renderingEngine.resize(true, true);
-      renderingEngine.render();
-      // The 3D pane comes back black after a sibling is minimized/restored;
-      // re-fit it next frame and restore the snapshot taken above.
-      refit3dViewportsAfterResize(renderingEngine);
-    }
-
-    console.log("[VolumeViewport] adding dblclick listener to", wrapper);
-
-    wrapper.addEventListener("dblclick", toggleViewportSize);
+    wrapper.addEventListener("dblclick", handleToggleExpand);
     return () => {
-      wrapper.removeEventListener("dblclick", toggleViewportSize);
+      wrapper.removeEventListener("dblclick", handleToggleExpand);
     };
-  }, [renderingEngine]);
+  }, [handleToggleExpand]);
 
   useEffect(() => {
     // Rapid navigation can re-run this effect (or unmount the component)
@@ -134,6 +122,8 @@ function VolumeViewport({
         });
         wrapper.classList.remove("minimized", "expanded");
         wrapper.parentElement.classList.remove("expanded");
+        // Classes just cleared — keep the expand button's icon in sync.
+        setExpanded(false);
 
         /* A hack to force-render a viewport */
         renderingEngine.resize(true, true);
@@ -393,6 +383,10 @@ function VolumeViewport({
         }`}
       >
         <ViewportLabel text={PANE_LABELS[orientation] ?? orientation} />
+        <ViewportExpandButton
+          expanded={expanded}
+          onToggle={handleToggleExpand}
+        />
       </div>
     </>
   );
