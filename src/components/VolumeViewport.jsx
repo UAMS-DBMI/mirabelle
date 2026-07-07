@@ -345,6 +345,9 @@ function VolumeViewport({
 
     const viewport = renderingEngine.getViewport(viewportId);
     const volume = cornerstone.cache.getVolume(volumeId);
+    // The volume can be gone (LRU-evicted) while its images were still
+    // streaming — don't throw on a view-mode toggle in that window.
+    if (!viewport || !volume) return;
     const volDimensions = volume.dimensions;
 
     if (viewMode === "projection") {

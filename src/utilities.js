@@ -659,6 +659,9 @@ export async function loadVolumeAndSegmentation(
       // rejection; the exam stays undrawable but the user can navigate on.
       console.error("Failed to prepare segmentation for", volumeId, error);
       notify.error(error, messages.errors.loadImage);
+      // "VolumeReallyLoaded" won't fire for this exam; the UI keeps its
+      // loading spinner up until it hears one — tell it the load is over.
+      triggerEvent(eventTarget, "VolumeLoadFailed", { volumeId });
     }
   });
   return volume;
