@@ -344,14 +344,19 @@ export default function NiftiReviewFile({
               idLabel="File"
             />
           )}
-          <ToolsPanel
-            toolGroup={toolGroup}
-            toolGroup3d={toolGroup3d}
-            preset3d={preset3d}
-            onPresetChange={
-              (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
-            }
-          />
+          {/* The shell renders before the effect that creates the tool
+              groups has run — ToolsPanel calls toolGroup.addTool on mount,
+              so it must not mount until they exist. */}
+          {toolGroup && toolGroup3d && (
+            <ToolsPanel
+              toolGroup={toolGroup}
+              toolGroup3d={toolGroup3d}
+              preset3d={preset3d}
+              onPresetChange={
+                (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
+              }
+            />
+          )}
         </>
         // : null
       }
