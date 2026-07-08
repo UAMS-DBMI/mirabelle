@@ -216,6 +216,10 @@ export default function DicomReviewIEC({
       setDetails(null);
       setIsSeg(false);
       setSegMetadata([]);
+      // Spinner up from the very first moment. The VR route also sets it on
+      // IEC navigation, but the single-exam route doesn't set it at all —
+      // and either way the load below is what takes it down.
+      dispatch(setLoading(true));
 
       const details = await getDicomDetails(iec);
       if (isStale()) {
@@ -317,9 +321,13 @@ export default function DicomReviewIEC({
       try {
         if (volumetric) {
           if (!isSeg) {
-            // Load the volume directly if it's not a seg. No need to
-            // pass a callback, we don't care about when it finishes
-            await loadVolume(imageIds, volumeId, segmentationId);
+            // Resolves once the volume shell exists — the viewer mounts and
+            // the pixel data streams into it. The completion callback (the
+            // images have actually arrived) takes the spinner down.
+            await loadVolume(imageIds, volumeId, segmentationId, () => {
+              if (isStale()) return;
+              dispatch(setLoading(false));
+            });
             if (isStale()) return;
           } else {
             segLoadingId = notify.loading(messages.loading.segVolume);
@@ -383,7 +391,13 @@ export default function DicomReviewIEC({
 
       if (isStale()) return;
       setIsInitialized(true);
-      dispatch(setLoading(false));
+      // Plain volumes take the spinner down in the load-completion callback
+      // above. SEG volumes are fully loaded by this point (loadVolumeAsync),
+      // and stack frames stream on demand into the mounted viewer — clear it
+      // here for those.
+      if (!volumetric || isSeg) {
+        dispatch(setLoading(false));
+      }
     };
 
     // Catch failures from awaits that run before the inner try (e.g. the
@@ -402,6 +416,10 @@ export default function DicomReviewIEC({
     return () => {
       isCancelled = true;
       setIsInitialized(false);
+      // Leaving mid-load: the completion callback for this exam is stale and
+      // will never clear the spinner — don't leave it up. A follow-up load
+      // turns it straight back on.
+      dispatch(setLoading(false));
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };

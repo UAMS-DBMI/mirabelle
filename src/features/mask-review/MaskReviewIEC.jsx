@@ -28,6 +28,7 @@ import {
   getIECInfo,
   makeRoomForExam,
   makeRoomForStackExam,
+  startVolumeLoad,
 } from "@/utilities";
 import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
@@ -194,6 +195,10 @@ export default function MaskReviewIEC({
       // — the layout shell stays mounted across IEC navigation.
       setDetails(null);
       setMaskingDetails(null);
+      // Spinner up from the very first moment. The VR route also sets it on
+      // IEC navigation, but the single-exam route doesn't set it at all —
+      // and either way the load below is what takes it down.
+      dispatch(setLoading(true));
 
       const details = await getDicomDetails(iec);
       const maskingDetails = await getMaskingDetails(iec);
@@ -266,7 +271,13 @@ export default function MaskReviewIEC({
               imageIds: frames,
             },
           );
-          volume.load();
+          // The completion callback — not the volume-shell creation above —
+          // takes the spinner down, once the pixel data has actually
+          // streamed in.
+          startVolumeLoad(volume, () => {
+            if (isCancelled || requestId !== loadRequestRef.current) return;
+            dispatch(setLoading(false));
+          });
           if (isCancelled || requestId !== loadRequestRef.current) {
             console.log("---------------> loadVolumeAndSegmentation cancelled");
             return;
@@ -284,6 +295,9 @@ export default function MaskReviewIEC({
         if (isCancelled || requestId !== loadRequestRef.current) return;
         notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
+        // The load never completes, so its completion callback won't take
+        // the spinner down — clear it here.
+        dispatch(setLoading(false));
       }
 
       if (isCancelled || requestId !== loadRequestRef.current) {
@@ -292,7 +306,12 @@ export default function MaskReviewIEC({
       }
 
       setIsInitialized(true);
-      dispatch(setLoading(false));
+      // Volume exams take the spinner down in the load-completion callback;
+      // stack frames stream on demand into the mounted viewer — clear it
+      // here for those.
+      if (!volumetric) {
+        dispatch(setLoading(false));
+      }
     };
 
     setIsInitialized(false);
@@ -309,6 +328,10 @@ export default function MaskReviewIEC({
 
     return () => {
       isCancelled = true;
+      // Leaving mid-load: the completion callback for this exam is stale and
+      // will never clear the spinner — don't leave it up. A follow-up load
+      // turns it straight back on.
+      dispatch(setLoading(false));
     };
   }, [iec, optionsDecimate]);
 

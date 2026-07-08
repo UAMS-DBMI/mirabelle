@@ -609,8 +609,11 @@ export async function loadVolumeAndSegmentation(
     console.log("Volume already existed, not creating it");
   }
 
-  // Set the volume to load
-  volume.load(() => {
+  // Set the volume to load. startVolumeLoad (not volume.load directly) so
+  // the completion callback still fires when the volume is mid-stream from a
+  // previous visit — volume.load would silently drop it, leaving the exam
+  // with no segmentation and the loading spinner stuck.
+  startVolumeLoad(volume, () => {
     if (generation !== examLoadGeneration) {
       console.log("Skipping stale volume load completion for", volumeId);
       return;
@@ -693,12 +696,43 @@ export function loadVolumeAsync(
 }
 
 /**
+ * Start (or join) a volume's pixel-data load and invoke onLoaded exactly once
+ * when every frame has streamed in — immediately if it already has.
+ *
+ * volume.load(cb) alone is not enough: when the volume is still mid-stream
+ * from a previous visit (common during fast back-and-forth navigation) it
+ * returns without registering the callback, which would strand anything
+ * waiting on it. Cornerstone does fire IMAGE_VOLUME_LOADING_COMPLETED in that
+ * path, so listen for it as the fallback. Returns a cancel function.
+ */
+export function startVolumeLoad(volume, onLoaded) {
+  const completedEvent =
+    cornerstone.Enums.Events.IMAGE_VOLUME_LOADING_COMPLETED;
+  let finished = false;
+  const onCompleted = (evt) => {
+    if (evt.detail?.volumeId === volume.volumeId) finish();
+  };
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    eventTarget.removeEventListener(completedEvent, onCompleted);
+    onLoaded();
+  };
+  eventTarget.addEventListener(completedEvent, onCompleted);
+  volume.load(finish);
+  return () => {
+    finished = true;
+    eventTarget.removeEventListener(completedEvent, onCompleted);
+  };
+}
+
+/**
  * Load a volume via WADO-URI
  *
  * @param {Array<string>} imageIds
  * @param {string} volumeId
  * @param {string} segmentationId
- * @param {function} callback
+ * @param {function} callback invoked once the volume has fully loaded
  * @returns
  */
 export async function loadVolume(
@@ -721,7 +755,11 @@ export async function loadVolume(
     console.log("Volume already existed, not creating it");
   }
 
-  volume.load(callback);
+  if (callback) {
+    startVolumeLoad(volume, callback);
+  } else {
+    volume.load();
+  }
 
   return volume;
 }
