@@ -43,6 +43,7 @@ import { DetailsPanel } from "@/features/details";
 
 import RouteLayout from "@/components/RouteLayout";
 import ViewportPlaceholder from "@/components/ViewportPlaceholder";
+import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 
 import "./MaskReviewIEC.css";
 
@@ -137,8 +138,10 @@ export default function MaskReviewIEC({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
-  const [details, setDetails] = useState(true);
-  const [maskingDetails, setMaskingDetails] = useState(true);
+  // null until fetched — the layout shell renders before these arrive, so the
+  // details panel gates on them instead of assuming they exist.
+  const [details, setDetails] = useState(null);
+  const [maskingDetails, setMaskingDetails] = useState(null);
   const loadRequestRef = useRef(0);
 
   let viewer;
@@ -187,6 +190,11 @@ export default function MaskReviewIEC({
     let isCancelled = false;
 
     const initialize = async () => {
+      // Don't show the previous exam's details while the new ones are fetched
+      // — the layout shell stays mounted across IEC navigation.
+      setDetails(null);
+      setMaskingDetails(null);
+
       const details = await getDicomDetails(iec);
       const maskingDetails = await getMaskingDetails(iec);
       if (isCancelled || requestId !== loadRequestRef.current) {
@@ -221,6 +229,31 @@ export default function MaskReviewIEC({
       setVolumetric(volumetric); // still update state
       //setSegmentationId(segmentationId);
 
+      // Configure the UI for this exam type NOW — as soon as we know whether
+      // it's a volume or a stack, and before the (slow) image load. This
+      // fully populates the tools panel and operations bar behind the
+      // spinner instead of leaving them empty until the load finishes.
+      dispatch(reset());
+      dispatch(setMaskerReviewConfig());
+      if (volumetric) {
+        dispatch(setTitle("Mask Volume Review"));
+        dispatch(setVolumeConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+      } else {
+        dispatch(setTitle("Mask Stack Review"));
+        dispatch(setStackConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+      }
+      dispatch(
+        setOption({
+          key: "leftClick",
+          value: Enums.LeftClickOptions.WINDOW_LEVEL,
+        }),
+      );
+      dispatch(
+        setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
+      );
+
       try {
         // for testing error handling
         if (volumetric) {
@@ -238,30 +271,11 @@ export default function MaskReviewIEC({
             console.log("---------------> loadVolumeAndSegmentation cancelled");
             return;
           }
-          dispatch(setTitle("Mask Volume Review"));
-          dispatch(reset());
-          dispatch(setMaskerReviewConfig());
-          dispatch(setVolumeConfig());
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
         } else {
           // The stack viewport loads the frames on demand as pinned wadouri
           // images; register them so the exam-LRU eviction can free them.
           makeRoomForStackExam(frames);
-          dispatch(setTitle("Mask Stack Review"));
-          dispatch(reset());
-          dispatch(setMaskerReviewConfig());
-          dispatch(setStackConfig());
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
         }
-        dispatch(
-          setOption({
-            key: "leftClick",
-            value: Enums.LeftClickOptions.WINDOW_LEVEL,
-          }),
-        );
-        dispatch(
-          setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
-        );
         // throw new Error("This is a test error");
       } catch (error) {
         console.error(error);
@@ -375,37 +389,44 @@ export default function MaskReviewIEC({
     );
   }
 
-  // short-circuit if not loaded yet
-  if (!isInitialized) {
-    return;
-  }
-
-  if (volumetric) {
-    console.log(">>>>> about to pass volumeId=", volumeId);
-    viewer = (
-      <VolumeView
-        volumeId={volumeId}
-        preset3d={preset3d}
-        toolGroup={toolGroup}
-        toolGroup3d={toolGroup3d}
-        modality={details.modality}
-        onToggleLeftPanel={handleToggleLeft}
-        onToggleRightPanel={handleToggleRight}
-      />
-    );
-  } else {
-    viewer = (
-      <StackView
-        toolGroup={toolGroup}
-        frames={imageIds}
-        onToggleLeftPanel={handleToggleLeft}
-        onToggleRightPanel={handleToggleRight}
-      />
-    );
-  }
-
+  // The layout shell (nav, tools panel, operations bar) renders immediately —
+  // before the detail fetches and the image load — with the app-wide spinner
+  // floating above it, exactly like MaskIEC. The viewer mounts once the
+  // volume shell / frame list exists and its panes fill in as images stream.
   if (isErrored) {
+    // Load failures are surfaced as a toast; keep the viewport itself clean
+    // with a neutral placeholder so navigation still works.
     viewer = <ViewportPlaceholder />;
+  } else if (isInitialized) {
+    if (volumetric) {
+      console.log(">>>>> about to pass volumeId=", volumeId);
+      viewer = (
+        <VolumeView
+          volumeId={volumeId}
+          preset3d={preset3d}
+          toolGroup={toolGroup}
+          toolGroup3d={toolGroup3d}
+          modality={details?.modality}
+          onToggleLeftPanel={handleToggleLeft}
+          onToggleRightPanel={handleToggleRight}
+        />
+      );
+    } else {
+      viewer = (
+        <StackView
+          toolGroup={toolGroup}
+          frames={imageIds}
+          onToggleLeftPanel={handleToggleLeft}
+          onToggleRightPanel={handleToggleRight}
+        />
+      );
+    }
+  } else {
+    // Images still loading: show the empty viewport grid (a single pane for a
+    // stack, 2×2 for a volume) so the layout is there from the first frame.
+    // volumetric defaults to true before details arrive, so a volume shows
+    // four panes immediately.
+    viewer = <ViewportGridPlaceholder single={!volumetric} />;
   }
 
   return (
@@ -450,7 +471,13 @@ export default function MaskReviewIEC({
       }
       rightPanel={
         // showRightPanel ?
-        <DetailsPanel details={transformDetails(details, maskingDetails)} />
+        details && maskingDetails ? (
+          <DetailsPanel details={transformDetails(details, maskingDetails)} />
+        ) : (
+          <div className="side-panel">
+            <div className="wrapper" />
+          </div>
+        )
         // : null
       }
       showLeftPanel={showLeftPanel}

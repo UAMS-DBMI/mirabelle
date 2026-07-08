@@ -59,6 +59,7 @@ import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
+import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 
 import "./DicomReviewIEC.css";
 
@@ -94,6 +95,7 @@ function transformDetails(details, imageId) {
 export default function DicomReviewIEC({
   iec,
   vr,
+  noIecs,
   reviewStatus,
   dicomType,
   dicomTypeOptions,
@@ -145,7 +147,9 @@ export default function DicomReviewIEC({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
-  const [details, setDetails] = useState(true);
+  // null until fetched — the layout shell renders before the details arrive,
+  // so the details panel gates on them instead of assuming they exist.
+  const [details, setDetails] = useState(null);
 
   const [isSeg, setIsSeg] = useState(false);
   const [segBaseIEC, setSegBaseIEC] = useState(false);
@@ -207,6 +211,12 @@ export default function DicomReviewIEC({
     const isStale = () => isCancelled || requestId !== loadRequestRef.current;
 
     const initialize = async () => {
+      // Don't show the previous exam's details (or SEG panel) while the new
+      // ones are fetched — the layout shell stays mounted across navigation.
+      setDetails(null);
+      setIsSeg(false);
+      setSegMetadata([]);
+
       const details = await getDicomDetails(iec);
       if (isStale()) {
         console.log(
@@ -278,6 +288,31 @@ export default function DicomReviewIEC({
       setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
 
+      // Configure the UI for this exam type NOW — as soon as we know whether
+      // it's a volume or a stack, and before the (slow) image load. This
+      // fully populates the tools panel and operations bar behind the
+      // spinner instead of leaving them empty until the load finishes.
+      dispatch(reset());
+      dispatch(setVisualReviewConfig());
+      if (volumetric) {
+        dispatch(setTitle("DICOM Volume Review"));
+        dispatch(setVolumeConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+      } else {
+        dispatch(setTitle("DICOM Stack Review"));
+        dispatch(setStackConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+      }
+      dispatch(
+        setOption({
+          key: "leftClick",
+          value: Enums.LeftClickOptions.WINDOW_LEVEL,
+        }),
+      );
+      dispatch(
+        setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
+      );
+
       let segLoadingId;
       try {
         if (volumetric) {
@@ -323,33 +358,13 @@ export default function DicomReviewIEC({
 
             notify.dismiss(segLoadingId);
           }
-
-          dispatch(setTitle("DICOM Volume Review"));
-          dispatch(reset());
-          dispatch(setVisualReviewConfig());
-          dispatch(setVolumeConfig());
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
         } else {
           // await loadVolumeAsync(imageIds, volumeId, segmentationId);
           // await loadStackSegmentation(imageIds, segmentationId);
           // The stack viewport loads the frames on demand as pinned wadouri
           // images; register them so the exam-LRU eviction can free them.
           makeRoomForStackExam(imageIds);
-          dispatch(setTitle("DICOM Stack Review"));
-          dispatch(reset());
-          dispatch(setVisualReviewConfig());
-          dispatch(setStackConfig());
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
         }
-        dispatch(
-          setOption({
-            key: "leftClick",
-            value: Enums.LeftClickOptions.WINDOW_LEVEL,
-          }),
-        );
-        dispatch(
-          setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
-        );
       } catch (error) {
         console.error(error);
         notify.dismiss(segLoadingId);
@@ -360,6 +375,9 @@ export default function DicomReviewIEC({
         // (a neutral placeholder is rendered instead of an error card).
         notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
+        // The load never completes, so nothing else will take the app-wide
+        // spinner down — clear it here or it sits over the error view forever.
+        dispatch(setLoading(false));
         return;
       }
 
@@ -513,9 +531,11 @@ export default function DicomReviewIEC({
                 }
               />
             )}
-            <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
-              No IECs were found for the selected filters.
-            </div>
+            {noIecs && (
+              <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
+                No IECs were found for the selected filters.
+              </div>
+            )}
           </>
         }
         rightPanel={
@@ -529,32 +549,40 @@ export default function DicomReviewIEC({
     );
   }
 
-  if (!isInitialized) {
-    return null;
-  }
-
-  if (volumetric) {
-    viewer = (
-      <VolumeView
-        volumeId={volumeId}
-        segmentationId={segmentationId}
-        preset3d={preset3d}
-        toolGroup={toolGroup}
-        toolGroup3d={toolGroup3d}
-        modality={details.segBaseModality || details.modality}
-        onToggleLeftPanel={handleToggleLeft}
-        onToggleRightPanel={handleToggleRight}
-      />
-    );
+  // The layout shell (nav, tools panel, operations bar) renders immediately —
+  // before the detail fetches and the image load — with the app-wide spinner
+  // floating above it, exactly like MaskIEC. The viewer mounts once the
+  // volume shell / frame list exists and its panes fill in as images stream.
+  if (isInitialized) {
+    if (volumetric) {
+      viewer = (
+        <VolumeView
+          volumeId={volumeId}
+          segmentationId={segmentationId}
+          preset3d={preset3d}
+          toolGroup={toolGroup}
+          toolGroup3d={toolGroup3d}
+          modality={details?.segBaseModality || details?.modality}
+          onToggleLeftPanel={handleToggleLeft}
+          onToggleRightPanel={handleToggleRight}
+        />
+      );
+    } else {
+      viewer = (
+        <StackView
+          toolGroup={toolGroup}
+          frames={imageIds}
+          onToggleLeftPanel={handleToggleLeft}
+          onToggleRightPanel={handleToggleRight}
+        />
+      );
+    }
   } else {
-    viewer = (
-      <StackView
-        toolGroup={toolGroup}
-        frames={imageIds}
-        onToggleLeftPanel={handleToggleLeft}
-        onToggleRightPanel={handleToggleRight}
-      />
-    );
+    // Images still loading: show the empty viewport grid (a single pane for a
+    // stack, 2×2 for a volume) so the layout is there from the first frame.
+    // volumetric defaults to true before details arrive, so a volume shows
+    // four panes immediately.
+    viewer = <ViewportGridPlaceholder single={!volumetric} />;
   }
 
   return (
@@ -608,12 +636,21 @@ export default function DicomReviewIEC({
       }
       rightPanel={
         // showRightPanel ?
-        <>
-          {isSeg && (
-            <SegPanel segments={segMetadata} segmentationId={segmentationId} />
-          )}
-          <DetailsPanel details={transformDetails(details, currentImageId)} />
-        </>
+        details ? (
+          <>
+            {isSeg && (
+              <SegPanel
+                segments={segMetadata}
+                segmentationId={segmentationId}
+              />
+            )}
+            <DetailsPanel details={transformDetails(details, currentImageId)} />
+          </>
+        ) : (
+          <div className="side-panel">
+            <div className="wrapper" />
+          </div>
+        )
         // : null
       }
       showLeftPanel={showLeftPanel}
