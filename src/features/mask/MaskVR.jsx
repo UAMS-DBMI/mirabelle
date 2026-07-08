@@ -10,11 +10,13 @@ export default function MaskVR({
   vr,
   iec,
   noIecs,
+  iecList,
   maskingStatus,
   dicomType,
   dicomTypeOptions,
   onNext,
   onPrevious,
+  onSelectIec,
 }) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
@@ -33,16 +35,25 @@ export default function MaskVR({
     onPrevious();
   }
 
+  function handleSelectIec(selectedIec) {
+    // Same preset reset as next/previous — queue clicks are navigation too.
+    dispatch(resetOptions());
+    dispatch(setOption({ key: "preset", value: null }));
+    onSelectIec(selectedIec);
+  }
+
   return (
     <MaskIEC
       vr={vr}
       iec={iec}
       noIecs={noIecs}
+      iecList={iecList}
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      onSelectIec={handleSelectIec}
     />
   );
 }

@@ -129,6 +129,12 @@ export default function RouteMaskReviewVR() {
     }
   };
 
+  const handleSelectIec = (selectedIec) => {
+    navigate(
+      `/mask/review/vr/${vr}/${selectedIec}/${maskingStatus}/${dicomType}`,
+    );
+  };
+
   const resolvedIec = iec && iec !== "*" ? iec : null;
   const noIecs = Array.isArray(iecList) && iecList.length === 0;
 
@@ -137,11 +143,13 @@ export default function RouteMaskReviewVR() {
       vr={vr}
       iec={resolvedIec}
       noIecs={noIecs}
+      iecList={iecList}
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      onSelectIec={handleSelectIec}
     />
   );
 }

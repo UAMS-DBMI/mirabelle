@@ -6,7 +6,14 @@ import NiftiReviewFile from "@/features/nifti-review/NiftiReviewFile";
 
 import "./NiftiReviewVR.css";
 
-export default function NiftiReviewVR({ vr, file, onNext, onPrevious }) {
+export default function NiftiReviewVR({
+  vr,
+  file,
+  fileList,
+  onNext,
+  onPrevious,
+  onSelectFile,
+}) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
   useHotkeys("right", handleNext);
@@ -26,6 +33,13 @@ export default function NiftiReviewVR({ vr, file, onNext, onPrevious }) {
     onPrevious();
   }
 
+  function handleSelectFile(selectedFile) {
+    // Same preset reset as next/previous — queue clicks are navigation too.
+    dispatch(resetOptions());
+    dispatch(setOption({ key: "preset", value: null }));
+    onSelectFile(selectedFile);
+  }
+
   return (
     <>
       {file && (
@@ -33,8 +47,10 @@ export default function NiftiReviewVR({ vr, file, onNext, onPrevious }) {
           // routeName="nifti-review-vr"
           vr={vr}
           file={file}
+          fileList={fileList}
           onNext={handleNext}
           onPrevious={handlePrevious}
+          onSelectFile={handleSelectFile}
         />
       )}
     </>

@@ -42,6 +42,7 @@ import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
+import IecQueue from "@/components/IecQueue";
 
 import "./NiftiReviewFile.css";
 
@@ -70,8 +71,10 @@ function transformDetails(details) {
 export default function NiftiReviewFile({
   file,
   vr,
+  fileList,
   onNext = () => {},
   onPrevious = () => {},
+  onSelectFile = () => {},
   routeName,
 }) {
   console.log("[NiftiReviewFile] rendering, file:", file);
@@ -342,6 +345,16 @@ export default function NiftiReviewFile({
               onPrevious={onPrevious}
               currentId={file}
               idLabel="File"
+            />
+          )}
+          {vr && fileList && (
+            <IecQueue
+              kind="nifti"
+              items={fileList}
+              currentId={file}
+              onSelect={onSelectFile}
+              idLabel="File"
+              hint="← → navigate · G good · B bad · L blank · S scout · O other"
             />
           )}
           {/* The shell renders before the effect that creates the tool

@@ -60,6 +60,7 @@ import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
+import IecQueue from "@/components/IecQueue";
 
 import "./DicomReviewIEC.css";
 
@@ -96,11 +97,13 @@ export default function DicomReviewIEC({
   iec,
   vr,
   noIecs,
+  iecList,
   reviewStatus,
   dicomType,
   dicomTypeOptions,
   onNext = () => {},
   onPrevious = () => {},
+  onSelectIec = () => {},
   routeName,
 }) {
   console.log("[DicomReviewIEC] rendering, iec:", iec);
@@ -470,6 +473,18 @@ export default function DicomReviewIEC({
     );
   }
 
+  // The exam queue is shown in every layout state (loading, loaded, errored)
+  // so curators can always jump to another exam from the list.
+  const iecQueue = vr && iecList && (
+    <IecQueue
+      kind="dicom-review"
+      items={iecList}
+      currentId={iec}
+      onSelect={onSelectIec}
+      hint="← → navigate · G good · B bad · L blank · S scout · O other · F flag"
+    />
+  );
+
   // Load failures are surfaced as a toast; keep the viewport itself clean
   // with a neutral placeholder rather than an error card — inside the full
   // layout, so the navigation panel (and arrow keys) still let the user move
@@ -480,12 +495,15 @@ export default function DicomReviewIEC({
         routeName={routeName}
         leftPanel={
           vr && (
-            <NavigationPanel
-              onNext={onNext}
-              onPrevious={onPrevious}
-              currentId={iec}
-              idLabel="IEC"
-            />
+            <>
+              <NavigationPanel
+                onNext={onNext}
+                onPrevious={onPrevious}
+                currentId={iec}
+                idLabel="IEC"
+              />
+              {iecQueue}
+            </>
           )
         }
         middlePanel={<ViewportPlaceholder />}
@@ -624,6 +642,7 @@ export default function DicomReviewIEC({
               idLabel="IEC"
             />
           )}
+          {iecQueue}
           {toolGroup && (
             <ToolsPanel
               toolGroup={toolGroup}

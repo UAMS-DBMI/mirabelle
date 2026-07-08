@@ -1,0 +1,126 @@
+/* IecQueue.css */
+
+/* Shares the left column with NavigationPanel (flex-none) and ToolsPanel
+   (flex-1): grow to show rows but never squeeze the tools out. The row list
+   scrolls internally via the shared .wrapper styling. */
+.iec-queue {
+  @apply flex-1 gap-2 min-h-[10rem];
+  max-height: 46vh;
+}
+
+.iec-queue__header {
+  @apply flex items-baseline justify-between px-1;
+}
+
+.iec-queue__header h2 {
+  @apply font-bold;
+}
+
+.iec-queue__header span {
+  @apply text-xs opacity-70;
+}
+
+.iec-queue__search {
+  @apply w-full rounded-md px-2 py-1 text-sm
+    bg-blue-200/60 dark:bg-blue-950/60
+    placeholder:opacity-50
+    border border-blue-300 dark:border-blue-800
+    focus:border-blue-500 dark:focus:border-blue-400
+    outline-none;
+}
+
+.iec-queue__chips {
+  @apply flex flex-wrap gap-1;
+}
+
+.iec-queue__chip {
+  @apply text-xs rounded-full px-2 py-0.5
+    border border-blue-300 dark:border-blue-700
+    bg-transparent
+    hover:bg-blue-200/60 dark:hover:bg-blue-800/60;
+}
+
+.iec-queue__chip.active {
+  @apply bg-blue-600 border-blue-600 text-white;
+}
+
+.iec-queue__list {
+  @apply flex-1 min-h-0 gap-1;
+}
+
+.iec-queue__row {
+  @apply flex items-center gap-2 w-full text-left
+    rounded-lg px-2 py-1.5
+    bg-blue-200/50 dark:bg-blue-950/50
+    hover:bg-blue-300/60 dark:hover:bg-blue-800/60;
+}
+
+.iec-queue__row.selected {
+  @apply bg-blue-600 text-white hover:bg-blue-600;
+}
+
+.iec-queue__dot {
+  @apply w-2 h-2 rounded-full flex-none;
+}
+
+.iec-queue__dot.pending {
+  @apply bg-amber-400;
+}
+
+.iec-queue__dot.done {
+  @apply bg-green-500;
+}
+
+.iec-queue__dot.skipped {
+  @apply bg-slate-400;
+}
+
+.iec-queue__dot.unknown {
+  @apply bg-transparent;
+}
+
+.iec-queue__thumb {
+  @apply w-10 h-10 flex-none rounded overflow-hidden
+    bg-black/30 dark:bg-black/50;
+}
+
+.iec-queue__thumb img {
+  @apply w-full h-full object-cover;
+}
+
+.iec-queue__thumb-empty {
+  @apply block w-full h-full;
+}
+
+.iec-queue__text {
+  @apply flex flex-col min-w-0 flex-1;
+}
+
+.iec-queue__id {
+  @apply text-sm font-semibold leading-tight;
+}
+
+.iec-queue__secondary {
+  @apply text-xs opacity-70 truncate leading-tight;
+}
+
+.iec-queue__count {
+  @apply text-xs opacity-70 flex-none;
+}
+
+.iec-queue__empty {
+  @apply text-sm opacity-60 text-center py-4;
+}
+
+.iec-queue__bar {
+  @apply h-1 rounded-full overflow-hidden flex-none
+    bg-blue-200/60 dark:bg-blue-950/80;
+}
+
+.iec-queue__bar div {
+  @apply h-full bg-green-500 rounded-full;
+}
+
+.iec-queue__hint {
+  @apply text-[10px] text-center opacity-60 whitespace-normal leading-tight;
+}

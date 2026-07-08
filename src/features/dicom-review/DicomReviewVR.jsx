@@ -10,11 +10,13 @@ export default function DicomReviewVR({
   vr,
   iec,
   noIecs,
+  iecList,
   reviewStatus,
   dicomType,
   dicomTypeOptions,
   onNext,
   onPrevious,
+  onSelectIec,
 }) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
@@ -35,6 +37,13 @@ export default function DicomReviewVR({
     onPrevious();
   }
 
+  function handleSelectIec(selectedIec) {
+    // Same preset reset as next/previous — queue clicks are navigation too.
+    dispatch(resetOptions());
+    dispatch(setOption({ key: "preset", value: null }));
+    onSelectIec(selectedIec);
+  }
+
   // When there are no IECs or IEC isn't selected yet, show a message in the middle panel
   return (
     <DicomReviewIEC
@@ -42,11 +51,13 @@ export default function DicomReviewVR({
       vr={vr}
       iec={iec}
       noIecs={noIecs}
+      iecList={iecList}
       reviewStatus={reviewStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      onSelectIec={handleSelectIec}
     />
   );
 }

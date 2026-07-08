@@ -45,6 +45,7 @@ import { DetailsPanel } from "@/features/details";
 import RouteLayout from "@/components/RouteLayout";
 import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
+import IecQueue from "@/components/IecQueue";
 
 import "./MaskReviewIEC.css";
 
@@ -89,11 +90,13 @@ export default function MaskReviewIEC({
   iec,
   vr,
   noIecs,
+  iecList,
   maskingStatus,
   dicomType,
   dicomTypeOptions,
   onNext = () => {},
   onPrevious = () => {},
+  onSelectIec = () => {},
 }) {
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -464,6 +467,15 @@ export default function MaskReviewIEC({
               onPrevious={onPrevious}
               currentId={iec}
               idLabel="IEC"
+            />
+          )}
+          {vr && iecList && (
+            <IecQueue
+              kind="mask-review"
+              items={iecList}
+              currentId={iec}
+              onSelect={onSelectIec}
+              hint="← → navigate · A accept · R reject · S skip · N non-mask"
             />
           )}
           {/* The shell renders before the effect that creates the tool

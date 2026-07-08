@@ -53,6 +53,7 @@ import { DetailsPanel } from "@/features/details";
 import RouteLayout from "@/components/RouteLayout";
 import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
+import IecQueue from "@/components/IecQueue";
 
 import "./MaskIEC.css";
 
@@ -103,11 +104,13 @@ export default function MaskIEC({
   iec,
   vr,
   noIecs,
+  iecList,
   maskingStatus,
   dicomType,
   dicomTypeOptions,
   onNext = () => {},
   onPrevious = () => {},
+  onSelectIec = () => {},
 }) {
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -881,6 +884,18 @@ export default function MaskIEC({
     return true;
   }
 
+  // The exam queue is shown in every layout state (loading, loaded, errored)
+  // so curators can always jump to another exam from the list.
+  const iecQueue = vr && iecList && (
+    <IecQueue
+      kind="mask"
+      items={iecList}
+      currentId={iec}
+      onSelect={onSelectIec}
+      hint="← → navigate · A accept · S skip · N non-mask · C clear"
+    />
+  );
+
   if (!iec) {
     return (
       <RouteLayout
@@ -932,12 +947,15 @@ export default function MaskIEC({
         routeName={vr ? "mask-vr" : undefined}
         leftPanel={
           vr && (
-            <NavigationPanel
-              onNext={onNext}
-              onPrevious={onPrevious}
-              currentId={iec}
-              idLabel="IEC"
-            />
+            <>
+              <NavigationPanel
+                onNext={onNext}
+                onPrevious={onPrevious}
+                currentId={iec}
+                idLabel="IEC"
+              />
+              {iecQueue}
+            </>
           )
         }
         middlePanel={
@@ -1008,6 +1026,7 @@ export default function MaskIEC({
               idLabel="IEC"
             />
           )}
+          {iecQueue}
           {toolGroup && toolGroup3d && (
             // Key on iec so the panel remounts per exam. Its
             // "AllowSegmentationDrawing" listener captures the tool manager at
