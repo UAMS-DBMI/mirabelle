@@ -15,9 +15,23 @@ const apiToken = process.env.MIRA_API_TOKEN;
 // exam load fires through the dev proxy; without an explicit keep-alive
 // agent each proxied request can pay a fresh TCP (+TLS) handshake to the
 // remote backend, which dominates load time on high-latency links.
+//
+// The pool must be generous and self-healing: http-proxy can strand an
+// upstream socket when the browser aborts an in-flight request (which
+// cornerstone does constantly while navigating exams), and a stranded socket
+// occupies a pool slot indefinitely. With a small cap and no timeouts the
+// pool eventually wedges and every proxied request hangs silently — for all
+// browsers — until the dev server is restarted. `timeout` here plus
+// `proxyTimeout` on the proxy entries reap such sockets instead.
+const agentOptions = {
+  keepAlive: true,
+  maxSockets: 64,
+  maxFreeSockets: 16,
+  timeout: 120_000,
+};
 const proxyAgent = apiTarget?.startsWith("https")
-  ? new https.Agent({ keepAlive: true, maxSockets: 16, maxFreeSockets: 16 })
-  : new http.Agent({ keepAlive: true, maxSockets: 16, maxFreeSockets: 16 });
+  ? new https.Agent(agentOptions)
+  : new http.Agent(agentOptions);
 
 if (process.env.WEBPACK_SERVE === "true" && (!apiTarget || !apiToken)) {
   throw new Error(
@@ -127,6 +141,10 @@ module.exports = (env, argv) => {
           context: ["/papi"],
           target: apiTarget,
           agent: proxyAgent,
+          // Abort upstream requests that go silent (inactivity, not total
+          // duration) so a hung connection releases its pool slot instead of
+          // pinning it until the dev server restarts.
+          proxyTimeout: 120_000,
           headers: { Authorization: `Bearer ${apiToken || ""}` },
         },
         {
@@ -138,6 +156,7 @@ module.exports = (env, argv) => {
           context: ["/files"],
           target: apiTarget,
           agent: proxyAgent,
+          proxyTimeout: 120_000,
           headers: { Authorization: `Bearer ${apiToken || ""}` },
           onProxyRes: (proxyRes) => {
             proxyRes.headers["cache-control"] =
