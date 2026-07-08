@@ -265,6 +265,9 @@ export default function MaskReviewIEC({
         // throw new Error("This is a test error");
       } catch (error) {
         console.error(error);
+        // A load abandoned by navigation may fail against torn-down state —
+        // that's expected, not an error the user should see.
+        if (isCancelled || requestId !== loadRequestRef.current) return;
         notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
       }

@@ -229,8 +229,18 @@ function VolumeViewport({
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 
-      // Set the volume on the viewport and it's default properties
-      viewport.setVolumes([{ volumeId }]);
+      // Set the volume on the viewport and it's default properties.
+      // Awaited: setVolumes is async, and fire-and-forget puts its failure
+      // outside this setup's catch — rapid navigation then surfaces it as an
+      // unhandled rejection ("imageVolume ... does not exist" when the volume
+      // was evicted, or "reading 'getViewUp'" when the continuation runs
+      // against the torn-down renderer).
+      await viewport.setVolumes([{ volumeId }]);
+
+      // Superseded by a newer setup run (or unmounted) during the await.
+      if (cancelled || renderingEngine.getViewport(viewportId) !== viewport) {
+        return;
+      }
 
       // Align this pane's anatomical camera to the volume's nearest voxel
       // axes: oblique acquisitions render square-on (so the selection box

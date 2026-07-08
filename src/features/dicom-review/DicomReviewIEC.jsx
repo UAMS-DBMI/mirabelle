@@ -198,10 +198,17 @@ export default function DicomReviewIEC({
     console.log("DicomReviewIEC useEffect[iec]:", iec);
     const requestId = ++loadRequestRef.current;
     let isCancelled = false;
+    // True once a newer IEC load has started (rapid arrow-key navigation) or
+    // the effect was cleaned up. Checked after EVERY await: a stale run must
+    // not keep going — it would set volumeId/isInitialized for the wrong exam
+    // and its loadVolume's makeRoomForExam could evict the volume the current
+    // run just created, crashing the viewports ("imageVolume ... does not
+    // exist").
+    const isStale = () => isCancelled || requestId !== loadRequestRef.current;
 
     const initialize = async () => {
       const details = await getDicomDetails(iec);
-      if (isCancelled || requestId !== loadRequestRef.current) {
+      if (isStale()) {
         console.log(
           "---------------> getDicomDetails & getMaskingDetails cancelled",
         );
@@ -218,9 +225,11 @@ export default function DicomReviewIEC({
       if (modality === "SEG") {
         isSeg = true;
         iecList = await getOtherIECsForFOR(iec);
+        if (isStale()) return;
         if (iecList.length > 0) {
           segBaseIEC = iecList[0].image_equivalence_class_id;
           segBaseDetails = await getDicomDetails(segBaseIEC);
+          if (isStale()) return;
           volumetric = segBaseDetails.volumetric;
           segBaseModality = segBaseDetails.modality;
         }
@@ -262,6 +271,7 @@ export default function DicomReviewIEC({
         );
         imageIds = frames;
       }
+      if (isStale()) return;
       setImageIds(imageIds);
 
       setVolumeId(volumeId);
@@ -275,6 +285,7 @@ export default function DicomReviewIEC({
             // Load the volume directly if it's not a seg. No need to
             // pass a callback, we don't care about when it finishes
             await loadVolume(imageIds, volumeId, segmentationId);
+            if (isStale()) return;
           } else {
             segLoadingId = notify.loading(messages.loading.segVolume);
             // this version of loadVolume only resolves when the volume
@@ -284,6 +295,10 @@ export default function DicomReviewIEC({
             // this doens't work because segMetadata is being passed
             // to some components and it will break without it.
             await loadVolumeAsync(imageIds, volumeId, segmentationId);
+            if (isStale()) {
+              notify.dismiss(segLoadingId);
+              return;
+            }
 
             const segFileIds = await getFiles(iec);
             if (segFileIds.length > 1) {
@@ -297,6 +312,10 @@ export default function DicomReviewIEC({
               imageIds,
               segmentationId,
             );
+            if (isStale()) {
+              notify.dismiss(segLoadingId);
+              return;
+            }
             // NOTE: At some point down in the bowels, the values
             // in the segment list are used for React keys, so make sure
             // the segmentIndex is unique (handled in loadSEGSegmentation)
@@ -334,6 +353,9 @@ export default function DicomReviewIEC({
       } catch (error) {
         console.error(error);
         notify.dismiss(segLoadingId);
+        // A load abandoned by navigation may fail against torn-down state —
+        // that's expected, not an error the user should see.
+        if (isStale()) return;
         // Surface load failures as a toast and keep the viewport clean
         // (a neutral placeholder is rendered instead of an error card).
         notify.error(error, messages.errors.loadImage);
@@ -341,6 +363,7 @@ export default function DicomReviewIEC({
         return;
       }
 
+      if (isStale()) return;
       setIsInitialized(true);
       dispatch(setLoading(false));
     };
@@ -349,7 +372,7 @@ export default function DicomReviewIEC({
     // detail/info fetches), so a thrown ApiError surfaces as a toast and a
     // clean viewport instead of an unhandled promise rejection.
     initialize().catch((error) => {
-      if (isCancelled || requestId !== loadRequestRef.current) return;
+      if (isStale()) return;
       console.error(error);
       notify.error(error, messages.errors.loadImage);
       setIsErrored(true);
