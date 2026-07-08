@@ -477,8 +477,13 @@ function listEvictableExams(keepKeys) {
 
 function evictExam({ key, kind }) {
   if (kind === "volume") {
+    // Not cache.filterVolumesByReferenceId: that reads .referencedVolumeId
+    // off every cache entry unguarded, and entries whose load promise hasn't
+    // resolved yet (common during fast IEC navigation) still have an
+    // undefined volume — it throws and fails the whole exam load.
     cornerstone.cache
-      .filterVolumesByReferenceId(key)
+      .getVolumes()
+      .filter((volume) => volume?.referencedVolumeId === key)
       .forEach((derived) => decacheVolume(derived.volumeId));
     decacheVolume(key);
   } else {
