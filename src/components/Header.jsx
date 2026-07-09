@@ -5,12 +5,34 @@ import { Link } from "react-router-dom";
 import logoLight from "@/assets/mirabelle-logo-light.svg";
 import logoDark from "@/assets/mirabelle-logo-dark.svg";
 import { getUsername } from "@/utilities";
+import MaterialIcon from "@/components/MaterialIcon";
 import CacheStatus from "./CacheStatus";
 
 import "./Header.css";
 
+// Swap the "Volume"/"Stack" word in the title for the matching viewer-type
+// glyph — the same icons the IEC queue uses. Titles without either word (Home,
+// Nifti File Review) render unchanged.
+function TitleContent({ title }) {
+  const match = /\b(Volume|Stack)\b/.exec(title ?? "");
+  if (!match) return title ?? null;
+  const isVolume = match[1] === "Volume";
+  return (
+    <>
+      {title.slice(0, match.index)}
+      <MaterialIcon
+        icon={isVolume ? "deployed_code" : "layers"}
+        className="header-type-icon"
+        title={isVolume ? "Volume (3D)" : "Stack (2D series)"}
+      />
+      {title.slice(match.index + match[0].length)}
+    </>
+  );
+}
+
 function Header() {
   const title = useSelector((state) => state.options.title);
+  const titleDetail = useSelector((state) => state.options.titleDetail);
   const [username, setUsername] = useState("Username");
 
   useEffect(() => {
@@ -41,8 +63,13 @@ function Header() {
           />
         </Link>
       </div>
-      <div id="title" className="flex-1 text-left ml-2">
-        {title}
+      <div id="title" className="flex-1 flex items-center gap-2 ml-2 min-w-0">
+        <span className="header-title">
+          <TitleContent title={title} />
+        </span>
+        {titleDetail && (
+          <span className="header-title-detail">{titleDetail}</span>
+        )}
       </div>
       <CacheStatus />
       <div id="username" className="text-right">

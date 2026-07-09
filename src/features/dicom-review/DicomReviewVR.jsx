@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { resetOptions, setOption } from "@/features/optionSlice";
 import DicomReviewIEC from "@/features/dicom-review/DicomReviewIEC";
 
@@ -19,11 +19,17 @@ export default function DicomReviewVR({
   onSelectIec,
 }) {
   const dispatch = useDispatch();
+  // Block navigation while an exam is still loading, so we never tear a
+  // half-loaded exam down mid-stream. Every navigation path — hotkeys, the nav
+  // buttons, the queue, and the post-accept/skip advance — routes through
+  // these handlers, so this one guard covers them all.
+  const loading = useSelector((state) => state.options.loading);
   useHotkeys("tab", handleNext);
   useHotkeys("right", handleNext);
   useHotkeys("left", handlePrevious);
 
   function handleNext() {
+    if (loading) return;
     // Reset preset to force recalculation for next IEC
     dispatch(resetOptions());
     dispatch(setOption({ key: "preset", value: null }));
@@ -31,6 +37,7 @@ export default function DicomReviewVR({
   }
 
   function handlePrevious() {
+    if (loading) return;
     // Reset preset to force recalculation for previous IEC
     dispatch(resetOptions());
     dispatch(setOption({ key: "preset", value: null }));
@@ -38,6 +45,7 @@ export default function DicomReviewVR({
   }
 
   function handleSelectIec(selectedIec) {
+    if (loading) return;
     // Same preset reset as next/previous — queue clicks are navigation too.
     dispatch(resetOptions());
     dispatch(setOption({ key: "preset", value: null }));

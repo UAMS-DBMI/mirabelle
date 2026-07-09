@@ -15,7 +15,12 @@ import {
   reset,
 } from "@/features/presentationSlice";
 
-import { setTitle, setLoading, setOption } from "@/features/optionSlice";
+import {
+  setTitle,
+  setTitleDetail,
+  setLoading,
+  setOption,
+} from "@/features/optionSlice";
 import { notify } from "@/lib/notify";
 import { messages } from "@/lib/messages";
 
@@ -45,6 +50,7 @@ import {
   rememberMaskSelection,
   restoreMaskSelection,
 } from "@/lib/maskDrafts";
+import { markExamLoaded } from "@/lib/loadedExams";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { VolumeView } from "@/features/volume-view";
@@ -154,6 +160,7 @@ export default function MaskIEC({
   // active left-click. Under window level / crosshairs it's frozen and
   // click-through so those tools receive the clicks (see refreshSelectionBoxes).
   const leftClickTool = useSelector((state) => state.options.leftClick);
+  const loading = useSelector((state) => state.options.loading);
   const [renderingEngine, setRenderingEngine] = useState(
     cornerstone.getRenderingEngine("re1"),
   );
@@ -183,6 +190,12 @@ export default function MaskIEC({
   // so the load effect's cleanup doesn't re-save the now-irrelevant selection
   // as a draft after we forget it.
   const skipDraftSaveRef = useRef(false);
+  // What markExamLoaded should verify/measure, bound to the exam it was built
+  // for. Written inside initialize() where `iec` is the closure value — the
+  // mark effect can otherwise fire on a render where the iec prop has already
+  // advanced but volumeId/imageIds state still belongs to the previous exam,
+  // which used to flag the new exam with the old exam's cached data.
+  const loadedProbeRef = useRef(null);
   // Tracks the segmentation currently backing the viewers, so the unmount
   // cleanup can decache its labelmap volume (the segmentationId state captured
   // by the effect closure is stale by then).
@@ -323,6 +336,7 @@ export default function MaskIEC({
       // (the shell stays mounted across IEC navigation now).
       setDetails(null);
       setMaskingDetails(null);
+      dispatch(setTitleDetail(null));
       // Spinner up from the very first moment — the layout shell renders
       // underneath it immediately, and it stays up (click-through) until the
       // exam's images have actually loaded (see the clearLoading listener).
@@ -347,6 +361,13 @@ export default function MaskIEC({
       const { volumetric } = details;
       setDetails(details);
       setMaskingDetails(maskingDetails);
+      dispatch(
+        setTitleDetail(
+          [iec, details.modality, details.series_description]
+            .filter(Boolean)
+            .join(" · "),
+        ),
+      );
 
       setIsErrored(false);
       let volumeId = `mask-${iec}-decimate-${decimate_count}`;
@@ -361,6 +382,13 @@ export default function MaskIEC({
       setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
       activeSegmentationIdRef.current = segmentationId;
+      // Stacks set volumeId state too but never create a volume — only give
+      // the probe a volumeId when one will actually exist in the cache.
+      loadedProbeRef.current = {
+        forId: iec,
+        volumeId: volumetric ? volumeId : null,
+        imageIds,
+      };
 
       // Configure the UI for this exam type NOW — as soon as we know whether
       // it's a volume or a stack, and before the (slow) image load. This is
@@ -808,6 +836,17 @@ export default function MaskIEC({
       );
     };
   }, [iec, segmentationId]);
+
+  // Flag this exam as loaded in the queue once its images have actually
+  // arrived (the spinner comes down). markExamLoaded independently verifies
+  // every frame is in the cache, and the forId check skips the render where
+  // the iec prop has advanced ahead of this exam's state.
+  useEffect(() => {
+    if (loading || isErrored || !isInitialized || !iec) return;
+    const probe = loadedProbeRef.current;
+    if (!probe || String(probe.forId) !== String(iec)) return;
+    markExamLoaded(iec, probe);
+  }, [loading, isErrored, isInitialized, iec]);
 
   async function handleOperationAction(action) {
     switch (action) {

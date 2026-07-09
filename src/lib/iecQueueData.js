@@ -66,9 +66,10 @@ export function statusKind(status) {
   return "done";
 }
 
-// Route-specific row enrichment. Each returns { secondary, count, status }:
-// secondary is the small line under the id, count the number of images,
-// status the raw backend status (undefined = this route has none).
+// Route-specific row enrichment. Each returns { secondary, count, status,
+// volumetric }: secondary is the small line under the id, count the number of
+// images, status the raw backend status (undefined = this route has none),
+// volumetric whether the exam opens as a 3D volume vs a 2D stack.
 const ROW_INFO_FETCHERS = {
   "dicom-review": async (id) => {
     const details = await getDicomDetails(id);
@@ -78,6 +79,7 @@ const ROW_INFO_FETCHERS = {
         .join(" · "),
       count: details.file_count,
       status: details.review_status ?? null,
+      volumetric: Boolean(details.volumetric),
     };
   },
   mask: async (id) => {
@@ -91,6 +93,7 @@ const ROW_INFO_FETCHERS = {
         .join(" · "),
       count: details.file_count,
       status: maskingDetails?.masking_status ?? null,
+      volumetric: Boolean(details.volumetric),
     };
   },
   nifti: async (id) => {
@@ -100,6 +103,8 @@ const ROW_INFO_FETCHERS = {
       count: null,
       // The nifti details payload has no review status field.
       status: undefined,
+      // Nifti exams always open as a volume.
+      volumetric: true,
     };
   },
 };
@@ -127,18 +132,40 @@ export function getQueueRowInfo(kind, id, { fresh = false } = {}) {
   return rowInfoCache.get(key);
 }
 
+// The frames list is needed twice per row — middle-frame thumbnail and size
+// estimate — so cache the response per IEC instead of fetching it twice.
+const framesInfoCache = new Map(); // iec -> Promise<{ files, totalFrames }>
+
+function getFramesInfo(iec) {
+  if (!framesInfoCache.has(iec)) {
+    const promise = (async () => {
+      const response = await fetch(`/papi/v1/iecs/${iec}/frames`);
+      if (!response.ok) {
+        throw new Error(
+          `frames request failed for IEC ${iec}: ${response.status}`,
+        );
+      }
+      const fileInfo = await response.json();
+      const files = fileInfo.frames ?? [];
+      const totalFrames = files.reduce(
+        (total, file) => total + (file.num_of_frames || 1),
+        0,
+      );
+      return { files, totalFrames };
+    })();
+    promise.catch(() => framesInfoCache.delete(iec));
+    framesInfoCache.set(iec, promise);
+  }
+  return framesInfoCache.get(iec);
+}
+
 /**
  * Middle-frame imageId for an IEC, built the same way getIECInfo builds the
  * exam's frame list. The middle frame is the most representative slice of a
  * volume (first/last are often air or localizer edges).
  */
 async function getMiddleFrameImageId(iec) {
-  const response = await fetch(`/papi/v1/iecs/${iec}/frames`);
-  if (!response.ok) {
-    throw new Error(`frames request failed for IEC ${iec}: ${response.status}`);
-  }
-  const fileInfo = await response.json();
-  const files = fileInfo.frames ?? [];
+  const { files } = await getFramesInfo(iec);
   if (files.length === 0) {
     throw new Error(`IEC ${iec} has no frames`);
   }
@@ -147,6 +174,51 @@ async function getMiddleFrameImageId(iec) {
     return `wadouri:/files/${file.path}?frame=${Math.floor(file.num_of_frames / 2)}`;
   }
   return `wadouri:/files/${file.path}`;
+}
+
+// ————— Pre-load size estimates —————
+//
+// Decoded size of an exam BEFORE it is loaded: frame count (from the frames
+// list) × one frame's rows × columns × bytes per pixel (from the middle
+// frame's DICOM metadata, which the wadouri loader registers when the
+// thumbnail downloads that frame). Costs no extra network beyond what the
+// thumbnail already fetches; like the thumbnail, it appears when the row has
+// scrolled into view. Published as a version-counter external store so the
+// queue re-renders as estimates resolve.
+const sizeEstimates = new Map(); // idString -> bytes
+let sizeEstimatesVersion = 0;
+const sizeEstimateListeners = new Set();
+
+export function subscribeSizeEstimates(listener) {
+  sizeEstimateListeners.add(listener);
+  return () => sizeEstimateListeners.delete(listener);
+}
+
+export function getSizeEstimatesVersion() {
+  return sizeEstimatesVersion;
+}
+
+/** Estimated decoded bytes for an exam, or null while unknown. */
+export function getCachedSizeEstimate(id) {
+  return sizeEstimates.get(String(id)) ?? null;
+}
+
+async function recordSizeEstimate(id, middleFrameImageId) {
+  if (sizeEstimates.has(String(id))) return;
+  const { totalFrames } = await getFramesInfo(id);
+  const pixelModule = cornerstone.metaData.get(
+    "imagePixelModule",
+    middleFrameImageId,
+  );
+  const { rows, columns, bitsAllocated, samplesPerPixel } = pixelModule ?? {};
+  if (!rows || !columns || !totalFrames) return;
+  const bytesPerPixel = ((bitsAllocated ?? 16) / 8) * (samplesPerPixel ?? 1);
+  sizeEstimates.set(
+    String(id),
+    Math.round(totalFrames * rows * columns * bytesPerPixel),
+  );
+  sizeEstimatesVersion += 1;
+  sizeEstimateListeners.forEach((listener) => listener());
 }
 
 const THUMBNAIL_SIZE = 128; // rendered at 2× the ~40px display size for retina
@@ -188,6 +260,11 @@ export function getIecThumbnail(kind, id) {
       });
       const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
       resolvedThumbnails.set(key, dataUrl);
+      // The frame we just downloaded carries the exam's pixel geometry —
+      // derive the size estimate now, while its metadata is registered.
+      recordSizeEstimate(id, imageId).catch((error) => {
+        console.warn(`[iecQueueData] size estimate failed for ${id}:`, error);
+      });
       return dataUrl;
     });
     promise.catch(() => thumbnailCache.delete(key));

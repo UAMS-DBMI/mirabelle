@@ -14,7 +14,12 @@ import {
   reset,
 } from "@/features/presentationSlice";
 
-import { setTitle, setLoading, setOption } from "@/features/optionSlice";
+import {
+  setTitle,
+  setTitleDetail,
+  setLoading,
+  setOption,
+} from "@/features/optionSlice";
 import { notify } from "@/lib/notify";
 import { messages } from "@/lib/messages";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -61,6 +66,7 @@ import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 import IecQueue from "@/components/IecQueue";
+import { markExamLoaded } from "@/lib/loadedExams";
 
 import "./DicomReviewIEC.css";
 
@@ -150,6 +156,23 @@ export default function DicomReviewIEC({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
+  const loading = useSelector((state) => state.options.loading);
+  // What markExamLoaded should verify/measure, bound to the exam it was built
+  // for — written inside initialize() where `iec` is the closure value, so a
+  // render where the iec prop has advanced ahead of this state can't flag the
+  // new exam with the previous exam's cached data.
+  const loadedProbeRef = useRef(null);
+
+  // Flag this exam as loaded in the queue once its images have actually
+  // arrived (the spinner comes down). markExamLoaded independently verifies
+  // every frame is in the cache.
+  useEffect(() => {
+    if (loading || isErrored || !isInitialized || !iec) return;
+    const probe = loadedProbeRef.current;
+    if (!probe || String(probe.forId) !== String(iec)) return;
+    markExamLoaded(iec, probe);
+  }, [loading, isErrored, isInitialized, iec]);
+
   // null until fetched — the layout shell renders before the details arrive,
   // so the details panel gates on them instead of assuming they exist.
   const [details, setDetails] = useState(null);
@@ -219,6 +242,7 @@ export default function DicomReviewIEC({
       setDetails(null);
       setIsSeg(false);
       setSegMetadata([]);
+      dispatch(setTitleDetail(null));
       // Spinner up from the very first moment. The VR route also sets it on
       // IEC navigation, but the single-exam route doesn't set it at all —
       // and either way the load below is what takes it down.
@@ -264,6 +288,17 @@ export default function DicomReviewIEC({
       }
 
       setDetails(finalDetails);
+      dispatch(
+        setTitleDetail(
+          [
+            iec,
+            finalDetails.segBaseModality || details.modality,
+            details.series_description,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        ),
+      );
 
       let decimate_count = optionsDecimate;
       const requestedDecimateCount =
@@ -294,6 +329,13 @@ export default function DicomReviewIEC({
       setVolumeId(volumeId);
       setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
+      // Stacks set volumeId state too but never create a volume — only give
+      // the probe a volumeId when one will actually exist in the cache.
+      loadedProbeRef.current = {
+        forId: iec,
+        volumeId: volumetric ? volumeId : null,
+        imageIds,
+      };
 
       // Configure the UI for this exam type NOW — as soon as we know whether
       // it's a volume or a stack, and before the (slow) image load. This

@@ -3,3 +3,19 @@ div#header {
   @apply m-2
         mb-0;
 }
+
+/* Title keeps its full width; the viewer-type glyph sits inline with the
+   words, and the exam detail beside it truncates rather than pushing the
+   title off-screen. */
+.header-title {
+  @apply flex-none font-medium whitespace-nowrap;
+}
+
+.header-type-icon {
+  font-size: 1.15rem;
+  vertical-align: middle;
+}
+
+.header-title-detail {
+  @apply text-sm opacity-70 truncate min-w-0;
+}

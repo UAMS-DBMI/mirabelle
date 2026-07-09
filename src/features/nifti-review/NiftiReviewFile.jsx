@@ -43,6 +43,7 @@ import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 import IecQueue from "@/components/IecQueue";
+import { markExamLoaded } from "@/lib/loadedExams";
 
 import "./NiftiReviewFile.css";
 
@@ -119,6 +120,23 @@ export default function NiftiReviewFile({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
+  const loading = useSelector((state) => state.options.loading);
+  // What markExamLoaded should verify/measure, bound to the file it was built
+  // for — written inside initialize() where `file` is the closure value, so a
+  // render where the file prop has advanced ahead of this state can't flag
+  // the new file with the previous file's cached volume.
+  const loadedProbeRef = useRef(null);
+
+  // Flag this file as loaded in the queue once its volume has actually
+  // streamed in (the spinner comes down). markExamLoaded independently
+  // verifies the volume is fully in the cache.
+  useEffect(() => {
+    if (loading || isErrored || !isInitialized || !file) return;
+    const probe = loadedProbeRef.current;
+    if (!probe || String(probe.forId) !== String(file)) return;
+    markExamLoaded(file, probe);
+  }, [loading, isErrored, isInitialized, file]);
+
   // null until fetched — the layout shell renders before the details arrive,
   // so the details panel gates on them instead of assuming they exist.
   const [details, setDetails] = useState(null);
@@ -219,6 +237,8 @@ export default function NiftiReviewFile({
         const imageIds = await createNiftiImageIdsAndCacheMetadata({ url });
         if (isStale()) return;
         setImageIds(imageIds);
+        // Nifti exams are always volumes.
+        loadedProbeRef.current = { forId: file, volumeId, imageIds };
         let volume = cornerstone.cache.getVolume(volumeId);
         if (!volume) {
           volume = await volumeLoader.createAndCacheVolume(volumeId, {

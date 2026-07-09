@@ -60,6 +60,21 @@
   line-height: 1;
 }
 
+/* Volume/stack filter chips: icon + label, default blue active state. */
+.iec-queue__chip--type {
+  @apply inline-flex items-center gap-1;
+}
+
+/* "Loaded" filter chip: sky accent to match the row's loaded checkmark. */
+.iec-queue__chip--loaded {
+  @apply inline-flex items-center gap-1
+    border-sky-400 text-sky-700 dark:text-sky-300;
+}
+
+.iec-queue__chip--loaded.active {
+  @apply bg-sky-600 border-sky-600 text-white;
+}
+
 .iec-queue__list {
   @apply flex-1 min-h-0 gap-1;
 }
@@ -73,6 +88,13 @@
 
 .iec-queue__row.selected {
   @apply bg-blue-600 text-white hover:bg-blue-600;
+}
+
+/* Disabled while an exam loads: inert, not broken. Keep the hover background
+   from firing so it doesn't look clickable. */
+.iec-queue__row:disabled {
+  @apply opacity-50 cursor-not-allowed
+    bg-blue-200/50 dark:bg-blue-950/50;
 }
 
 .iec-queue__dot {
@@ -130,11 +152,44 @@
 }
 
 .iec-queue__secondary {
-  @apply text-xs opacity-70 truncate leading-tight;
+  @apply flex items-center gap-1 min-w-0 text-xs opacity-70 leading-tight;
+}
+
+.iec-queue__secondary-text {
+  @apply truncate;
+}
+
+/* Volume (3D cube) vs stack (layered slices) glyph on the secondary line. */
+.iec-queue__type {
+  @apply flex-none;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* Right-side stack: image count over the cache size, both compact and dim. */
+.iec-queue__meta {
+  @apply flex flex-col items-end flex-none leading-tight;
 }
 
 .iec-queue__count {
-  @apply text-xs opacity-70 flex-none;
+  @apply text-xs opacity-70;
+}
+
+.iec-queue__size {
+  @apply text-[11px] opacity-70 tabular-nums;
+}
+
+/* Marks a row whose exam is fully loaded / cached (reopens instantly). Sky/cyan
+   to stay distinct from the green draft/done accents and the amber pending
+   dot. */
+.iec-queue__loaded {
+  @apply text-sky-400 flex-none;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.iec-queue__row.selected .iec-queue__loaded {
+  @apply text-sky-200;
 }
 
 .iec-queue__empty {
