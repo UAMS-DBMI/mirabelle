@@ -5,9 +5,13 @@ import React from "react";
 
 import "./MaterialIcon.css";
 
-function MaterialIcon({ icon }) {
+function MaterialIcon({ icon, className, title }) {
   return (
-    <span className="material-symbols-rounded" readOnly>
+    <span
+      className={`material-symbols-rounded${className ? ` ${className}` : ""}`}
+      title={title}
+      readOnly
+    >
       {icon}
     </span>
   );

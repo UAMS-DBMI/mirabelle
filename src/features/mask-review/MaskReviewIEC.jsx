@@ -467,16 +467,17 @@ export default function MaskReviewIEC({
               onPrevious={onPrevious}
               currentId={iec}
               idLabel="IEC"
-            />
-          )}
-          {vr && iecList && (
-            <IecQueue
-              kind="mask-review"
-              items={iecList}
-              currentId={iec}
-              onSelect={onSelectIec}
-              hint="← → navigate · A accept · R reject · S skip · N non-mask"
-            />
+            >
+              {iecList && (
+                <IecQueue
+                  kind="mask-review"
+                  items={iecList}
+                  currentId={iec}
+                  onSelect={onSelectIec}
+                  hint="← → navigate · A accept · R reject · S skip · N non-mask"
+                />
+              )}
+            </NavigationPanel>
           )}
           {/* The shell renders before the effect that creates the tool
               groups has run — ToolsPanel calls toolGroup.addTool on mount,

@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   getCachedThumbnail,
@@ -6,8 +12,14 @@ import {
   getQueueRowInfo,
   statusKind,
 } from "@/lib/iecQueueData";
+import { getMaskDraftIds, subscribeMaskDrafts } from "@/lib/maskDrafts";
+import MaterialIcon from "@/components/MaterialIcon";
 
 import "./IecQueue.css";
+
+// The synthetic filter key for "has an unsubmitted mask selection". Only the
+// mask route ever populates drafts, so it's the only route that shows it.
+const DRAFT_FILTER = "drafts";
 
 // Rows beyond this are still listed and navigable, but not detail-enriched up
 // front — a pathological VR with thousands of IECs shouldn't trigger
@@ -70,7 +82,7 @@ function IecQueueThumb({ kind, id }) {
   );
 }
 
-function IecQueueRow({ kind, id, info, selected, onSelect }) {
+function IecQueueRow({ kind, id, info, selected, hasDraft, onSelect }) {
   const rowRef = useRef(null);
 
   // Keep the active exam visible while the curator navigates with the arrow
@@ -91,7 +103,16 @@ function IecQueueRow({ kind, id, info, selected, onSelect }) {
       <span className={`iec-queue__dot ${kindClass ?? "unknown"}`} />
       <IecQueueThumb kind={kind} id={id} />
       <span className="iec-queue__text">
-        <span className="iec-queue__id">{id}</span>
+        <span className="iec-queue__id">
+          {id}
+          {hasDraft && (
+            <MaterialIcon
+              icon="brush"
+              className="iec-queue__draft"
+              title="Has an unsubmitted mask selection"
+            />
+          )}
+        </span>
         {info?.secondary && (
           <span className="iec-queue__secondary">{info.secondary}</span>
         )}
@@ -104,9 +125,10 @@ function IecQueueRow({ kind, id, info, selected, onSelect }) {
 }
 
 /**
- * Scrollable, searchable queue of a VR's exams for the navigation panel.
- * Rows enrich themselves (series, image count, status) and lazy-load a
- * middle-frame thumbnail; clicking a row navigates to that exam.
+ * Scrollable, searchable queue of a VR's exams. Renders inside the
+ * NavigationPanel card (pass it as the panel's children) rather than as its
+ * own side panel. Rows enrich themselves (series, image count, status) and
+ * lazy-load a middle-frame thumbnail; clicking a row navigates to that exam.
  *
  * kind selects the enrichment source: "dicom-review" | "mask" |
  * "mask-review" | "nifti" (see lib/iecQueueData.js).
@@ -123,6 +145,16 @@ export default function IecQueue({
   const [infos, setInfos] = useState({});
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Which rows have an unsubmitted mask selection. Only the mask route ever
+  // records drafts, so elsewhere this stays empty and the marker/filter never
+  // appear.
+  const showDrafts = kind === "mask";
+  const draftIds = useSyncExternalStore(
+    subscribeMaskDrafts,
+    getMaskDraftIds,
+    getMaskDraftIds,
+  );
 
   // Enrich rows in the background (cached + concurrency-limited in the data
   // layer, so navigation remounts don't refetch).
@@ -185,10 +217,29 @@ export default function IecQueue({
   const hasStatuses = counts.known > 0;
   const finished = counts.done + counts.skipped;
 
+  const draftCount = useMemo(
+    () =>
+      showDrafts
+        ? ids.reduce((total, id) => total + (draftIds.has(id) ? 1 : 0), 0)
+        : 0,
+    [showDrafts, ids, draftIds],
+  );
+
+  // If the draft filter is active and the last draft goes away (cleared /
+  // submitted), fall back to "all" so the list doesn't strand the curator on
+  // an empty, no-longer-offered filter.
+  useEffect(() => {
+    if (statusFilter === DRAFT_FILTER && draftCount === 0) {
+      setStatusFilter("all");
+    }
+  }, [statusFilter, draftCount]);
+
   const visibleIds = useMemo(() => {
     const q = query.trim().toLowerCase();
     return ids.filter((id) => {
-      if (
+      if (statusFilter === DRAFT_FILTER) {
+        if (!draftIds.has(id)) return false;
+      } else if (
         statusFilter !== "all" &&
         statusKind(infos[id]?.status) !== statusFilter
       ) {
@@ -197,13 +248,13 @@ export default function IecQueue({
       if (!q) return true;
       return `${id} ${infos[id]?.secondary ?? ""}`.toLowerCase().includes(q);
     });
-  }, [ids, infos, query, statusFilter]);
+  }, [ids, infos, query, statusFilter, draftIds]);
 
   const chipCount = (key) =>
     key === "all" ? ids.length : counts[key] ?? 0;
 
   return (
-    <div className="side-panel iec-queue">
+    <div className="iec-queue">
       <div className="iec-queue__header">
         <h2>{idLabel} Queue</h2>
         {hasStatuses && (
@@ -219,7 +270,7 @@ export default function IecQueue({
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
-      {hasStatuses && (
+      {(hasStatuses || draftCount > 0) && (
         <div className="iec-queue__chips">
           {STATUS_FILTERS.filter(
             ({ key }) => key === "all" || chipCount(key) > 0,
@@ -233,6 +284,16 @@ export default function IecQueue({
               {label} {chipCount(key)}
             </button>
           ))}
+          {draftCount > 0 && (
+            <button
+              type="button"
+              className={`iec-queue__chip iec-queue__chip--draft${statusFilter === DRAFT_FILTER ? " active" : ""}`}
+              onClick={() => setStatusFilter(DRAFT_FILTER)}
+            >
+              <MaterialIcon icon="brush" className="iec-queue__chip-icon" />
+              Active mask {draftCount}
+            </button>
+          )}
         </div>
       )}
       <div className="wrapper iec-queue__list">
@@ -243,6 +304,7 @@ export default function IecQueue({
             id={id}
             info={infos[id]}
             selected={id === String(currentId)}
+            hasDraft={showDrafts && draftIds.has(id)}
             onSelect={onSelect}
           />
         ))}

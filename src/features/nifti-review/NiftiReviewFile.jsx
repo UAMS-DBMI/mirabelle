@@ -345,17 +345,18 @@ export default function NiftiReviewFile({
               onPrevious={onPrevious}
               currentId={file}
               idLabel="File"
-            />
-          )}
-          {vr && fileList && (
-            <IecQueue
-              kind="nifti"
-              items={fileList}
-              currentId={file}
-              onSelect={onSelectFile}
-              idLabel="File"
-              hint="← → navigate · G good · B bad · L blank · S scout · O other"
-            />
+            >
+              {fileList && (
+                <IecQueue
+                  kind="nifti"
+                  items={fileList}
+                  currentId={file}
+                  onSelect={onSelectFile}
+                  idLabel="File"
+                  hint="← → navigate · G good · B bad · L blank · S scout · O other"
+                />
+              )}
+            </NavigationPanel>
           )}
           {/* The shell renders before the effect that creates the tool
               groups has run — ToolsPanel calls toolGroup.addTool on mount,

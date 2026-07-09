@@ -473,8 +473,8 @@ export default function DicomReviewIEC({
     );
   }
 
-  // The exam queue is shown in every layout state (loading, loaded, errored)
-  // so curators can always jump to another exam from the list.
+  // The exam queue renders inside the navigation panel, in every layout state
+  // (loading, loaded, errored), so curators can always jump to another exam.
   const iecQueue = vr && iecList && (
     <IecQueue
       kind="dicom-review"
@@ -495,15 +495,14 @@ export default function DicomReviewIEC({
         routeName={routeName}
         leftPanel={
           vr && (
-            <>
-              <NavigationPanel
-                onNext={onNext}
-                onPrevious={onPrevious}
-                currentId={iec}
-                idLabel="IEC"
-              />
+            <NavigationPanel
+              onNext={onNext}
+              onPrevious={onPrevious}
+              currentId={iec}
+              idLabel="IEC"
+            >
               {iecQueue}
-            </>
+            </NavigationPanel>
           )
         }
         middlePanel={<ViewportPlaceholder />}
@@ -640,9 +639,10 @@ export default function DicomReviewIEC({
               onPrevious={onPrevious}
               currentId={iec}
               idLabel="IEC"
-            />
+            >
+              {iecQueue}
+            </NavigationPanel>
           )}
-          {iecQueue}
           {toolGroup && (
             <ToolsPanel
               toolGroup={toolGroup}

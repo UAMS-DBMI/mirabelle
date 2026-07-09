@@ -4,6 +4,15 @@
   @apply flex-none;
 }
 
+/* With the IEC queue nested inside, the panel takes over the queue's old
+   sizing role in the left column: grow to show rows, but cap out so the
+   tools panel below keeps room. The cap is the queue's former 46vh plus
+   roughly the title + nav buttons above it. */
+#navigation-panel.with-queue {
+  @apply flex-1 min-h-0;
+  max-height: calc(46vh + 9rem);
+}
+
 #navigation-panel ul {
   @apply flex flex-row;
 }

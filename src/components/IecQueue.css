@@ -1,11 +1,11 @@
 /* IecQueue.css */
 
-/* Shares the left column with NavigationPanel (flex-none) and ToolsPanel
-   (flex-1): grow to show rows but never squeeze the tools out. The row list
-   scrolls internally via the shared .wrapper styling. */
+/* Nested inside the NavigationPanel card, which provides the side-panel
+   chrome and caps the combined height (see #navigation-panel.with-queue):
+   fill whatever is left below the nav buttons. The row list scrolls
+   internally via the shared .wrapper styling. */
 .iec-queue {
-  @apply flex-1 gap-2 min-h-[10rem];
-  max-height: 46vh;
+  @apply flex flex-col flex-1 gap-2 min-h-[10rem];
 }
 
 .iec-queue__header {
@@ -42,6 +42,22 @@
 
 .iec-queue__chip.active {
   @apply bg-blue-600 border-blue-600 text-white;
+}
+
+/* "Active mask" filter chip: green accent to match the selection box overlay
+   and the row marker. */
+.iec-queue__chip--draft {
+  @apply inline-flex items-center gap-1
+    border-green-500 text-green-700 dark:text-green-300;
+}
+
+.iec-queue__chip--draft.active {
+  @apply bg-green-600 border-green-600 text-white;
+}
+
+.iec-queue__chip-icon {
+  font-size: 0.85rem;
+  line-height: 1;
 }
 
 .iec-queue__list {
@@ -97,7 +113,20 @@
 }
 
 .iec-queue__id {
-  @apply text-sm font-semibold leading-tight;
+  @apply text-sm font-semibold leading-tight
+    inline-flex items-center gap-1;
+}
+
+/* Marks a row whose exam has a drawn-but-unsubmitted mask selection. Green to
+   match the selection box overlay. */
+.iec-queue__draft {
+  @apply text-green-500;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.iec-queue__row.selected .iec-queue__draft {
+  @apply text-green-200;
 }
 
 .iec-queue__secondary {
