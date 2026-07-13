@@ -6,7 +6,6 @@ default: serve
 # .tool-versions. bun does NOT enforce "engines", so check-tools is what
 # actually fails the build on a too-old bun/node.
 BUN_MIN := 1.3.0
-NODE_MIN := 22.0.0
 
 # Backend env: development (localhost) | production (UAMS, default) | aries.
 # Override per-invocation, e.g. `make serve ENV=aries`.
@@ -21,10 +20,6 @@ check-tools:
 	@v=$$(bun --version); \
 	  [ "$$(printf '%s\n%s\n' "$(BUN_MIN)" "$$v" | sort -V | head -n1)" = "$(BUN_MIN)" ] \
 	  || { echo "error: bun $$v is older than required $(BUN_MIN)"; exit 1; }
-	@command -v node >/dev/null 2>&1 || { echo "error: node not found (need >= $(NODE_MIN))"; exit 1; }
-	@v=$$(node --version | sed 's/^v//'); \
-	  [ "$$(printf '%s\n%s\n' "$(NODE_MIN)" "$$v" | sort -V | head -n1)" = "$(NODE_MIN)" ] \
-	  || { echo "error: node $$v is older than required $(NODE_MIN)"; exit 1; }
 
 serve: node_modules
 	bun --env-file=.env.$(ENV) run start
