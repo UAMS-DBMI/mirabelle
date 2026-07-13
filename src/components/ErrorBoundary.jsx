@@ -1,4 +1,3 @@
-
 /**
  * ErrorBoundary component to catch JavaScript errors in child components
  * and display a fallback UI instead of crashing the entire app.
