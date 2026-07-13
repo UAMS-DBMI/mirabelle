@@ -30,6 +30,14 @@ export class ApiError extends Error {
   }
 }
 
+// 401 = missing/invalid credentials, 403 = credentials the server won't accept.
+const AUTH_STATUSES = new Set([401, 403]);
+
+/** True when the response failed because the request wasn't authenticated. */
+export function isAuthStatus(status) {
+  return AUTH_STATUSES.has(status);
+}
+
 /**
  * Fetch JSON from the API, throwing an `ApiError` on any failure.
  *
@@ -52,7 +60,12 @@ export async function requestJSON(url, options, { errorMessage } = {}) {
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new ApiError(friendly, { status: response.status, url, detail });
+    // A rejected credential is never about the operation the caller was
+    // attempting, so the auth message wins over the caller's errorMessage.
+    const message = isAuthStatus(response.status)
+      ? messages.errors.loginFailed
+      : friendly;
+    throw new ApiError(message, { status: response.status, url, detail });
   }
 
   try {
