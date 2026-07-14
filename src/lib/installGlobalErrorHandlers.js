@@ -28,6 +28,14 @@ function report(error) {
     error.message ||
     String(error);
 
+  // Known, harmless Cornerstone bug: updateSurfaceData throws this when a
+  // selection is drawn after Expand. Masking still works, so don't show a
+  // toast for it — just leave a breadcrumb in the console.
+  if (key.includes("reading 'segmentationId'")) {
+    console.warn("[suppressed]", error);
+    return;
+  }
+
   const now = Date.now();
   const last = recent.get(key);
   if (last && now - last < DEDUPE_MS) return;
