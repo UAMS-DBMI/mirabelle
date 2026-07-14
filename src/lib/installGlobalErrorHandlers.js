@@ -31,7 +31,7 @@ function report(error) {
   // Known, harmless Cornerstone bug: updateSurfaceData throws this when a
   // selection is drawn after Expand. Masking still works, so don't show a
   // toast for it — just leave a breadcrumb in the console.
-  if (key.includes("reading 'segmentationId'")) {
+  if (key.includes("reading 'segmentationId'") || key.includes('property "segmentationId"')) {
     console.warn("[suppressed]", error);
     return;
   }
