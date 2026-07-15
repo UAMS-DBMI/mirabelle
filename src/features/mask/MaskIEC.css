@@ -6,5 +6,5 @@
  * If the filter panel is re-enabled, restore grid-rows-[auto,1fr,auto].
  */
 #main.mask-vr #middle-panel {
-  @apply grid-rows-[1fr,auto];
+  @apply grid-rows-[auto,1fr,auto];
 }

@@ -98,7 +98,7 @@ export default function MaskReviewIEC({
   // Hide the filter panel in the mask review VR route UI while keeping the
   // implementation intact. To bring it back, flip this to `true` and restore
   // grid-rows-[auto,1fr,auto] in MaskReviewIEC.css.
-  const showFilterPanel = false;
+  const showFilterPanel = true;
 
   const showLeftPanel = useSelector(
     (s) => s.presentation.panelConfig.open.left,
