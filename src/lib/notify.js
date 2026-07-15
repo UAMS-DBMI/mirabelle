@@ -161,6 +161,12 @@ export const notify = {
                 detail,
               )
             : null,
+          message === messages.errors.loginFailed &&
+            React.createElement(
+              "a",
+              { href: "http://tcia-posda-rh-1.ad.uams.edu/posda", target: "_blank" },
+              "Log in to Posda",
+            ),
         ),
         React.createElement(
           "button",
