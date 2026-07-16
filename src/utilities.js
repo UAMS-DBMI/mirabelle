@@ -585,7 +585,7 @@ export async function loadSEGSegmentation(
         arrayBuffer,
         { metadataProvider: metaData },
       ),
-      15,
+      15000, // 15 seconds
       'createFromDICOMSegBuffer'
     );
   } catch (err) {
