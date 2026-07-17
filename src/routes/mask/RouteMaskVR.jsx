@@ -7,7 +7,7 @@ import { messages } from "@/lib/messages";
 import MaskVR from "@/features/mask/MaskVR";
 import { resetOptions, setLoading } from "@/features/optionSlice";
 import { setMaskerConfig, reset } from "@/features/presentationSlice";
-import { getFilteredIECsForMaskVR, getValuesForDicomVR } from "@/utilities";
+import { getFilteredIECsForMaskVR, getValuesForMaskVR } from "@/utilities";
 
 import "./RouteMaskVR.css";
 
@@ -30,17 +30,17 @@ export default function RouteMaskVR() {
   // immediately and survives IEC navigation (avoids the per-mount fetch flicker).
   useEffect(() => {
     let mounted = true;
-    getValuesForDicomVR(vr)
+    getValuesForMaskVR(vr)
       .then((values) => {
         if (!mounted) return;
-        const list = Array.from(
+        const types = Array.from(
           new Set(
             (values?.dicom_file_types || [])
               .map((it) => it?.dicom_file_type)
               .filter(Boolean),
           ),
         );
-        setDicomTypeOptions(["All", ...list]);
+        setDicomTypeOptions(["All", ...types]);
       })
       .catch(() => setDicomTypeOptions(["All"]));
     return () => {

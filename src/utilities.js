@@ -284,59 +284,52 @@ export async function getValuesForDicomVR(visual_review_id) {
   return requestJSON(`/papi/v1/visualreviews/${visual_review_id}/values`);
 }
 
-export async function getIECsForMaskVR(visual_review_id) {
+export async function getValuesForMaskVR(visual_review_id) {
   return requestJSON(
-    `/papi/v1/masking/visualreview/${visual_review_id}`,
-    undefined,
-    { errorMessage: messages.filters.loadFailed },
+    `/papi/v1/masking/visualreview/${visual_review_id}/values`,
   );
 }
 
 export async function getFilteredIECsForMaskVR(
   visual_review_id,
-  masking_status = "All",
-  dicom_file_type = "All",
+  masking_status = "*",
+  dicom_file_type = "*",
 ) {
-  const params = new URLSearchParams();
-  if (masking_status && masking_status !== "All") {
-    params.set("masking_status", masking_status.toLowerCase());
-  }
-  if (dicom_file_type && dicom_file_type !== "All") {
-    params.set("dicom_file_type", dicom_file_type);
-  }
-  const query = params.toString() ? `?${params.toString()}` : "";
+  // Accept 'All' from URL/UI and translate to '*' (wildcard) for the API.
+  // Also treat the literal string 'undefined' (from stale URLs) as 'All'.
+  const mapAllToStar = (v) =>
+    v == null || v === "" || v === "All" || v === "undefined" ? "*" : v;
+
+  const payload = {
+    masking_status: mapAllToStar(masking_status),
+    dicom_file_type: mapAllToStar(dicom_file_type),
+  };
+
   return requestJSON(
-    `/papi/v1/masking/visualreview/${visual_review_id}${query}`,
-    undefined,
+    `/papi/v1/masking/visualreview/${visual_review_id}/filter`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
     { errorMessage: messages.filters.loadFailed },
   );
 }
 
-export async function getIECsForMaskReviewVR(visual_review_id) {
-  return requestJSON(
-    `/papi/v1/masking/visualreview/${visual_review_id}?awaiting_review=true`,
-    undefined,
-    { errorMessage: messages.filters.loadFailed },
-  );
-}
-
+// The mask-review route fetches the same way as the mask route; the old
+// awaiting-review scoping is gone — users narrow by masking status instead.
 export async function getFilteredIECsForMaskReviewVR(
   visual_review_id,
-  masking_status = "All",
-  dicom_file_type = "All",
+  masking_status = "*",
+  dicom_file_type = "*",
 ) {
-  const params = new URLSearchParams();
-  params.set("awaiting_review", "true");
-  if (masking_status && masking_status !== "All") {
-    params.set("masking_status", masking_status.toLowerCase());
-  }
-  if (dicom_file_type && dicom_file_type !== "All") {
-    params.set("dicom_file_type", dicom_file_type);
-  }
-  return requestJSON(
-    `/papi/v1/masking/visualreview/${visual_review_id}?${params.toString()}`,
-    undefined,
-    { errorMessage: messages.filters.loadFailed },
+  return getFilteredIECsForMaskVR(
+    visual_review_id,
+    masking_status,
+    dicom_file_type,
   );
 }
 
