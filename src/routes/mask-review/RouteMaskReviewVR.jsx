@@ -6,7 +6,7 @@ import { messages } from "@/lib/messages";
 
 import {
   getFilteredIECsForMaskReviewVR,
-  getValuesForDicomVR,
+  getValuesForMaskVR,
 } from "@/utilities";
 import { resetOptions, setLoading } from "@/features/optionSlice";
 import { setMaskerReviewConfig, reset } from "@/features/presentationSlice";
@@ -33,17 +33,17 @@ export default function RouteMaskReviewVR() {
   // immediately and survives IEC navigation (avoids the per-mount fetch flicker).
   useEffect(() => {
     let mounted = true;
-    getValuesForDicomVR(vr)
+    getValuesForMaskVR(vr)
       .then((values) => {
         if (!mounted) return;
-        const list = Array.from(
+        const types = Array.from(
           new Set(
             (values?.dicom_file_types || [])
               .map((it) => it?.dicom_file_type)
               .filter(Boolean),
           ),
         );
-        setDicomTypeOptions(["All", ...list]);
+        setDicomTypeOptions(["All", ...types]);
       })
       .catch(() => setDicomTypeOptions(["All"]));
     return () => {

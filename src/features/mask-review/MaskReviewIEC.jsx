@@ -344,7 +344,7 @@ export default function MaskReviewIEC({
             )}
             {noIecs && (
               <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
-                {messages.filters.noResults}
+                No IECs were found for the selected filters.
               </div>
             )}
           </>

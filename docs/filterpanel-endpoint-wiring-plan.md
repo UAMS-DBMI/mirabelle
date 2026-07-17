@@ -1,8 +1,23 @@
 # Plan: Connect the Mask VR & Mask Review VR Filter Panels to the New Masking Endpoints
 
-**Status:** Ready to implement. The backend is done — nothing to change in oneposda.
+**Status:** Implemented, with one amendment (below). The backend is done — nothing to
+change in oneposda.
 **Goal:** The filter panels on `/mask/vr/...` and `/mask/review/vr/...` should use the two
 new masking endpoints, mimicking how the DICOM review route already does it.
+
+> **Amendment (2026-07-16), after live testing:** the Masking Status dropdown is
+> **hardcoded** with the full backend vocabulary (`All`, `created`, `ready-to-process`,
+> `in-process`, `process-complete`, `errored`, `accepted`, `rejected`, `skipped`,
+> `nonmaskable`) directly in FilterPanel.jsx, instead of being populated from the
+> `/values` endpoint. Reading it from `/values` only offered statuses that currently
+> exist in the VR, which hides useful targets (e.g. you couldn't pre-filter for
+> `accepted` before any IEC reaches that status). Consequences:
+> - The `maskingStatusOptions` prop threading described in Steps 2–4 was implemented,
+>   then removed again — FilterPanel needs no new prop.
+> - `/values` is still fetched per VR (via `getValuesForMaskVR`) but only the
+>   `dicom_file_types` half is used, for the Image Type dropdown.
+> - The mask-review route's "no results" message was aligned with the DICOM route's
+>   ("No IECs were found for the selected filters."); the toast already matched.
 
 ---
 

@@ -251,11 +251,15 @@ function FilterPanel({
             onKeyDown={submitOnEnter}
           >
             <option>All</option>
-            <option>Unreviewed</option>
-            <option>Accepted</option>
-            <option>Rejected</option>
-            <option>Skipped</option>
-            <option>Nonmaskable</option>
+            <option>created</option>
+            <option>ready-to-process</option>
+            <option>in-process</option>
+            <option>process-complete</option>
+            <option>errored</option>
+            <option>accepted</option>
+            <option>rejected</option>
+            <option>skipped</option>
+            <option>nonmaskable</option>
           </select>
         </label>
       )}
