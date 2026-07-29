@@ -38,6 +38,11 @@ import { submitFinalCoords } from "@/masking";
 import { addMaskBox, removeMaskBox } from "@/lib/maskBox";
 import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
 import { MASK_LIVE_DRAW_EVENT } from "@/lib/clampedRectangleScissors";
+import {
+  forgetMaskDraft,
+  rememberMaskSelection,
+  restoreMaskSelection,
+} from "@/lib/maskDrafts";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { VolumeView } from "@/features/volume-view";
@@ -163,6 +168,14 @@ export default function MaskIEC({
   const [maskingDetails, setMaskingDetails] = useState(true);
   const [coords, setCoords] = useState();
   const loadRequestRef = useRef(0);
+  // Set by a terminal action (mask submitted, or exam skipped / non-maskable)
+  // so the load effect's cleanup doesn't re-save the now-irrelevant selection
+  // as a draft after we forget it.
+  const skipDraftSaveRef = useRef(false);
+  // Tracks the segmentation currently backing the viewers, so the unmount
+  // cleanup can decache its labelmap volume (the segmentationId state captured
+  // by the effect closure is stale by then).
+  const activeSegmentationIdRef = useRef(null);
 
   let viewer;
 
@@ -238,6 +251,33 @@ export default function MaskIEC({
     const requestId = ++loadRequestRef.current;
     let isCancelled = false;
 
+    // Re-apply this IEC's saved (unsubmitted) selection as soon as its
+    // segmentation exists — "VolumeReallyLoaded" for volumes,
+    // "StackSegmentationReady" for stacks. Gated to the active segmentation
+    // and to one attempt per load, so the synthetic VolumeReallyLoaded that
+    // Clear fires can't resurrect the draft it just discarded.
+    let draftRestored = false;
+    const restoreDraft = (evt) => {
+      const segId = evt.detail?.segmentationId;
+      if (
+        draftRestored ||
+        !segId ||
+        segId !== activeSegmentationIdRef.current
+      ) {
+        return;
+      }
+      draftRestored = true;
+      restoreMaskSelection(iec, segId);
+    };
+    cornerstone.eventTarget.addEventListener(
+      "VolumeReallyLoaded",
+      restoreDraft,
+    );
+    cornerstone.eventTarget.addEventListener(
+      "StackSegmentationReady",
+      restoreDraft,
+    );
+
     const initialize = async () => {
       setIsInitialized(false);
       const details = await getDicomDetails(iec);
@@ -275,6 +315,7 @@ export default function MaskIEC({
       setVolumeId(volumeId);
       setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
+      activeSegmentationIdRef.current = segmentationId;
 
       try {
         if (volumetric) {
@@ -367,6 +408,24 @@ export default function MaskIEC({
 
     return () => {
       isCancelled = true;
+      // Save the drawn-but-unsubmitted selection before the segmentation is
+      // torn down below, so navigating (next/previous/queue click/leaving the
+      // route) doesn't lose the work — it's restored on the next visit. Skip
+      // this when the exam was just submitted/skipped: that draft was already
+      // forgotten and must not be resurrected from the still-drawn box.
+      if (skipDraftSaveRef.current) {
+        skipDraftSaveRef.current = false;
+      } else {
+        rememberMaskSelection(iec, activeSegmentationIdRef.current);
+      }
+      cornerstone.eventTarget.removeEventListener(
+        "VolumeReallyLoaded",
+        restoreDraft,
+      );
+      cornerstone.eventTarget.removeEventListener(
+        "StackSegmentationReady",
+        restoreDraft,
+      );
       // Make sure we disable drawing of the volume
       // when we leave, so the next one doesn't attempt to draw
       // before it exists
@@ -638,6 +697,29 @@ export default function MaskIEC({
     };
   }, [segmentationId, volumeId, volumetric, leftClickTool]);
 
+  // Keep this exam's draft marker in the queue live: persist the current
+  // selection on every edit so its row is flagged (and the "Active mask"
+  // filter matches) the instant something is drawn — not only once the curator
+  // navigates away. Empty edits (e.g. a stack clear) drop the draft the same
+  // way, so the marker disappears immediately too.
+  useEffect(() => {
+    if (!iec || !segmentationId) return undefined;
+    const handleEdit = (evt) => {
+      if (evt.detail?.segmentationId !== segmentationId) return;
+      rememberMaskSelection(iec, segmentationId);
+    };
+    cornerstone.eventTarget.addEventListener(
+      csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,
+      handleEdit,
+    );
+    return () => {
+      cornerstone.eventTarget.removeEventListener(
+        csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,
+        handleEdit,
+      );
+    };
+  }, [iec, segmentationId]);
+
   async function handleOperationAction(action) {
     switch (action) {
       case "clear":
@@ -645,7 +727,14 @@ export default function MaskIEC({
         break;
       case "accept":
         // Only advance when the mask was actually submitted.
-        if (await handleAccept()) onNext();
+        if (await handleAccept()) {
+          // Submitted — this is no longer a pending draft. Drop it (and tell
+          // the cleanup not to re-save from the still-drawn box) so its queue
+          // row stops being flagged as an active selection.
+          forgetMaskDraft(iec);
+          skipDraftSaveRef.current = true;
+          onNext();
+        }
         break;
       case "skip mask":
       case "nonmaskable mask":
@@ -656,6 +745,10 @@ export default function MaskIEC({
               ? messages.mask.skipped
               : messages.mask.notMaskable,
           );
+          // Terminal decision on this exam — discard any draft so it isn't
+          // left flagged as having a pending selection.
+          forgetMaskDraft(iec);
+          skipDraftSaveRef.current = true;
           onNext();
         } catch (error) {
           notify.error(error, messages.errors.saveStatus);
@@ -667,6 +760,10 @@ export default function MaskIEC({
   }
 
   function handleClear() {
+    // Nothing is selected anymore — unflag this exam's queue row now. (The
+    // volumetric branch below swaps in a fresh, empty segmentation without
+    // firing a data-modified event, so the live listener wouldn't catch it.)
+    forgetMaskDraft(iec);
     // Clear the selection box overlays from the 3D and 2D viewports.
     const renderingEngine = cornerstone.getRenderingEngines()[0];
     renderingEngine?.getViewports().forEach((item) => {
@@ -713,6 +810,7 @@ export default function MaskIEC({
       });
 
       setSegmentationId(newSegmentationId);
+      activeSegmentationIdRef.current = newSegmentationId;
     } else {
       const imageIds = segmentation.getLabelmapImageIds(segmentationId);
       imageIds.forEach((imgId) => {
