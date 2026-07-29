@@ -43,6 +43,23 @@ function getActiveTools(toolGroup, mouseButton) {
   return bindings;
 }
 
+/**
+ * Whether Cornerstone still knows about this tool group.
+ *
+ * IEC navigation destroys the tool groups and creates replacements, and React
+ * runs every cleanup — including the one doing the destroying — before any
+ * mount effect. This panel remounts per exam (keyed on the IEC), so its setup
+ * effect runs inside that gap, still holding the group of the exam we just
+ * left. Acting on a destroyed group is at best a no-op, and for tools that
+ * resolve their group by id in the mode callbacks (Crosshairs) it throws
+ * outright. Skip instead: the effect re-runs once the live group arrives.
+ */
+function isLiveToolGroup(toolGroup) {
+  return (
+    !!toolGroup && ToolGroupManager.getToolGroup(toolGroup.id) === toolGroup
+  );
+}
+
 export default function useToolsManager({
   toolGroup,
   toolGroup3d,
@@ -67,12 +84,14 @@ export default function useToolsManager({
   // active on the primary button. Used to keep the left-click inert while an
   // image loads instead of falling back to the window-level tool.
   const disableLeftClick = () => {
+    if (!isLiveToolGroup(toolGroup)) return;
     getActiveTools(toolGroup, MouseBindings.Primary).forEach((tool) => {
       toolGroup.setToolDisabled(tool);
     });
   };
 
   const switchLeftClickMode = (new_mode) => {
+    if (!isLiveToolGroup(toolGroup)) return;
     getActiveTools(toolGroup, MouseBindings.Primary).forEach((tool) => {
       toolGroup.setToolDisabled(tool);
     });
@@ -110,10 +129,11 @@ export default function useToolsManager({
   };
 
   const switchRightClickMode = (new_mode) => {
+    if (!isLiveToolGroup(toolGroup)) return;
     getActiveTools(toolGroup, MouseBindings.Secondary).forEach((tool) => {
       toolGroup.setToolDisabled(tool);
     });
-    if (toolGroup3d) {
+    if (isLiveToolGroup(toolGroup3d)) {
       getActiveTools(toolGroup3d, MouseBindings.Secondary).forEach((tool) => {
         toolGroup3d.setToolDisabled(tool);
       });
@@ -134,7 +154,7 @@ export default function useToolsManager({
     toolGroup.setToolActive(newTool.toolName, {
       bindings: [{ mouseButton: csToolsEnums.MouseBindings.Secondary }],
     });
-    if (toolGroup3d) {
+    if (isLiveToolGroup(toolGroup3d)) {
       toolGroup3d.setToolActive(newTool.toolName, {
         bindings: [{ mouseButton: csToolsEnums.MouseBindings.Secondary }],
       });
@@ -142,6 +162,12 @@ export default function useToolsManager({
   };
 
   useEffect(() => {
+    // The group we were handed may already have been destroyed by IEC
+    // navigation (see isLiveToolGroup) — setting up tools on it would throw and
+    // the work would be thrown away anyway. This effect re-runs with the
+    // replacement group as soon as the route hands it down.
+    if (!isLiveToolGroup(toolGroup)) return;
+
     // add tools and setup default toolGroup actions
     toolGroup.addTool(ClampedRectangleScissorsTool.toolName);
     toolGroup.addTool(StackScrollTool.toolName);
@@ -163,7 +189,7 @@ export default function useToolsManager({
     toolGroup.addTool(PanTool.toolName);
     toolGroup.addTool(ZoomTool.toolName);
 
-    if (toolGroup3d) {
+    if (isLiveToolGroup(toolGroup3d)) {
       toolGroup3d.addTool(ZoomTool.toolName);
       toolGroup3d.addTool(PanTool.toolName);
     }
@@ -171,7 +197,7 @@ export default function useToolsManager({
     toolGroup.setToolActive(StackScrollTool.toolName, {
       bindings: [{ mouseButton: csToolsEnums.MouseBindings.Wheel }],
     });
-    if (toolGroup3d) {
+    if (isLiveToolGroup(toolGroup3d)) {
       toolGroup3d.setToolActive(ZoomTool.toolName, {
         bindings: [{ mouseButton: csToolsEnums.MouseBindings.Wheel }],
       });
