@@ -562,6 +562,12 @@ export default function MaskIEC({
     const refreshSelectionBoxes = () => {
       const renderingEngine = cornerstone.getRenderingEngines()[0];
       if (!renderingEngine) return;
+      // segmentationId is React state, set before Cornerstone finishes
+      // registering the segmentation. Bail until it exists so the immediate
+      // (mount / tool-change) refresh doesn't call getLabelmapImageIds /
+      // getLabelmapBounds on a segmentation that isn't there yet — that throws
+      // "Cannot read properties of undefined (reading 'representationData')".
+      if (!segmentation.state.getSegmentation(segmentationId)) return;
 
       let bounds;
       let volume;
