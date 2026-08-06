@@ -21,6 +21,39 @@
   @apply w-full;
 }
 
+.mask-control-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The slider takes the rest of the row; min-w-0 lets it shrink inside the
+   flex row rather than forcing the panel wider on narrow layouts. */
+.mask-control-row input[type="range"] {
+  @apply flex-1 min-w-0;
+}
+
+.mask-control-row input[type="range"]:disabled {
+  @apply opacity-40 cursor-not-allowed;
+}
+
+.mask-visibility-btn {
+  @apply inline-flex items-center justify-center w-14 h-14 p-0 shrink-0 rounded-lg border border-slate-300 bg-white text-slate-700 cursor-pointer box-border dark:border-slate-700 dark:bg-slate-900 dark:text-white;
+}
+
+.mask-visibility-btn.is-active {
+  @apply bg-blue-500 border-blue-500 text-white;
+}
+
+.mask-visibility-btn:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.mask-visibility-btn:focus {
+  outline: none;
+}
+
 .preset-dropdown-container {
   display: flex;
   align-items: center;
