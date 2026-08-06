@@ -188,9 +188,10 @@ function cloneCoords(coords) {
   };
 }
 
-// Fractional IJK position of a mouse event in the given viewport.
-function cursorIjk(viewport, imageData, event) {
-  const rect = viewport.element.getBoundingClientRect();
+// Fractional IJK position of a mouse event in the given viewport. `rect` is
+// the viewport element's bounding rect, captured once at drag start — reading
+// it per mousemove forces a reflow after every frame-position style write.
+function cursorIjk(viewport, imageData, event, rect) {
   const world = viewport.canvasToWorld([
     event.clientX - rect.left,
     event.clientY - rect.top,
@@ -239,24 +240,38 @@ export function attachDataFrame(viewport, element) {
  * it.
  */
 export function addMaskBox2D(viewport, coords, options = {}) {
-  removeMaskBox2D(viewport);
-
   const element = viewport.element;
+
+  // Re-point the overlay that's already up rather than rebuilding it. A
+  // rebuild drops the very div a drag may be holding — and because the drag's
+  // mousemove/mouseup live on `window` (see beginDrag), it would keep running
+  // against the detached node and commit bounds the on-screen box never
+  // showed, while a freshly built box sat at the pre-drag position. It also
+  // churned 9 divs and 10 listeners per pane on every refresh.
+  if (element.__maskBox2dApply) {
+    element.__maskBox2dApply(coords, options);
+    return;
+  }
+
   const frame = document.createElement("div");
   frame.className = MASK_BOX_CLASS;
-  if (options.borderColor) {
-    frame.style.borderColor = options.borderColor;
-  }
   element.appendChild(frame);
+
+  // Current draw options. Replaced wholesale by __maskBox2dApply, so the
+  // handlers below must read through `settings` rather than capturing
+  // `options` — otherwise a refresh would leave the box committing through
+  // the callbacks of a previous render.
+  let settings = options;
 
   // The box the handles are dragging. Starts at the committed bounds and is
   // mutated live during a drag; on release the final value is handed back to
   // the caller via onResize.
-  let liveCoords = {
-    i: { ...coords.i },
-    j: { ...coords.j },
-    k: { ...coords.k },
-  };
+  let liveCoords = cloneCoords(coords);
+
+  // True between mousedown and mouseup on this pane's box. While it's set, an
+  // external refresh restyles the box but must not move it: the in-flight drag
+  // owns the bounds until it commits.
+  let dragging = false;
 
   const update = () => {
     const imageData = viewport.getImageData()?.imageData;
@@ -279,7 +294,7 @@ export function addMaskBox2D(viewport, coords, options = {}) {
     // stack the box always applies, so callers pass gateBySlice: false.
     const hidden =
       !corners ||
-      (options.gateBySlice !== false &&
+      (settings.gateBySlice !== false &&
         !sliceIntersectsCorners(viewport, corners, imageData));
     if (hidden) {
       frame.style.display = "none";
@@ -289,44 +304,92 @@ export function addMaskBox2D(viewport, coords, options = {}) {
     positionFrame(frame, canvasRect(viewport, corners));
   };
 
-  if (options.onResize) {
-    attachBoxInteractions(viewport, frame, {
-      getCoords: () => liveCoords,
-      setCoords: (next) => {
-        liveCoords = next;
-        update();
-        // Fires on every drag step (not just on release) so callers can mirror
-        // the in-progress box elsewhere — e.g. the 3D pane. onResize still
-        // commits the final bounds on mouse-up.
-        options.onLiveResize?.(liveCoords);
-      },
-      commit: () => options.onResize(liveCoords),
+  const hooks = {
+    getCoords: () => liveCoords,
+    setCoords: (next) => {
+      liveCoords = next;
+      update();
+      // Fires on every drag step (not just on release) so callers can mirror
+      // the in-progress box elsewhere — e.g. the 3D pane. onResize still
+      // commits the final bounds on mouse-up.
+      settings.onLiveResize?.(liveCoords);
+    },
+    // Move/resize is live only while the caller supplies onResize — under
+    // window level / crosshairs the box is frozen and click-through so those
+    // tools get the clicks. Read per event, not captured, so a tool change
+    // takes effect without rebuilding the overlay.
+    isInteractive: () => Boolean(settings.onResize),
+    begin: () => {
+      dragging = true;
+    },
+    commit: () => {
+      dragging = false;
+      settings.onResize?.(liveCoords);
+    },
+  };
+
+  const handles = attachBoxInteractions(viewport, frame, hooks);
+
+  const applyStyle = () => {
+    frame.style.borderColor = settings.borderColor || "";
+    // Element opacity scales the border and the fill together, so the box fades
+    // as one object rather than leaving a solid outline around a faded middle.
+    frame.style.opacity = settings.opacity === undefined ? "" : settings.opacity;
+    const interactive = hooks.isInteractive();
+    frame.style.pointerEvents = interactive ? "auto" : "none";
+    frame.style.cursor = interactive ? "move" : "";
+    handles.forEach((handle) => {
+      handle.style.display = interactive ? "block" : "none";
     });
-  }
+  };
 
   element.addEventListener(Enums.Events.IMAGE_RENDERED, update);
-  update();
+
+  // Re-point and restyle this overlay in place (the addMaskBox2D re-entry
+  // above). Style always lands; the bounds are left alone mid-drag.
+  element.__maskBox2dApply = (nextCoords, nextOptions) => {
+    settings = nextOptions;
+    applyStyle();
+    if (!dragging) {
+      liveCoords = cloneCoords(nextCoords);
+    }
+    update();
+  };
 
   // Let external code drive this box's position — used to mirror a drag
   // happening in another pane onto this one. Reassigns the live bounds and
   // repositions immediately; update() still gates the box to the slices it
-  // covers, so it shows only where it applies.
+  // covers, so it shows only where it applies. Ignored on the pane that owns
+  // the drag, which is already showing exactly these bounds.
   element.__maskBox2dSetLive = (next) => {
+    if (dragging) return;
     liveCoords = cloneCoords(next);
     update();
+  };
+
+  // Let external code restyle this box's opacity in place (the mask opacity
+  // slider) without rebuilding the overlay.
+  element.__maskBox2dSetOpacity = (next) => {
+    frame.style.opacity = next;
   };
 
   element.__maskBox2dCleanup = () => {
     element.removeEventListener(Enums.Events.IMAGE_RENDERED, update);
     frame.remove();
     delete element.__maskBox2dCleanup;
+    delete element.__maskBox2dApply;
     delete element.__maskBox2dSetLive;
+    delete element.__maskBox2dSetOpacity;
   };
+
+  applyStyle();
+  update();
 }
 
 // Run a drag: forward each move to onMove, and on release commit the result.
 // The box is dragged live via hooks.setCoords inside onMove.
 function beginDrag(hooks, onMove) {
+  hooks.begin();
   const onUp = () => {
     window.removeEventListener("mousemove", onMove);
     window.removeEventListener("mouseup", onUp);
@@ -341,19 +404,17 @@ function beginDrag(hooks, onMove) {
  * drag a handle to resize it. Each pane edits the two in-plane IJK axes; the
  * slice (depth) axis is left to the other panes. `hooks` reads/writes the live
  * box and commits the final bounds on mouse-up.
+ *
+ * Attached once, for the life of the overlay; `hooks.isInteractive()` decides
+ * per event whether a drag may start, so switching left-click tools freezes
+ * the box without tearing the overlay down. Returns the handle elements so
+ * the caller can show/hide them with that same state.
  */
 function attachBoxInteractions(viewport, frame, hooks) {
-  // The box is click-through by default (so it never blocks the viewport);
-  // opt it back in here since it's now draggable. Wheel-scroll and right-click
-  // pan/zoom still reach the viewport by bubbling — only the left-button drag
-  // is captured (below).
-  frame.style.pointerEvents = "auto";
-  frame.style.cursor = "move";
-
   // Move: drag the box body.
   frame.addEventListener("mousedown", (downEvent) => {
     // Left button only; let right/middle (pan/zoom) fall through to the tools.
-    if (downEvent.button !== 0) return;
+    if (downEvent.button !== 0 || !hooks.isInteractive()) return;
     downEvent.preventDefault();
     downEvent.stopPropagation();
 
@@ -362,11 +423,12 @@ function attachBoxInteractions(viewport, frame, hooks) {
     const mapping = inPlaneAxisMapping(viewport, imageData, hooks.getCoords());
     if (!mapping) return;
     const dims = imageData.getDimensions();
+    const rect = viewport.element.getBoundingClientRect();
     const startCoords = cloneCoords(hooks.getCoords());
-    const startIjk = cursorIjk(viewport, imageData, downEvent);
+    const startIjk = cursorIjk(viewport, imageData, downEvent, rect);
 
     beginDrag(hooks, (moveEvent) => {
-      const ijk = cursorIjk(viewport, imageData, moveEvent);
+      const ijk = cursorIjk(viewport, imageData, moveEvent, rect);
       const next = cloneCoords(startCoords);
       [mapping.axisX, mapping.axisY].forEach((axis) => {
         const delta = Math.round(ijk[axis] - startIjk[axis]);
@@ -378,7 +440,7 @@ function attachBoxInteractions(viewport, frame, hooks) {
 
   // Resize: the eight handles. Each stops propagation so grabbing a handle
   // resizes rather than triggering the body's move.
-  HANDLE_SPECS.forEach((spec) => {
+  return HANDLE_SPECS.map((spec) => {
     const handle = document.createElement("div");
     handle.className = MASK_BOX_HANDLE_CLASS;
     handle.style.left = spec.left;
@@ -386,6 +448,7 @@ function attachBoxInteractions(viewport, frame, hooks) {
     handle.style.cursor = spec.cursor;
 
     handle.addEventListener("mousedown", (downEvent) => {
+      if (downEvent.button !== 0 || !hooks.isInteractive()) return;
       // Keep the drag off the viewport's tools (scissors / pan) and the move.
       downEvent.preventDefault();
       downEvent.stopPropagation();
@@ -395,9 +458,10 @@ function attachBoxInteractions(viewport, frame, hooks) {
       const mapping = inPlaneAxisMapping(viewport, imageData, hooks.getCoords());
       if (!mapping) return;
       const dims = imageData.getDimensions();
+      const rect = viewport.element.getBoundingClientRect();
 
       beginDrag(hooks, (moveEvent) => {
-        const ijk = cursorIjk(viewport, imageData, moveEvent);
+        const ijk = cursorIjk(viewport, imageData, moveEvent, rect);
         const next = cloneCoords(hooks.getCoords());
         if (spec.cx) {
           setBound(
@@ -422,6 +486,7 @@ function attachBoxInteractions(viewport, frame, hooks) {
     });
 
     frame.appendChild(handle);
+    return handle;
   });
 }
 

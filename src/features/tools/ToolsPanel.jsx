@@ -7,6 +7,7 @@ import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
 
 import MaterialButtonSet from "@/components/MaterialButtonSet";
+import MaterialIcon from "@/components/MaterialIcon";
 
 import useToolsManager from "./toolsManager";
 import useToolsConfigs from "./toolsConfig";
@@ -60,6 +61,20 @@ export default function ToolsPanel({
   const handleOpacityChange = (e) => {
     const value = parseFloat(e.target.value);
     dispatch(setOption({ key: "opacity", value }));
+  };
+
+  // pull mask selection-box config + values from Redux
+  const { maskToolGroup } = globalToolsConfig;
+  const maskOpacity = globalStateValues.maskOpacity;
+  const maskVisible = globalStateValues.maskVisible;
+
+  const handleMaskOpacityChange = (e) => {
+    const value = parseFloat(e.target.value);
+    dispatch(setOption({ key: "maskOpacity", value }));
+  };
+
+  const handleMaskVisibleToggle = () => {
+    dispatch(setOption({ key: "maskVisible", value: !maskVisible }));
   };
 
   // pull decimate config + value from Redux
@@ -281,6 +296,42 @@ export default function ToolsPanel({
               buttonConfig={toolsConfigs.formGroupButtonConfig}
               initialActiveButton={toTitleCase(globalStateValues.form)}
             />
+          </div>
+        )}
+        {maskToolGroup.visible && (
+          <div className="mask-control">
+            <p>
+              Mask:{" "}
+              <span>
+                {maskVisible ? `${Math.round(maskOpacity * 100)}%` : "hidden"}
+              </span>
+            </p>
+            <div className="mask-control-row">
+              <button
+                type="button"
+                title={maskVisible ? "Hide mask" : "Show mask"}
+                className={`mask-visibility-btn ${maskVisible ? "is-active" : ""}`}
+                aria-label={maskVisible ? "Hide mask" : "Show mask"}
+                aria-pressed={maskVisible}
+                onClick={handleMaskVisibleToggle}
+              >
+                <MaterialIcon
+                  icon={maskVisible ? "visibility" : "visibility_off"}
+                />
+              </button>
+              <input
+                type="range"
+                min={maskToolGroup.min}
+                max={maskToolGroup.max}
+                step={maskToolGroup.step}
+                value={maskOpacity}
+                // A hidden box can't show a change in opacity, so the slider is
+                // dead weight until it's shown again.
+                disabled={!maskVisible}
+                onChange={handleMaskOpacityChange}
+                aria-label="Mask opacity"
+              />
+            </div>
           </div>
         )}
         {globalToolsConfig.filterToolGroup.visible && (

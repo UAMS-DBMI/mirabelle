@@ -105,6 +105,15 @@ const presentationSlice = createSlice({
         step: 0.01,
         defaultValue: 0.3,
       },
+      // Opacity + show/hide for the mask selection box (distinct from
+      // opacityToolGroup, which drives the 3D volume's transfer function).
+      maskToolGroup: {
+        visible: false,
+        min: 0,
+        max: 1,
+        step: 0.05,
+        defaultValue: 1,
+      },
       presetToolGroup: {
         visible: false,
         defaultValue: "CT-MIP",
@@ -227,6 +236,9 @@ const presentationSlice = createSlice({
       state.toolsConfig.functionToolGroup.visible = true;
       state.toolsConfig.formToolGroup.visible = true;
       state.toolsConfig.filterToolGroup.visible = true;
+      // Only the mask route draws a selection box, so it's the only route that
+      // gets the box's opacity / show-hide controls.
+      state.toolsConfig.maskToolGroup.visible = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
       // The selection (scissors) is the mask route's real left-click tool. It

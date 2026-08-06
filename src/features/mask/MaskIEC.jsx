@@ -35,7 +35,13 @@ import {
 import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
 import { submitFinalCoords } from "@/masking";
-import { addMaskBox, removeMaskBox } from "@/lib/maskBox";
+import {
+  addMaskBox,
+  removeMaskBox,
+  setMaskBoxStyle,
+  SELECTION_EDGE_COLOR,
+  SELECTION_FILL_COLOR,
+} from "@/lib/maskBox";
 import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
 import { MASK_LIVE_DRAW_EVENT } from "@/lib/clampedRectangleScissors";
 import {
@@ -43,6 +49,7 @@ import {
   rememberMaskSelection,
   restoreMaskSelection,
 } from "@/lib/maskDrafts";
+import { getMaskView, rememberMaskView } from "@/lib/maskViewPrefs";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { VolumeView } from "@/features/volume-view";
@@ -65,11 +72,52 @@ const {
   segmentation,
 } = cornerstoneTools;
 
-// Style for the selection box overlays (green box, in 2D and 3D).
+// The selection green as a CSS colour, for the DOM overlays on the 2D panes.
+const selectionCss = (color, alpha) =>
+  `rgba(${color.map((channel) => Math.round(channel * 255)).join(", ")}, ${alpha})`;
+
+// Style for the selection box overlays (green box, in 2D and 3D). Both panes
+// draw their edges in SELECTION_EDGE_COLOR — one selection, one colour,
+// whichever view you're looking at.
 const SELECTION_BOX_STYLE = {
-  box2d: { borderColor: "rgba(74, 222, 128, 0.95)" },
-  box3d: { color: [0.3, 0.85, 0.3], edgeColor: [0.6, 1, 0.6], opacity: 0.8 },
+  box2d: { borderColor: selectionCss(SELECTION_EDGE_COLOR, 0.95) },
+  // The 3D faces are thin voxel panes rendered inside the volume ray-cast (see
+  // lib/maskBox); fillAlpha is per ray SAMPLE, and a ray takes a few samples
+  // to cross a pane, so the per-face opacity lands a bit above this value.
+  box3d: {
+    color: SELECTION_EDGE_COLOR,
+    width: 2,
+    fillColor: SELECTION_FILL_COLOR,
+    fillAlpha: 0.15,
+  },
 };
+
+// How the mask box looks on an exam nobody has adjusted yet: fully opaque,
+// matching optionSlice's defaults. Exams the curator HAS adjusted reopen at
+// their own remembered setting (see lib/maskViewPrefs).
+const DEFAULT_MASK_VIEW = { opacity: 1, visible: true };
+
+// Which pane a viewport id belongs to, for the selection-box overlays.
+const is3dViewport = (id) => id.startsWith("coronal3d");
+// 2D mask viewports: the volume orthographic panes and the stack pane.
+const is2dViewport = (id) => id.endsWith("2d") || id === "myviewport";
+
+// Pacing for the 3D box preview during a live drag. Each 3D tick costs a full
+// volume re-render, which cornerstone runs on the NEXT animation frame — so
+// the cost lands after addMaskBox has already returned and a fixed interval
+// can't tell whether the previous render has even finished. Instead we keep at
+// most one 3D render in flight (waiting for its IMAGE_RENDERED), then measure
+// how long it took and stay idle for the same length again. That leaves the
+// volume at most half the frame budget no matter how heavy it is: fast volumes
+// track the drag closely, slow ones back off on their own instead of
+// saturating the main thread and stalling the drag itself.
+const PREVIEW_3D_DUTY_CYCLE = 1;
+// Never idle longer than this between 3D ticks, however slow the volume is —
+// past it the box stops reading as "following" the drag at all.
+const PREVIEW_3D_MAX_IDLE_MS = 250;
+// If IMAGE_RENDERED never arrives (viewport torn down mid-drag), stop waiting
+// after this long so the 3D preview can't wedge for the rest of the drag.
+const PREVIEW_3D_STALL_MS = 500;
 
 function transformDetails(details, maskingDetails) {
   const maskingParams = JSON.parse(maskingDetails.masking_parameters);
@@ -148,6 +196,15 @@ export default function MaskIEC({
   // active left-click. Under window level / crosshairs it's frozen and
   // click-through so those tools receive the clicks (see refreshSelectionBoxes).
   const leftClickTool = useSelector((state) => state.options.leftClick);
+  // Selection-box appearance, driven by the Mask controls in the tools panel.
+  // Hiding only affects the overlays — the underlying selection bounds are
+  // untouched, so accepting a hidden mask still submits what was drawn.
+  const maskOpacity = useSelector((state) => state.options.maskOpacity);
+  const maskVisible = useSelector((state) => state.options.maskVisible);
+  // The box effect reads the opacity through this ref so slider moves don't
+  // re-run it (see the style-only effect that applies them in place).
+  const maskOpacityRef = useRef(maskOpacity);
+  maskOpacityRef.current = maskOpacity;
   const [renderingEngine, setRenderingEngine] = useState(
     cornerstone.getRenderingEngine("re1"),
   );
@@ -473,13 +530,22 @@ export default function MaskIEC({
   useEffect(() => {
     if (!segmentationId) return;
 
+    // The panel's opacity is folded into the styles at draw time, through a
+    // ref rather than a dep: slider changes are applied in place by the
+    // style-only effect below, so they must not tear this effect (listeners,
+    // actors, fill voxels) down — that made the slider unusable.
+    const box2dStyle = () => ({
+      ...SELECTION_BOX_STYLE.box2d,
+      opacity: maskOpacityRef.current,
+    });
+    const box3dStyle = () => ({
+      ...SELECTION_BOX_STYLE.box3d,
+      opacity: maskOpacityRef.current,
+    });
+
     // (The raw labelmap is hidden where each viewport adds its representation —
     // see VolumeViewport / StackViewport — so it's reliably hidden from the
     // first frame regardless of this effect's timing.)
-
-    const is3dViewport = (id) => id.startsWith("coronal3d");
-    // 2D mask viewports: the volume orthographic panes and the stack pane.
-    const is2dViewport = (id) => id.endsWith("2d") || id === "myviewport";
 
     // Live preview of the selection box while a 2D handle drag is in flight.
     // The dragged pane updates its own overlay each mousemove, but the other
@@ -492,19 +558,65 @@ export default function MaskIEC({
     // release.
     let previewRaf = 0;
     let previewCoords = null;
+    // 3D preview back-pressure (see PREVIEW_3D_DUTY_CYCLE): the element whose
+    // IMAGE_RENDERED we're waiting on, when that wait started, and the
+    // earliest time the next 3D tick may go out.
+    let preview3dElement = null;
+    let preview3dStartedAt = 0;
+    let preview3dReadyAt = 0;
+    const onPreview3dRendered = () => {
+      const now = performance.now();
+      preview3dElement = null;
+      preview3dReadyAt =
+        now +
+        Math.min(
+          (now - preview3dStartedAt) * PREVIEW_3D_DUTY_CYCLE,
+          PREVIEW_3D_MAX_IDLE_MS,
+        );
+    };
+    // True when the previous 3D tick is still rendering, so this one is
+    // skipped rather than queued behind it.
+    const preview3dBusy = (now) => {
+      if (!preview3dElement) return false;
+      if (now - preview3dStartedAt < PREVIEW_3D_STALL_MS) return true;
+      // Its IMAGE_RENDERED is never coming — drop the wait.
+      preview3dElement.removeEventListener(
+        cornerstone.Enums.Events.IMAGE_RENDERED,
+        onPreview3dRendered,
+      );
+      preview3dElement = null;
+      return false;
+    };
     const drawPreviewBoxes = () => {
       previewRaf = 0;
       const renderingEngine = cornerstone.getRenderingEngines()[0];
       if (!renderingEngine || !previewCoords) return;
+      // Nothing to preview while the box is hidden — refreshSelectionBoxes has
+      // already torn the overlays down.
+      if (!maskVisible) return;
       const volume = volumetric ? cornerstone.cache.getVolume(volumeId) : null;
       renderingEngine.getViewports().forEach((item) => {
         if (is3dViewport(item.id)) {
-          // Rebuild the box actor (same call the commit path uses) rather than
-          // mutating the existing actor's points in place — an in-place point
-          // update doesn't reliably re-render on the 3D volume viewport.
-          if (volume) {
-            addMaskBox(item, volume, previewCoords, SELECTION_BOX_STYLE.box3d);
-          }
+          // previewOnly: addMaskBox moves the wireframe AND the shader fill
+          // to the previewed bounds at a coarser render quality — the fill is
+          // uniforms on the mask-box mapper plugin, so a move is free. The
+          // per-tick cost is the volume re-render itself, paced by measured
+          // render time (the back-pressure above) rather than animation-frame
+          // rate. The commit path redraws everything exact at full quality.
+          const now = performance.now();
+          if (!volume || now < preview3dReadyAt || preview3dBusy(now)) return;
+          preview3dElement = item.element;
+          preview3dStartedAt = now;
+          // Paced by when this render actually lands, not by a fixed guess.
+          item.element?.addEventListener(
+            cornerstone.Enums.Events.IMAGE_RENDERED,
+            onPreview3dRendered,
+            { once: true },
+          );
+          addMaskBox(item, volume, previewCoords, {
+            ...box3dStyle(),
+            previewOnly: true,
+          });
         } else if (is2dViewport(item.id)) {
           // Push the in-progress coords into each 2D box so the non-dragged
           // panes follow. The dragged pane already updated itself, so re-setting
@@ -518,6 +630,20 @@ export default function MaskIEC({
       if (!previewRaf) {
         previewRaf = requestAnimationFrame(drawPreviewBoxes);
       }
+    };
+
+    // Drop any not-yet-drawn preview. Runs whenever an authoritative redraw
+    // (commit, external edit, tool change) supersedes the drag: a preview raf
+    // firing AFTER the commit used to re-enter preview quality — coarse
+    // sampling, thick fill shell — with no later commit to exit it, leaving
+    // the volume permanently noisy and every camera move visibly shifting
+    // color as vtk switched interaction quality on top of the coarse base.
+    const cancelPreview = () => {
+      if (previewRaf) {
+        cancelAnimationFrame(previewRaf);
+        previewRaf = 0;
+      }
+      previewCoords = null;
     };
 
     // Bounds already committed to the labelmap, if any — used to merge a
@@ -560,6 +686,8 @@ export default function MaskIEC({
     };
 
     const refreshSelectionBoxes = () => {
+      // This redraw is authoritative — a stale preview must not land after it.
+      cancelPreview();
       const renderingEngine = cornerstone.getRenderingEngines()[0];
       if (!renderingEngine) return;
       // segmentationId is React state, set before Cornerstone finishes
@@ -595,9 +723,17 @@ export default function MaskIEC({
           [newCoords.j.min, newCoords.j.max],
           [newCoords.k.min, newCoords.k.max],
         ]);
-        segmentation.triggerSegmentationEvents.triggerSegmentationDataModified(
-          segmentationId,
-        );
+        // Redraw the overlays and save the draft directly instead of firing
+        // SEGMENTATION_DATA_MODIFIED. A bounds-only resize doesn't touch a
+        // single labelmap voxel, but that event tells cornerstone the labelmap
+        // pixels changed: with no modifiedSlicesToUse, performVolumeLabelmapUpdate
+        // marks EVERY slice dirty, so each viewport carrying the segmentation
+        // re-uploads the entire labelmap texture one texSubImage3D per slice
+        // (hundreds of GPU calls per mouse-up) and then re-renders — all to
+        // redraw a box this app draws itself. Only the two listeners below
+        // actually needed waking.
+        refreshSelectionBoxes();
+        rememberMaskSelection(iec, segmentationId);
       };
 
       // Stack equivalent of commitResize. A stack has no tracked bounds —
@@ -634,15 +770,18 @@ export default function MaskIEC({
         const is2d = is2dViewport(item.id);
         if (!is3d && !is2d) return;
 
-        if (!bounds) {
+        // Hiding the box is the same teardown as having nothing selected — the
+        // bounds stay in the labelmap either way, so unhiding brings the box
+        // back exactly where it was.
+        if (!bounds || !maskVisible) {
           if (is3d) removeMaskBox(item);
           else removeMaskBox2D(item);
         } else if (is3d) {
-          addMaskBox(item, volume, bounds, SELECTION_BOX_STYLE.box3d);
+          addMaskBox(item, volume, bounds, box3dStyle());
         } else {
           // The stack is one image, so don't gate its box by slice.
           addMaskBox2D(item, bounds, {
-            ...SELECTION_BOX_STYLE.box2d,
+            ...box2dStyle(),
             gateBySlice: volumetric,
             // Move/resize handles are enabled only while the selection tool is
             // active — under window level / crosshairs the box is frozen and
@@ -694,6 +833,13 @@ export default function MaskIEC({
         handleLiveDraw,
       );
       if (previewRaf) cancelAnimationFrame(previewRaf);
+      // A drag that was still waiting on its 3D render when the exam changed
+      // would otherwise leave its one-shot listener on the old element.
+      preview3dElement?.removeEventListener(
+        cornerstone.Enums.Events.IMAGE_RENDERED,
+        onPreview3dRendered,
+      );
+      preview3dElement = null;
       // Clear the boxes so they don't linger onto the next segmentation / IEC.
       const renderingEngine = cornerstone.getRenderingEngines()[0];
       renderingEngine?.getViewports().forEach((item) => {
@@ -701,7 +847,73 @@ export default function MaskIEC({
         else if (is2dViewport(item.id)) removeMaskBox2D(item);
       });
     };
-  }, [segmentationId, volumeId, volumetric, leftClickTool]);
+  }, [iec, segmentationId, volumeId, volumetric, leftClickTool, maskVisible]);
+
+  // Live restyle for the mask opacity slider. Slider changes must not re-run
+  // the effect above (its teardown/re-add rebuilds actors and re-renders the
+  // volume twice per step, which made the slider unusable) — instead the
+  // existing overlays are restyled in place: wireframe paint + fill transfer
+  // functions on the 3D pane, element opacity on the 2D boxes. Coalesced to
+  // one application per animation frame, latest value wins.
+  useEffect(() => {
+    if (!segmentationId || !maskVisible) return undefined;
+    let raf = requestAnimationFrame(() => {
+      raf = 0;
+      const renderingEngine = cornerstone.getRenderingEngines()[0];
+      if (!renderingEngine) return;
+      renderingEngine.getViewports().forEach((item) => {
+        if (is3dViewport(item.id)) {
+          setMaskBoxStyle(item, {
+            ...SELECTION_BOX_STYLE.box3d,
+            opacity: maskOpacity,
+          });
+        } else if (is2dViewport(item.id)) {
+          item.element?.__maskBox2dSetOpacity?.(maskOpacity);
+        }
+      });
+    });
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [segmentationId, maskVisible, maskOpacity]);
+
+  // Per-exam memory for the mask box's appearance (see lib/maskViewPrefs).
+  // What the restore last pushed into Redux, and whether Redux has caught up
+  // with it yet.
+  const maskViewAppliedRef = useRef(null);
+  const maskViewSyncedRef = useRef(false);
+
+  // Restore this exam's remembered slider/visibility as soon as it's shown.
+  useEffect(() => {
+    if (!iec) return;
+    // Explicit default rather than whatever is in Redux right now: an exam
+    // that has never been adjusted must open fully opaque, not inherit the
+    // previous exam's setting. Navigation's resetOptions() normally lands the
+    // same value, but it doesn't run for browser back/forward.
+    const view = getMaskView(iec, DEFAULT_MASK_VIEW);
+    maskViewAppliedRef.current = { iec: String(iec), ...view };
+    maskViewSyncedRef.current = false;
+    dispatch(setOption({ key: "maskOpacity", value: view.opacity }));
+    dispatch(setOption({ key: "maskVisible", value: view.visible }));
+  }, [iec, dispatch]);
+
+  // Record changes the curator makes — but only for the exam the restore
+  // above actually ran for, and only once its value has landed in Redux.
+  // Both effects run in the same commit when the exam changes, and a dispatch
+  // doesn't apply until the next render, so until then Redux still holds the
+  // PREVIOUS exam's value; saving then would file that value under the new
+  // exam and overwrite its real one.
+  useEffect(() => {
+    const applied = maskViewAppliedRef.current;
+    if (!iec || applied?.iec !== String(iec)) return;
+    if (!maskViewSyncedRef.current) {
+      if (maskOpacity === applied.opacity && maskVisible === applied.visible) {
+        maskViewSyncedRef.current = true;
+      }
+      return;
+    }
+    rememberMaskView(iec, { opacity: maskOpacity, visible: maskVisible });
+  }, [iec, maskOpacity, maskVisible]);
 
   // Keep this exam's draft marker in the queue live: persist the current
   // selection on every edit so its row is flagged (and the "Active mask"
