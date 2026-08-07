@@ -330,11 +330,28 @@ export function addMaskBox2D(viewport, coords, options = {}) {
 
   const handles = attachBoxInteractions(viewport, frame, hooks);
 
+  // The translucent middle at the current opacity, as a CSS colour — or null
+  // to leave the stylesheet's default background alone (callers that don't
+  // pass fill settings keep the old look).
+  const fillBackground = () => {
+    const { fillColor, fillAlpha, opacity } = settings;
+    if (!fillColor || fillAlpha === undefined) return null;
+    const alpha = fillAlpha * (opacity === undefined ? 1 : opacity);
+    const rgb = fillColor.map((channel) => Math.round(channel * 255)).join(", ");
+    return `rgba(${rgb}, ${alpha})`;
+  };
+
   const applyStyle = () => {
     frame.style.borderColor = settings.borderColor || "";
-    // Element opacity scales the border and the fill together, so the box fades
-    // as one object rather than leaving a solid outline around a faded middle.
-    frame.style.opacity = settings.opacity === undefined ? "" : settings.opacity;
+    // The opacity slider drives the SURFACE only: the translucent middle
+    // fades while the border and the resize handles keep full strength, so
+    // turning the glass down never makes the selection outline harder to find
+    // or grab. (Removing the box entirely is the eye toggle's job.) Element
+    // opacity is deliberately not used — it scales border, fill and handles
+    // as one, and an element at opacity 0 still takes pointer events, which
+    // once left invisible-but-working drag handles on screen.
+    const background = fillBackground();
+    frame.style.background = background === null ? "" : background;
     const interactive = hooks.isInteractive();
     frame.style.pointerEvents = interactive ? "auto" : "none";
     frame.style.cursor = interactive ? "move" : "";
@@ -368,9 +385,11 @@ export function addMaskBox2D(viewport, coords, options = {}) {
   };
 
   // Let external code restyle this box's opacity in place (the mask opacity
-  // slider) without rebuilding the overlay.
+  // slider) without rebuilding the overlay. Only the fill background moves —
+  // applyStyle keeps border and handles at full strength.
   element.__maskBox2dSetOpacity = (next) => {
-    frame.style.opacity = next;
+    settings = { ...settings, opacity: next };
+    applyStyle();
   };
 
   element.__maskBox2dCleanup = () => {
