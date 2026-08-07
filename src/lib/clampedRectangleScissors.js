@@ -23,6 +23,13 @@ const { RectangleScissorsTool } = cornerstoneTools;
 // draw completes. Listeners merge this with any already-committed bounds.
 export const MASK_LIVE_DRAW_EVENT = "mirabelle_maskLiveDraw";
 
+// Fired once at mouse-down, when a stroke begins — before any drag step has
+// produced bounds. MaskIEC uses it to un-hide a hidden selection box at the
+// moment editing starts: visibility is back before the first drag pixel, so
+// no part of the stroke is ever drawn blind and the box doesn't pop in
+// mid-drag.
+export const MASK_DRAW_START_EVENT = "mirabelle_maskDrawStart";
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -99,7 +106,18 @@ export class ClampedRectangleScissorsTool extends RectangleScissorsTool {
     const originalPreMouseDown = this.preMouseDownCallback;
     this.preMouseDownCallback = (evt) => {
       clampWorldPointToVolume(evt);
-      return originalPreMouseDown(evt);
+      const result = originalPreMouseDown(evt);
+      // After the stock callback: that is what builds editData, and the
+      // announcement is useless without its segmentationId.
+      const segmentationId = this.editData?.segmentationId;
+      if (segmentationId) {
+        eventTarget.dispatchEvent(
+          new CustomEvent(MASK_DRAW_START_EVENT, {
+            detail: { segmentationId },
+          }),
+        );
+      }
+      return result;
     };
 
     const originalDrag = this._dragCallback;

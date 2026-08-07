@@ -71,7 +71,7 @@ export const SELECTION_FILL_COLOR = SELECTION_EDGE_COLOR.map(
 // Shared style defaults for addMaskBox / setMaskBoxStyle.
 const DEFAULT_STYLE = {
   color: SELECTION_EDGE_COLOR,
-  width: 2,
+  width: 1,
   opacity: 1,
   fillColor: SELECTION_FILL_COLOR,
   fillAlpha: 0.15,
@@ -85,6 +85,14 @@ const FACE_SHADE = [1.0, 0.82, 0.66];
 // How far the 12 edges are lifted toward white. This is what gives the glass
 // a crisp drawn outline where faces meet.
 const EDGE_BOOST = 0.32;
+
+// How thick (in voxels) the bright edge band down each of the 12 edges is.
+// Deliberately thinner than SHELL_THICKNESS: the edge highlight is an
+// outline, so its width should be a property of the outline rather than of
+// how deep the glass panes are. Sharing the pane thickness gave each edge a
+// SHELL_THICKNESS-square prism of bright green, which on a decimated volume
+// is thick enough that the box reads as chunky instead of crisply drawn.
+const EDGE_THICKNESS = 0.75;
 
 // Ceiling on the glass panes' PER-SAMPLE opacity, at slider 100%. High
 // enough that the few samples a ray takes crossing a pane accumulate to
@@ -241,6 +249,12 @@ function applyFill(viewport, coords, style, previewScale = 1) {
     return;
   }
   const thickness = SHELL_THICKNESS * previewScale;
+  // Scaled by previewScale for the same reason the shell is: a coarse preview
+  // ray-march would otherwise step clean over a band this thin and the edges
+  // would drop out for the duration of the drag. Never wider than the shell —
+  // past that the "edge" test would light up on plain faces and thicken the
+  // outline into exactly the chunk this constant exists to avoid.
+  const edgeThickness = Math.min(EDGE_THICKNESS * previewScale, thickness);
   mapper.setMaskBoxParams({
     enabled: true,
     boxMin: [
@@ -263,6 +277,11 @@ function applyFill(viewport, coords, style, previewScale = 1) {
     coreAlpha: coreAlphaForOpacity(style.opacity),
     faceShade: FACE_SHADE,
     edgeBoost: EDGE_BOOST,
+    edgeThickness: [
+      edgeThickness / dims[0],
+      edgeThickness / dims[1],
+      edgeThickness / dims[2],
+    ],
   });
 }
 
@@ -318,7 +337,9 @@ function exitPreviewQuality(viewport) {
  *   fillColor?: [number,number,number], fillAlpha?: number,
  *   previewOnly?: boolean}} [options] `color`/`width` style the wireframe
  *   edges; `fillColor`/`fillAlpha` the in-raymarch fill. `opacity` scales
- *   both. `previewOnly` drives the live drag preview: the wireframe and the
+ *   the fill ONLY — the wireframe edges hold full strength so the outline
+ *   stays findable however faint the glass is; hiding the box is removal,
+ *   not opacity. `previewOnly` drives the live drag preview: the wireframe and the
  *   fill both move to the previewed bounds (the fill is uniforms now, so a
  *   move costs one re-render), the render drops to a coarser sample
  *   distance, and the shell thickens so the coarse ray-march still hits its
@@ -359,7 +380,9 @@ export function addMaskBox(viewport, volume, coords, options = {}) {
   property.setRepresentation(Representation.WIREFRAME);
   property.setColor(...color);
   property.setLineWidth(width);
-  property.setOpacity(opacity);
+  // Always full strength: the opacity slider fades the glass fill only, so
+  // the edges keep delineating the selection however faint the surfaces are.
+  property.setOpacity(1);
   // Shading would dim the edges facing away from the light, and an edge that
   // fades out stops delineating the selection.
   property.setLighting(false);
@@ -403,7 +426,8 @@ export function setMaskBoxStyle(viewport, options = {}) {
   const property = wireframe.getProperty();
   property.setColor(...color);
   property.setLineWidth(width);
-  property.setOpacity(opacity);
+  // Wireframe opacity is pinned to 1 at creation (addMaskBox) and stays
+  // there — `opacity` reaches only the fill below.
 
   const coords = FILL_BOXES.get(viewport);
   if (coords) {
