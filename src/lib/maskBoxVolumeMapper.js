@@ -63,6 +63,7 @@ const DISABLED_PARAMS = Object.freeze({
   coreAlpha: 0,
   faceShade: [1, 1, 1],
   edgeBoost: 0,
+  edgeThickness: [0, 0, 0],
 });
 
 // ---------------------------------------------------------------------------
@@ -105,6 +106,7 @@ uniform float maskBoxAlpha;
 uniform float maskBoxCoreAlpha;
 uniform vec3 maskBoxFaceShade;
 uniform float maskBoxEdgeBoost;
+uniform vec3 maskBoxEdgeThickness;
 
 // Injected by mirabelle's mask-box plugin (src/lib/maskBoxVolumeMapper.js).
 vec4 getColorForValue(vec4 tValue, vec3 posIS, vec3 tstep)
@@ -145,7 +147,14 @@ vec4 getColorForValue(vec4 tValue, vec3 posIS, vec3 tstep)
     // Two overlapping faces means we are along one of the 12 edges (three
     // means a corner). Edges get lifted toward white and made denser, which
     // is what gives the box a crisp drawn outline instead of a soft blob.
-    float edge = clamp(shellAxes - 1.0, 0.0, 1.0);
+    //
+    // The edge band is measured against its OWN thickness, not the pane's.
+    // Reusing the pane thickness made every edge as wide as the glass is
+    // deep (a maskBoxThickness-square prism down each of the 12 edges), which
+    // on a low-resolution or decimated volume is several screen pixels of
+    // bright green — the box read as chunky rather than crisply outlined.
+    vec3 inEdge = step(dist, maskBoxEdgeThickness);
+    float edge = clamp(inEdge.x + inEdge.y + inEdge.z - 1.0, 0.0, 1.0);
     paneColor = clamp(maskBoxColor * shade + vec3(edge * maskBoxEdgeBoost), 0.0, 1.0);
     alpha = clamp(maskBoxAlpha * (1.0 + edge), 0.0, 1.0);
   }
@@ -347,6 +356,12 @@ function vtkMaskBoxOpenGLVolumeMapperClass(publicAPI, model) {
       params.faceShade[2],
     );
     program.setUniformf("maskBoxEdgeBoost", params.edgeBoost);
+    program.setUniform3f(
+      "maskBoxEdgeThickness",
+      params.edgeThickness[0],
+      params.edgeThickness[1],
+      params.edgeThickness[2],
+    );
   };
 }
 

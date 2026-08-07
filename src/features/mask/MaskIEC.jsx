@@ -43,7 +43,10 @@ import {
   SELECTION_FILL_COLOR,
 } from "@/lib/maskBox";
 import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
-import { MASK_LIVE_DRAW_EVENT } from "@/lib/clampedRectangleScissors";
+import {
+  MASK_DRAW_START_EVENT,
+  MASK_LIVE_DRAW_EVENT,
+} from "@/lib/clampedRectangleScissors";
 import {
   forgetMaskDraft,
   rememberMaskSelection,
@@ -80,22 +83,37 @@ const selectionCss = (color, alpha) =>
 // draw their edges in SELECTION_EDGE_COLOR — one selection, one colour,
 // whichever view you're looking at.
 const SELECTION_BOX_STYLE = {
-  box2d: { borderColor: selectionCss(SELECTION_EDGE_COLOR, 0.95) },
+  // fillColor/fillAlpha are the translucent middle, passed explicitly (rather
+  // than left to the stylesheet) because the opacity slider scales the FILL
+  // only — the border and the drag handles hold full strength at any slider
+  // position, so the outline never gets harder to find. fillAlpha matches the
+  // stylesheet's baseline so slider 100% looks identical to the CSS default.
+  box2d: {
+    borderColor: selectionCss(SELECTION_EDGE_COLOR, 0.95),
+    fillColor: SELECTION_EDGE_COLOR,
+    fillAlpha: 0.18,
+  },
   // The 3D faces are thin voxel panes rendered inside the volume ray-cast (see
   // lib/maskBox); fillAlpha is per ray SAMPLE, and a ray takes a few samples
   // to cross a pane, so the per-face opacity lands a bit above this value.
   box3d: {
     color: SELECTION_EDGE_COLOR,
-    width: 2,
+    // A hairline. The wireframe's job is to delineate the selection, not to
+    // draw attention to itself — and it is drawn on top of the shader's own
+    // edge band, so anything heavier reads as a doubled, chunky outline.
+    width: 1,
     fillColor: SELECTION_FILL_COLOR,
     fillAlpha: 0.15,
   },
 };
 
-// How the mask box looks on an exam nobody has adjusted yet: fully opaque,
-// matching optionSlice's defaults. Exams the curator HAS adjusted reopen at
-// their own remembered setting (see lib/maskViewPrefs).
-const DEFAULT_MASK_VIEW = { opacity: 1, visible: true };
+// How the mask box looks on an exam nobody has adjusted yet: half opacity —
+// solid enough to read as a region, transparent enough to check the anatomy
+// underneath — matching optionSlice's defaults. Must stay in step with them,
+// or an exam would open at one value and the panel would show another. Exams
+// the curator HAS adjusted reopen at their own remembered setting (see
+// lib/maskViewPrefs).
+const DEFAULT_MASK_VIEW = { opacity: 0.5, visible: true };
 
 // Which pane a viewport id belongs to, for the selection-box overlays.
 const is3dViewport = (id) => id.startsWith("coronal3d");
@@ -657,6 +675,26 @@ export default function MaskIEC({
       return imageIds?.length ? getCoordsForStackSeg(imageIds) : null;
     };
 
+    // Starting a stroke while the box is hidden un-hides it. Hiding means
+    // "let me see the anatomy", not "let me edit blind": the scissors stay
+    // armed while the box is hidden, and a stroke merges into the existing
+    // bounds, so without this a curator could silently grow a selection they
+    // cannot see and then submit it. The un-hide fires at MOUSE-DOWN (the
+    // scissors subclass announces it) rather than on the first drag step, so
+    // the existing selection is back on screen before any part of the stroke
+    // is drawn — nothing happens blind, and the box doesn't pop in mid-drag.
+    // Un-hiding beats disarming the tool, which would leave the curator
+    // working out why drawing silently stopped. Re-running this effect at
+    // press time (maskVisible is a dep) is safe: the stroke's drag state
+    // lives in the Cornerstone tool, not here, and no overlay handle can be
+    // mid-drag — the overlays don't exist while hidden.
+    const handleDrawStart = (evt) => {
+      if (evt.detail?.segmentationId !== segmentationId) return;
+      if (!maskVisible) {
+        dispatch(setOption({ key: "maskVisible", value: true }));
+      }
+    };
+
     // Live preview of a brand-new rectangle being drawn (as opposed to a
     // resize drag of an existing box, handled by onLiveResize below). The
     // scissors tool only fills the labelmap on mouse-up, so
@@ -665,6 +703,12 @@ export default function MaskIEC({
     const handleLiveDraw = (evt) => {
       const { segmentationId: liveSegId, bounds } = evt.detail ?? {};
       if (liveSegId !== segmentationId || !bounds) return;
+      // Backstop for the press-time un-hide above, for any stroke that starts
+      // without a fresh mouse-down. Idempotent — same-value dispatches don't
+      // re-render.
+      if (!maskVisible) {
+        dispatch(setOption({ key: "maskVisible", value: true }));
+      }
       const committed = getCommittedBounds();
       const merged = committed
         ? {
@@ -817,6 +861,10 @@ export default function MaskIEC({
       MASK_LIVE_DRAW_EVENT,
       handleLiveDraw,
     );
+    cornerstone.eventTarget.addEventListener(
+      MASK_DRAW_START_EVENT,
+      handleDrawStart,
+    );
 
     // Redraw immediately so a left-click tool change re-renders any existing box
     // with the right interactivity (frozen vs. movable) without waiting for the
@@ -831,6 +879,10 @@ export default function MaskIEC({
       cornerstone.eventTarget.removeEventListener(
         MASK_LIVE_DRAW_EVENT,
         handleLiveDraw,
+      );
+      cornerstone.eventTarget.removeEventListener(
+        MASK_DRAW_START_EVENT,
+        handleDrawStart,
       );
       if (previewRaf) cancelAnimationFrame(previewRaf);
       // A drag that was still waiting on its 3D render when the exam changed
@@ -847,7 +899,16 @@ export default function MaskIEC({
         else if (is2dViewport(item.id)) removeMaskBox2D(item);
       });
     };
-  }, [iec, segmentationId, volumeId, volumetric, leftClickTool, maskVisible]);
+    // `dispatch` is stable across renders, so listing it costs no extra runs.
+  }, [
+    iec,
+    segmentationId,
+    volumeId,
+    volumetric,
+    leftClickTool,
+    maskVisible,
+    dispatch,
+  ]);
 
   // Live restyle for the mask opacity slider. Slider changes must not re-run
   // the effect above (its teardown/re-add rebuilds actors and re-renders the

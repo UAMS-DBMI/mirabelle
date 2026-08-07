@@ -19,9 +19,10 @@ it.
 | [src/features/presentationSlice.js](../src/features/presentationSlice.js) | `maskToolGroup` — range, step, which routes show the control |
 | [src/features/optionSlice.js](../src/features/optionSlice.js) | `maskOpacity` / `maskVisible` state, and their exemption from `resetOptions` |
 | [src/features/mask/MaskIEC.jsx](../src/features/mask/MaskIEC.jsx) | Consumes both: teardown-on-hide, style-only opacity effect, per-exam restore/save |
-| [src/lib/maskBox.js](../src/lib/maskBox.js) | 3D: opacity → wireframe paint + two shader alphas |
-| [src/lib/viewportFrame.js](../src/lib/viewportFrame.js) | 2D: opacity → element `opacity` on the overlay div |
+| [src/lib/maskBox.js](../src/lib/maskBox.js) | 3D: opacity → two shader fill alphas (wireframe edges stay full) |
+| [src/lib/viewportFrame.js](../src/lib/viewportFrame.js) | 2D: opacity → fill `background` alpha (border and handles stay full) |
 | [src/lib/maskViewPrefs.js](../src/lib/maskViewPrefs.js) | Per-exam memory of both values |
+| [src/components/VolumeViewport.jsx](../src/components/VolumeViewport.jsx) / [StackViewport.jsx](../src/components/StackViewport.jsx) | Colour the mask segment green so the scissors' drag rectangle matches the box (§4.4) |
 
 ---
 
@@ -50,7 +51,7 @@ Two details worth keeping:
 
 `maskToolGroup` ([presentationSlice.js:110](../src/features/presentationSlice.js#L110))
 carries `min: 0, max: 1, step: 0.05` and starts `visible: false`. Only the mask
-route flips it on ([presentationSlice.js:241](../src/features/presentationSlice.js#L241)) —
+route flips it on ([presentationSlice.js:248](../src/features/presentationSlice.js#L248)) —
 it is the only route that draws a selection box, so it is the only one that gets
 the controls. Note that this is a *different* control from the existing
 `opacityToolGroup`, which drives the 3D volume's scalar opacity (the anatomy);
@@ -62,22 +63,31 @@ these two sit next to each other in the panel and are easy to confuse in code.
 
 ```js
 // optionSlice.js:19
-maskOpacity: 1,     // 0–1
+maskOpacity: 0.5,   // 0–1
 maskVisible: true,
 ```
 
-Defaults of `1` / `true` reproduce the box's appearance from before these
-controls existed, so nothing changed for a curator who never touches them.
+`0.5` / `true` is the starting point: the glass reads clearly as a solid
+region while the anatomy inside it stays legible, which is the state a curator
+checks a selection in. Full opacity is a deliberate "show me what the mask
+does" move (§4.3), not something worth having to undo on every exam.
+
+**Three places hold this default and must move together:** `maskOpacity` here,
+`maskToolGroup.defaultValue`
+([presentationSlice.js:110](../src/features/presentationSlice.js#L110)), and
+`DEFAULT_MASK_VIEW` ([MaskIEC.jsx:113](../src/features/mask/MaskIEC.jsx#L113)),
+which is what an unadjusted exam is restored to (§5). Let them drift and an
+exam opens at one value while the panel reads another.
 
 Both are in `PRESERVED_ON_RESET`
 ([optionSlice.js:38](../src/features/optionSlice.js#L38)), so navigation's
 `resetOptions()` leaves them alone. That exemption is not cosmetic. The mask
 route resets options and *then* navigates, so if the new exam id arrives even one
 render later there is a render still showing the **old** exam with opacity
-already snapped back to 1. The per-exam saver (§5) cannot distinguish that from
-the curator moving the slider, and would record 100% over the value that exam
-actually had. Restoring is the restore effect's job alone; `resetOptions` must
-stay out of it.
+already snapped back to the default. The per-exam saver (§5) cannot distinguish
+that from the curator moving the slider, and would record the default over the
+value that exam actually had. Restoring is the restore effect's job alone;
+`resetOptions` must stay out of it.
 
 ---
 
@@ -94,14 +104,14 @@ maskOpacity ──► ref + style-only effect ─► restyle in place, no rebuil
 ### 3.1 Visibility tears down
 
 `maskVisible` **is** a dep of the box lifecycle effect
-([MaskIEC.jsx:850](../src/features/mask/MaskIEC.jsx#L850)):
+([MaskIEC.jsx:906](../src/features/mask/MaskIEC.jsx#L906)):
 
 ```js
 deps: [iec, segmentationId, volumeId, volumetric, leftClickTool, maskVisible]
 ```
 
 Inside `refreshSelectionBoxes`, hiding takes the same branch as having nothing
-selected ([MaskIEC.jsx:776](../src/features/mask/MaskIEC.jsx#L776)):
+selected ([MaskIEC.jsx:817](../src/features/mask/MaskIEC.jsx#L817)):
 
 ```js
 if (!bounds || !maskVisible) {
@@ -123,13 +133,47 @@ box is a real way to get the pane responsive again.
 Two consequences follow from the removal being real:
 
 - **`removeMaskBox` deletes the viewport's `FILL_BOXES` entry**
-  ([maskBox.js:417](../src/lib/maskBox.js#L417)). `setMaskBoxStyle` re-applies the
+  ([maskBox.js:441](../src/lib/maskBox.js#L441)). `setMaskBoxStyle` re-applies the
   fill from that map, so without the delete a later restyle would resurrect the
   fill of a box the curator had hidden. `disableFill` also never *creates* the
   mapper — removal must not convert a viewport that was never filled.
 - **The drag preview bails while hidden**
-  ([MaskIEC.jsx:596](../src/features/mask/MaskIEC.jsx#L596)). `drawPreviewBoxes`
+  ([MaskIEC.jsx:611](../src/features/mask/MaskIEC.jsx#L611)). `drawPreviewBoxes`
   returns early on `!maskVisible`; the overlays it would drive are already gone.
+
+#### Starting a stroke while hidden un-hides the box
+
+Hiding removes the overlays but does **not** disarm the scissors, and a fresh
+stroke merges into the existing bounds rather than replacing them (§3.3 of the
+companion doc). Left alone, that lets a curator grow a selection they cannot
+see and then submit it — the one way these appearance-only controls could
+change what gets masked.
+
+The invariant is therefore: **editing restores visibility, at the moment edit
+intent appears.** `ClampedRectangleScissorsTool` announces
+`MASK_DRAW_START_EVENT` from its `preMouseDownCallback` (right after the stock
+callback builds `editData`, which is where the `segmentationId` comes from),
+and `handleDrawStart` dispatches `maskVisible: true` if the box is hidden. The
+timing is the point:
+
+- **At mouse-down, not on the first drag step.** An earlier version un-hid on
+  the first `MASK_LIVE_DRAW_EVENT`, which only fires once the drag is moving —
+  so the press and the first stroke segment still happened blind, and the box
+  popped in mid-drag. Firing at press time puts the existing selection back on
+  screen *before* any part of the stroke is drawn.
+- **Un-hide, not disarm.** A disabled tool restores nothing and blocks the
+  action, leaving the curator working out why drawing silently stopped;
+  un-hiding restores exactly the feedback that was missing, exactly when it is
+  needed.
+
+`handleLiveDraw` keeps the same dispatch as a backstop for any stroke that
+starts without a fresh mouse-down; same-value dispatches don't re-render, so
+it costs nothing.
+
+Re-running the lifecycle effect at press time (`maskVisible` is a dep) is
+safe: the scissors' drag state lives in the Cornerstone tool, not in this
+effect, and none of *our* handles can be mid-drag — the overlays that carry
+them did not exist a moment ago.
 
 ### 3.2 Opacity does not
 
@@ -137,21 +181,21 @@ Two consequences follow from the removal being real:
 body through a ref instead:
 
 ```js
-// MaskIEC.jsx:206
+// MaskIEC.jsx:221
 const maskOpacityRef = useRef(maskOpacity);
 maskOpacityRef.current = maskOpacity;
 
-// MaskIEC.jsx:541 — read at draw time, not captured
+// MaskIEC.jsx:556 — read at draw time, not captured
 const box3dStyle = () => ({ ...SELECTION_BOX_STYLE.box3d, opacity: maskOpacityRef.current });
 ```
 
 Routing the slider through the lifecycle effect made the control unusable: every
 step ran the teardown (remove actors, drop listeners, cancel the rAF) and the
 rebuild, which is **two full volume re-renders per slider step**, on a control
-that emits a step every few pixels of drag. The slider changes six uniforms and
-one CSS property; it must not cost an actor rebuild.
+that emits a step every few pixels of drag. The slider changes a handful of
+fill uniforms and one CSS `background`; it must not cost an actor rebuild.
 
-The style-only effect ([MaskIEC.jsx:858–878](../src/features/mask/MaskIEC.jsx#L858-L878))
+The style-only effect ([MaskIEC.jsx:916–936](../src/features/mask/MaskIEC.jsx#L916-L936))
 applies it:
 
 ```js
@@ -182,34 +226,46 @@ drift apart across a hide/show cycle.
 
 ## 4. What "opacity" means, per renderer
 
-The one 0–1 slider value drives three different things. None of them is a simple
-multiply, and the 2D and 3D curves are not the same.
+**The slider fades the surfaces only.** The selection's *outline* — the 2D
+border, the 3D wireframe edges — and the 2D drag handles hold full strength at
+every slider position; what fades is the translucent middle. The reasoning:
+the outline is how you find and grab the selection, the glass is how you judge
+what it covers, and only the second is ever in the way of the anatomy. Fading
+them together (the original design) meant turning the glass down also made the
+selection progressively harder to find and grab, until the low end was an
+invisible box with live handles. Hide is the all-or-nothing control: the eye
+removes everything — edges, handles, fill — because its meaning is "the box is
+in my way", not "less of the box".
 
-### 4.1 The 2D overlays — one element opacity
+The one 0–1 slider value therefore reaches two places, and their curves are
+not the same.
 
-`__maskBox2dSetOpacity(value)`
-([viewportFrame.js:372](../src/lib/viewportFrame.js#L372)) writes
-`frame.style.opacity` directly. `applyStyle`
-([viewportFrame.js:333](../src/lib/viewportFrame.js#L333)) does the same on the
-re-entry path.
+### 4.1 The 2D overlays — background alpha only
 
-The overlay's own colours are fixed — a 2px border at α 0.95 and a
-`rgba(74, 222, 128, 0.18)` background
-([VolumeViewport.css:32](../src/components/VolumeViewport.css#L32)). Element
-opacity scales **both together**, which is the point: scaling only the border
-would fade the outline while leaving a tinted middle, and the box would stop
-reading as one object.
+`applyStyle` ([viewportFrame.js:344](../src/lib/viewportFrame.js#L344))
+computes `frame.style.background` as `fillColor` at `fillAlpha × opacity`, and
+`__maskBox2dSetOpacity(value)` re-runs it in place for the slider. Border
+colour and the handles are untouched by the slider — deliberately **not**
+element opacity, which would scale border, fill and handles as one (and an
+element at `opacity: 0` still takes pointer events; see failure mode #9).
 
-So in 2D the response is linear, and slider 100% is the overlay's designed
-appearance — a translucent green rectangle you can still see the anatomy
-through. The 2D pane is where the curator checks the selection edge against the
-image, so it never becomes opaque.
+`fillColor`/`fillAlpha` come from `SELECTION_BOX_STYLE.box2d`; the base alpha
+matches the stylesheet's `rgba(74, 222, 128, 0.18)` background
+([VolumeViewport.css:32](../src/components/VolumeViewport.css#L32)), so slider
+100% looks identical to the CSS default, and an overlay whose caller passes no
+fill settings keeps the stylesheet look.
 
-### 4.2 The 3D wireframe — actor opacity
+So in 2D the fill response is linear from nothing (outline only, at 0) to the
+overlay's designed appearance (at 100%) — a translucent green rectangle you
+can still see the anatomy through. The 2D pane is where the curator checks the
+selection edge against the image, so it never becomes opaque.
 
-`property.setOpacity(opacity)` on the wireframe actor
-([maskBox.js:389](../src/lib/maskBox.js#L389)). Also linear. The 12 edges fade
-with the slider so the outline doesn't stay solid around a faded fill.
+### 4.2 The 3D wireframe — constant
+
+`property.setOpacity(1)` at creation
+([maskBox.js:385](../src/lib/maskBox.js#L385)), and `setMaskBoxStyle` leaves
+it alone. The 12 edges delineate the selection at any slider position — the
+3D counterpart of the 2D border staying solid.
 
 ### 4.3 The 3D fill — two non-linear alphas
 
@@ -217,7 +273,7 @@ The glass panes and the box interior are per-sample alphas in the patched volume
 shader, and each has its own curve.
 
 **Panes** — `fillAlphaForOpacity`
-([maskBox.js:217](../src/lib/maskBox.js#L217)):
+([maskBox.js:225](../src/lib/maskBox.js#L225)):
 
 ```js
 clamped * (fillAlpha + clamped * (MAX_FILL_ALPHA - fillAlpha))
@@ -231,7 +287,7 @@ a pane still darkens it — the cue that reads as glass rather than painted-on
 plastic.
 
 **Interior** — `coreAlphaForOpacity`
-([maskBox.js:225](../src/lib/maskBox.js#L225)):
+([maskBox.js:233](../src/lib/maskBox.js#L233)):
 
 ```js
 MAX_CORE_ALPHA * smoothstep(CORE_FILL_START, 1, clamped)
@@ -254,29 +310,74 @@ Where the slider actually lands (composite column assumes ~4 samples cross a
 
 | Slider | Pane α/sample | Pane, accumulated | Core α/sample | 3D reads as |
 |---|---|---|---|---|
-| 0% | 0 | 0 | 0 | invisible |
+| 0% | 0 | 0 | 0 | outline only — the wireframe stays |
 | 25% | 0.089 | 0.31 | 0 | hollow glass |
-| 50% | 0.280 | 0.73 | 0 | hollow glass |
+| 50% (default) | 0.280 | 0.73 | 0 | hollow glass |
 | 70% | 0.507 | 0.94 | 0 | hollow glass |
 | 85% | 0.720 | 0.99 | 0.45 | filling in |
 | 100% | 0.970 | 1.00 | 0.90 | solid block |
 
 The design intent for the 3D pane: at the top of the slider the box stops being
 a preview of *where* the mask sits and becomes a preview of *what the mask
-does*.
+does*. At the bottom it is a pure outline — the anatomy fully visible with the
+selection still delineated, which is the inspection state the slider exists
+for.
 
 **The asymmetry is worth knowing about.** At 100% the 3D box is essentially
-opaque while the 2D boxes are still translucent, because 2D scales a fixed-alpha
-overlay linearly and 3D ramps to a near-opaque block. If you ever want the 2D
-overlay to follow the same curve, note that its fill alpha is hard-coded in CSS,
-not passed through `SELECTION_BOX_STYLE.box2d` — only `borderColor` is. That
-would need a `backgroundColor` in the style object and a matching write in
-`applyStyle`.
+opaque while the 2D boxes are still translucent, because the 2D fill scales a
+fixed base alpha (0.18) linearly and the 3D fill ramps to a near-opaque block.
+Both fills are passed through the style objects (`box2d.fillColor`/`fillAlpha`
+mirror `box3d`'s), so unifying the curves would only mean applying
+`fillAlphaForOpacity` on the 2D side too.
 
-**Slider 0 ≠ hidden.** At 0 the alphas are zero and the element opacity is 0, so
-nothing shows — but every actor, listener, and overlay div is still live and
-still costing per frame. Only the eye toggle removes them. That is the reason to
-keep both controls rather than treating hide as "slider to zero".
+**Slider 0 is safe because only surfaces fade.** At 0 the fill is gone but the
+border, wireframe and handles are at full strength — an outline-only box,
+clearly visible and grabbable. Earlier designs faded everything through one
+element opacity, which made low slider values a trap: a CSS `opacity: 0`
+element still takes pointer events, so the curator got resize cursors and
+working handles over a selection they could not see, and a 0.05 (later 0.2)
+floor only rationed the same problem. Splitting surface from outline dissolved
+it — there is no slider position that hides the outline, so the slider needs
+no floor at all. Making the box *go away* is the eye toggle's job, which
+removes the overlays outright — and editing un-hides it (§3.1).
+
+### 4.4 The scissors' drag rectangle — segment colour, not tool style
+
+One state of the selection is drawn by neither `viewportFrame` nor `maskBox`:
+the rectangle you see *while dragging a fresh stroke* belongs to the scissors
+tool itself. Cornerstone colours it with the **segment's palette colour**,
+captured once at mouse-down (`getSegmentIndexColor`), not with an annotation
+style — so with the default palette the stroke previewed in a different colour
+from the green box it was about to become.
+
+Both viewport components therefore set the mask segment's colour to the
+selection green where they register the labelmap representation
+([VolumeViewport.jsx:178](../src/components/VolumeViewport.jsx#L178),
+[StackViewport.jsx:138](../src/components/StackViewport.jsx#L138)):
+
+```js
+[1, 2].forEach((segmentIndex) =>
+  segmentation.config.color.setSegmentIndexColor(
+    viewportId, segmentationId, segmentIndex, [74, 222, 128, 255],
+  ),
+);
+```
+
+`[74, 222, 128]` is `SELECTION_EDGE_COLOR` in 0–255 — one selection, one
+green, in every state: drag rectangle, 2D box, 3D wireframe, glass fill. Two
+constraints worth keeping:
+
+- **Order matters.** `setSegmentIndexColor` resolves the representation's
+  colour LUT and throws if the representation doesn't exist yet — it must run
+  *after* `addLabelmapRepresentationToViewport` (StackViewport's comment
+  records the same rule).
+- **The labelmap itself stays hidden** (`renderFill: false`,
+  `renderOutline: false`). The segment colour exists purely to feed the
+  scissors' drag rectangle; nothing else reads it.
+
+Note the untouched-by-slider list grows by one here: the drag rectangle is
+Cornerstone's, so the opacity slider does not fade it either — consistent with
+it being edit feedback (an outline) rather than a surface.
 
 ---
 
@@ -300,7 +401,7 @@ Three rules:
 
 - An exam the curator **has** adjusted reopens at its own remembered value.
 - An exam **never** adjusted opens at `DEFAULT_MASK_VIEW`
-  ([MaskIEC.jsx:98](../src/features/mask/MaskIEC.jsx#L98)) — `{opacity: 1,
+  ([MaskIEC.jsx:113](../src/features/mask/MaskIEC.jsx#L113)) — `{opacity: 0.5,
   visible: true}` — explicitly *not* whatever the previous exam was set to. Every
   new exam starts from the same known state.
 - Unlike a mask draft, this is display state rather than work, so it is **not**
@@ -310,8 +411,8 @@ Three rules:
 ### 5.1 The ordering hazard
 
 Restore and save are two separate effects
-([MaskIEC.jsx:887](../src/features/mask/MaskIEC.jsx#L887) and
-[:906](../src/features/mask/MaskIEC.jsx#L906)), and both run in the same commit
+([MaskIEC.jsx:945](../src/features/mask/MaskIEC.jsx#L945) and
+[:964](../src/features/mask/MaskIEC.jsx#L964)), and both run in the same commit
 when `iec` changes. A dispatch does not apply until the next render, so at that
 moment Redux still holds the **previous** exam's value. A naive save would file
 that value under the new exam id and clobber the real one.
@@ -350,10 +451,14 @@ point of the default is that it is the same every time.
 | 2 | Slider top end was still barely-there glass | Straight `fillAlpha × opacity` caps at `fillAlpha` = 0.15 | Quadratic ramp to `MAX_FILL_ALPHA` (0.97) |
 | 3 | Box high on the slider still didn't block the region under the CT default preset | MIP colours one sample per ray, so the panes get one shot | Interior fill above `CORE_FILL_START`, at `MAX_CORE_ALPHA` = 0.9 |
 | 4 | A hidden box reappeared after a slider move | `setMaskBoxStyle` re-applies the fill from `FILL_BOXES`, which still held the coords | `removeMaskBox` deletes the entry; `disableFill` never creates the mapper |
-| 5 | Every exam's remembered opacity got overwritten with 100% | `resetOptions()` snapped opacity back while the old exam was still rendered; the saver read that as a curator edit | `maskOpacity`/`maskVisible` in `PRESERVED_ON_RESET` |
+| 5 | Every exam's remembered opacity got overwritten with the default | `resetOptions()` snapped opacity back while the old exam was still rendered; the saver read that as a curator edit | `maskOpacity`/`maskVisible` in `PRESERVED_ON_RESET` |
 | 6 | New exam's remembered value clobbered by the previous exam's | Restore and save run in the same commit; a dispatch isn't visible until the next render | `maskViewAppliedRef` + `maskViewSyncedRef` gate the save |
-| 7 | Box flashed at full opacity for one frame on every exam change | Same `resetOptions()` path, before the exam's own value landed | As #5 |
+| 7 | Box flashed at the default opacity for one frame on every exam change | Same `resetOptions()` path, before the exam's own value landed | As #5 |
 | 8 | Opacity and hide/show didn't affect the 3D fill at all | vtk only rebuilds colour tables when *component 0*'s transfer functions change; the old fill lived on component 1 | Moot under the uniform-driven fill, but relevant if you touch vtk transfer functions |
+| 9 | Resize cursors and working drag handles over a box too faint to see | One element opacity faded border, fill and handles together, and a CSS `opacity: 0` element still takes pointer events | Opacity fades the fill background only; border and handles never dim, so every slider value is findable and `min` is back to 0 |
+| 10 | A selection could be grown while hidden, then submitted unseen | Hiding removes the overlays but leaves the scissors armed, and a stroke merges into existing bounds | `MASK_DRAW_START_EVENT` at mouse-down un-hides before any stroke pixel lands; `handleLiveDraw` backstops it |
+| 11 | Box edges read as chunky green prisms, not a drawn outline | The shader's edge band reused `SHELL_THICKNESS`, so each edge was as wide as the glass is deep | Separate `EDGE_THICKNESS`, clamped to never exceed the shell |
+| 12 | Drawing a stroke previewed in the default palette colour, not the selection green | The scissors draw their drag rectangle in the segment colour, captured at mouse-down; the volume panes never set it (the stack pane did) | Both viewports set segments 1–2 to the selection green, after the representation exists (§4.4) |
 
 ---
 
@@ -361,14 +466,20 @@ point of the default is that it is the same every time.
 
 | Constant | File | Value | Effect |
 |---|---|---|---|
-| `maskOpacity` / `maskVisible` initial | optionSlice.js | `1` / `true` | The pre-controls appearance, so nothing changed for curators who ignore them |
+| `maskOpacity` / `maskVisible` initial | optionSlice.js | `0.5` / `true` | Half opacity: reads as a region, anatomy still legible underneath |
 | `maskToolGroup.step` | presentationSlice.js | 0.05 | 20 stops across the slider |
-| `DEFAULT_MASK_VIEW` | MaskIEC.jsx | `{opacity: 1, visible: true}` | How an unadjusted exam opens |
+| `maskToolGroup.defaultValue` | presentationSlice.js | 0.5 | Panel-side mirror of the same default — keep in step with the other two |
+| `maskToolGroup.min` | presentationSlice.js | 0 | Safe because only surfaces fade: 0 is an outline-only box, not an invisible one |
+| `box2d.fillAlpha` | MaskIEC.jsx | 0.18 | 2D fill base alpha at slider 100%, matching the stylesheet's default background |
+| `DEFAULT_STYLE.width` | maskBox.js | 1 | Wireframe edge width, in px. A hairline: the shader draws its own edge band underneath |
+| `EDGE_THICKNESS` | maskBox.js | 0.75 | Width of the shader's bright edge band, in voxels. Keep below `SHELL_THICKNESS` |
+| `DEFAULT_MASK_VIEW` | MaskIEC.jsx | `{opacity: 0.5, visible: true}` | How an unadjusted exam opens; mirror of the two defaults below |
 | `DEFAULT_STYLE.fillAlpha` | maskBox.js | 0.15 | Base per-sample pane alpha, the low end of the ramp |
 | `MAX_FILL_ALPHA` | maskBox.js | 0.97 | Per-sample pane alpha at 100%. Just under 1 so a grazing ray still darkens |
 | `MAX_CORE_ALPHA` | maskBox.js | 0.9 | Per-sample interior alpha at 100%; what blocks the region under MIP |
 | `CORE_FILL_START` | maskBox.js | 0.7 | Slider point where the hollow shell starts filling |
-| `.viewport-mask-box` border / background | VolumeViewport.css | α 0.95 / α 0.18 | The 2D overlay's fixed alphas, scaled as one by element opacity |
+| `.viewport-mask-box` border / background | VolumeViewport.css | α 0.95 / α 0.18 | The 2D overlay's stylesheet defaults; JS overrides the background per slider, the border never fades |
+| Mask segment colour | VolumeViewport.jsx / StackViewport.jsx | `[74, 222, 128, 255]` | `SELECTION_EDGE_COLOR` in 0–255; feeds the scissors' drag rectangle (§4.4) — keep the two in sync |
 
 ---
 

@@ -14,9 +14,12 @@ const initialState = {
   rightClick: Enums.RightClickOptions.ZOOM,
   opacity: 0.3,
   // Selection-box overlay controls. `opacity` above is the 3D volume's scalar
-  // opacity — these two are the mask box drawn on top of it. 1 / true keep the
-  // box at the appearance it had before these controls existed.
-  maskOpacity: 1,
+  // opacity — these two are the mask box drawn on top of it. Half opacity is
+  // the useful starting point: the glass reads clearly as a solid region while
+  // the anatomy inside it stays legible, which is the state a curator checks a
+  // selection in. Full opacity is a deliberate "show me what the mask does"
+  // move, not something to have to undo on every exam.
+  maskOpacity: 0.5,
   maskVisible: true,
   preset: "CT-MIP",
   decimate: 0,

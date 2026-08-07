@@ -167,6 +167,27 @@ function VolumeViewport({
         segmentation.addLabelmapRepresentationToViewport(viewportId, [
           { segmentationId: readySegmentationId },
         ]);
+        // Colour the segment green so the scissors' in-progress rectangle
+        // matches the selection box — the tool draws its drag rectangle in
+        // the segment colour even though the labelmap fill itself is hidden.
+        // Must run AFTER the representation is added: setSegmentIndexColor
+        // resolves the rep's colour LUT and throws without one. (StackViewport
+        // does the same for the stack pane.)
+        try {
+          [1, 2].forEach((segmentIndex) =>
+            segmentation.config.color.setSegmentIndexColor(
+              viewportId,
+              readySegmentationId,
+              segmentIndex,
+              [74, 222, 128, 255],
+            ),
+          );
+        } catch (error) {
+          console.warn(
+            "[VolumeViewport] could not set mask segment colour",
+            error,
+          );
+        }
         // Activate it so the scissors can paint; the new segmentation isn't
         // auto-activated on navigation (see StackViewport for the same fix).
         segmentation.activeSegmentation.setActiveSegmentation(

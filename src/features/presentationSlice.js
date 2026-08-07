@@ -108,11 +108,20 @@ const presentationSlice = createSlice({
       // Opacity + show/hide for the mask selection box (distinct from
       // opacityToolGroup, which drives the 3D volume's transfer function).
       maskToolGroup: {
+        // The slider fades the box's SURFACES only — the outline (2D border,
+        // 3D wireframe) and the drag handles hold full strength at every
+        // position. That is what makes min 0 safe: at 0 the box is a clean
+        // outline you can still see and grab, not an invisible one with live
+        // handles. Making the box disappear entirely is the eye toggle's job,
+        // which removes the overlays outright (and editing un-hides, see
+        // MASK_DRAW_START_EVENT).
         visible: false,
         min: 0,
         max: 1,
         step: 0.05,
-        defaultValue: 1,
+        // Mirrors optionSlice's `maskOpacity` and MaskIEC's DEFAULT_MASK_VIEW;
+        // all three are the same starting point and must move together.
+        defaultValue: 0.5,
       },
       presetToolGroup: {
         visible: false,
