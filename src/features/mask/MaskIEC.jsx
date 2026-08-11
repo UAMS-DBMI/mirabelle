@@ -42,6 +42,7 @@ import {
   SELECTION_EDGE_COLOR,
   SELECTION_FILL_COLOR,
 } from "@/lib/maskBox";
+import { describeMaskingParameters } from "@/lib/maskingParameters";
 import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
 import {
   MASK_DRAW_START_EVENT,
@@ -138,24 +139,13 @@ const PREVIEW_3D_MAX_IDLE_MS = 250;
 const PREVIEW_3D_STALL_MS = 500;
 
 function transformDetails(details, maskingDetails) {
-  const maskingParams = JSON.parse(maskingDetails.masking_parameters);
-  const maskingFilters =
-    maskingParams?.noise !== undefined
-      ? `Noise: ${maskingParams?.noise} ● Fill: ${maskingParams?.fill}`
-      : "";
-  const maskingFunction =
-    maskingParams?.function !== undefined
-      ? `${maskingParams?.function === "sliceremove" ? "slice-remove" : maskingParams?.function} ● ${maskingParams?.form}`
-      : "";
-
   return {
     IEC: details.image_equivalence_class_id,
     "Images in IEC": details.file_count,
     //'Processing Status': details.processing_status,
     "Review Status": details.review_status,
     "Masking Status": maskingDetails?.masking_status,
-    "Masking Function": maskingFunction,
-    "Masking Filters": maskingFilters,
+    ...describeMaskingParameters(maskingDetails?.masking_parameters),
     Modality: details.modality,
     "Patient ID": details.patient_id,
     "Series Instance UID": details.series_instance_uid,

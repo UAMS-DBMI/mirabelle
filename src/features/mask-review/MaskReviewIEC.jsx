@@ -25,6 +25,7 @@ import * as cornerstoneTools from "@cornerstonejs/tools";
 import { isSegFlat, loadVolumeAndSegmentation, getIECInfo } from "@/utilities";
 import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
+import { describeMaskingParameters } from "@/lib/maskingParameters";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { VolumeView } from "@/features/volume-view";
@@ -48,24 +49,13 @@ const {
 } = cornerstoneTools;
 
 function transformDetails(details, maskingDetails) {
-  const maskingParams = JSON.parse(maskingDetails.masking_parameters);
-  const maskingFilters =
-    maskingParams?.noise !== undefined
-      ? `Noise: ${maskingParams?.noise} ● Fill: ${maskingParams?.fill}`
-      : "";
-  const maskingFunction =
-    maskingParams?.function !== undefined
-      ? `${maskingParams?.function === "sliceremove" ? "slice-remove" : maskingParams?.function} ● ${maskingParams?.form}`
-      : "";
-
   return {
     IEC: details.image_equivalence_class_id,
     "Images in IEC": details.file_count,
     //'Processing Status': details.processing_status,
     "Review Status": details.review_status,
     "Masking Status": maskingDetails?.masking_status,
-    "Masking Function": maskingFunction,
-    "Masking Filters": maskingFilters,
+    ...describeMaskingParameters(maskingDetails?.masking_parameters),
     Modality: details.modality,
     "Patient ID": details.patient_id,
     "Series Instance UID": details.series_instance_uid,
