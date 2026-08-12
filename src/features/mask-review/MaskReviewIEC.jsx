@@ -26,6 +26,7 @@ import { isSegFlat, loadVolumeAndSegmentation, getIECInfo } from "@/utilities";
 import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
 import { describeMaskingParameters } from "@/lib/maskingParameters";
+import { usePreviousMaskOverlay } from "@/features/mask/usePreviousMaskOverlay";
 
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { VolumeView } from "@/features/volume-view";
@@ -124,6 +125,18 @@ export default function MaskReviewIEC({
   const [details, setDetails] = useState(true);
   const [maskingDetails, setMaskingDetails] = useState(true);
   const loadRequestRef = useRef(0);
+
+  // The submitted mask's amber overlay — the box these already-masked images
+  // were masked with, drawn from the same masking_parameters the details
+  // panel formats. Lets the reviewer check the applied blackout against the
+  // stored geometry without leaving the route. Shared with the mask route.
+  usePreviousMaskOverlay({
+    isInitialized,
+    volumetric,
+    volumeId,
+    imageIds,
+    maskingDetails,
+  });
 
   let viewer;
 

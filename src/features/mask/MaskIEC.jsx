@@ -45,6 +45,11 @@ import {
 import { describeMaskingParameters } from "@/lib/maskingParameters";
 import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
 import {
+  usePreviousMaskOverlay,
+  is2dViewport,
+  is3dViewport,
+} from "@/features/mask/usePreviousMaskOverlay";
+import {
   MASK_DRAW_START_EVENT,
   MASK_LIVE_DRAW_EVENT,
 } from "@/lib/clampedRectangleScissors";
@@ -108,18 +113,22 @@ const SELECTION_BOX_STYLE = {
   },
 };
 
-// How the mask box looks on an exam nobody has adjusted yet: half opacity —
-// solid enough to read as a region, transparent enough to check the anatomy
-// underneath — matching optionSlice's defaults. Must stay in step with them,
-// or an exam would open at one value and the panel would show another. Exams
-// the curator HAS adjusted reopen at their own remembered setting (see
+// How the mask boxes look on an exam nobody has adjusted yet: the selection at
+// half opacity — solid enough to read as a region, transparent enough to check
+// the anatomy underneath — and the previously submitted mask shown faintly
+// behind it at 20%. Matches optionSlice's defaults and must stay in step with
+// them, or an exam would open at one value and the panel would show another.
+// Exams the curator HAS adjusted reopen at their own remembered setting (see
 // lib/maskViewPrefs).
-const DEFAULT_MASK_VIEW = { opacity: 0.5, visible: true };
+const DEFAULT_MASK_VIEW = {
+  opacity: 0.5,
+  visible: true,
+  prevOpacity: 0.2,
+  prevVisible: true,
+};
 
-// Which pane a viewport id belongs to, for the selection-box overlays.
-const is3dViewport = (id) => id.startsWith("coronal3d");
-// 2D mask viewports: the volume orthographic panes and the stack pane.
-const is2dViewport = (id) => id.endsWith("2d") || id === "myviewport";
+// (Viewport-id helpers is3dViewport / is2dViewport are shared with the review
+// route — see features/mask/usePreviousMaskOverlay.)
 
 // Pacing for the 3D box preview during a live drag. Each 3D tick costs a full
 // volume re-render, which cornerstone runs on the NEXT animation frame — so
@@ -213,6 +222,10 @@ export default function MaskIEC({
   // re-run it (see the style-only effect that applies them in place).
   const maskOpacityRef = useRef(maskOpacity);
   maskOpacityRef.current = maskOpacity;
+  // The previously submitted mask's pair — the overlay itself is run by
+  // usePreviousMaskOverlay below; these feed the per-exam view memory.
+  const prevMaskOpacity = useSelector((state) => state.options.prevMaskOpacity);
+  const prevMaskVisible = useSelector((state) => state.options.prevMaskVisible);
   const [renderingEngine, setRenderingEngine] = useState(
     cornerstone.getRenderingEngine("re1"),
   );
@@ -268,7 +281,10 @@ export default function MaskIEC({
     // TODO: these string based event names need to be collected into
     // a library and accessed as enums
     cornerstone.eventTarget.addEventListener("VolumeReallyLoaded", callback);
-    cornerstone.eventTarget.addEventListener("StackSegmentationReady", callback);
+    cornerstone.eventTarget.addEventListener(
+      "StackSegmentationReady",
+      callback,
+    );
 
     // cleanup the callback
     return () => {
@@ -928,6 +944,17 @@ export default function MaskIEC({
     };
   }, [segmentationId, maskVisible, maskOpacity]);
 
+  // The previously submitted mask's overlay — the amber box and everything
+  // behind it (geometry resolution, prevMaskAvailable, draw/teardown, slider
+  // restyle). Shared with the mask review route.
+  usePreviousMaskOverlay({
+    isInitialized,
+    volumetric,
+    volumeId,
+    imageIds,
+    maskingDetails,
+  });
+
   // Per-exam memory for the mask box's appearance (see lib/maskViewPrefs).
   // What the restore last pushed into Redux, and whether Redux has caught up
   // with it yet.
@@ -946,6 +973,8 @@ export default function MaskIEC({
     maskViewSyncedRef.current = false;
     dispatch(setOption({ key: "maskOpacity", value: view.opacity }));
     dispatch(setOption({ key: "maskVisible", value: view.visible }));
+    dispatch(setOption({ key: "prevMaskOpacity", value: view.prevOpacity }));
+    dispatch(setOption({ key: "prevMaskVisible", value: view.prevVisible }));
   }, [iec, dispatch]);
 
   // Record changes the curator makes — but only for the exam the restore
@@ -958,13 +987,23 @@ export default function MaskIEC({
     const applied = maskViewAppliedRef.current;
     if (!iec || applied?.iec !== String(iec)) return;
     if (!maskViewSyncedRef.current) {
-      if (maskOpacity === applied.opacity && maskVisible === applied.visible) {
+      if (
+        maskOpacity === applied.opacity &&
+        maskVisible === applied.visible &&
+        prevMaskOpacity === applied.prevOpacity &&
+        prevMaskVisible === applied.prevVisible
+      ) {
         maskViewSyncedRef.current = true;
       }
       return;
     }
-    rememberMaskView(iec, { opacity: maskOpacity, visible: maskVisible });
-  }, [iec, maskOpacity, maskVisible]);
+    rememberMaskView(iec, {
+      opacity: maskOpacity,
+      visible: maskVisible,
+      prevOpacity: prevMaskOpacity,
+      prevVisible: prevMaskVisible,
+    });
+  }, [iec, maskOpacity, maskVisible, prevMaskOpacity, prevMaskVisible]);
 
   // Keep this exam's draft marker in the queue live: persist the current
   // selection on every edit so its row is flagged (and the "Active mask"
