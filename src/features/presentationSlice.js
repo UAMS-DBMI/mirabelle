@@ -123,6 +123,19 @@ const presentationSlice = createSlice({
         // all three are the same starting point and must move together.
         defaultValue: 0.5,
       },
+      // The previously submitted mask's box (the amber overlay). Its own entry
+      // rather than a rider on maskToolGroup because the two controls ship to
+      // different routes: the mask route has both boxes, the mask REVIEW route
+      // has no selection box but every reason to show where the mask it is
+      // reviewing sits.
+      prevMaskToolGroup: {
+        visible: false,
+        min: 0,
+        max: 1,
+        step: 0.05,
+        // Mirrors optionSlice's `prevMaskOpacity`; the two must move together.
+        defaultValue: 0.2,
+      },
       presetToolGroup: {
         visible: false,
         defaultValue: "CT-MIP",
@@ -248,6 +261,7 @@ const presentationSlice = createSlice({
       // Only the mask route draws a selection box, so it's the only route that
       // gets the box's opacity / show-hide controls.
       state.toolsConfig.maskToolGroup.visible = true;
+      state.toolsConfig.prevMaskToolGroup.visible = true;
 
       state.toolsConfig.leftClickToolGroup.visible = true;
       // The selection (scissors) is the mask route's real left-click tool. It
@@ -282,6 +296,11 @@ const presentationSlice = createSlice({
     setMaskerReviewConfig: (state, action) => {
       state.panelConfig.visibility.tools = true;
       state.panelConfig.visibility.reset = true;
+
+      // The reviewer is judging the mask this exam was masked with, so the
+      // overlay showing where that mask sits gets its control here too —
+      // without maskToolGroup, since there is no selection box to control.
+      state.toolsConfig.prevMaskToolGroup.visible = true;
 
       // Set visibility for left and right panels
       state.panelConfig.visibility.left = true;
