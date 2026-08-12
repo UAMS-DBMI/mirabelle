@@ -42,6 +42,9 @@ import {
   setDicomStatus,
   setMaskingFlag,
 } from "@/visualreview";
+import { getMaskingDetails } from "@/masking.js";
+import { describeMaskingParameters } from "@/lib/maskingParameters";
+import { usePreviousMaskOverlay } from "@/features/mask/usePreviousMaskOverlay";
 
 import Header from "@/components/Header";
 
@@ -68,12 +71,18 @@ const {
   segmentation,
 } = cornerstoneTools;
 
-function transformDetails(details, imageId) {
+function transformDetails(details, maskingDetails, imageId) {
   let ret = {
     IEC: details.image_equivalence_class_id,
     "Images in IEC": details.file_count,
     //'Processing Status': details.processing_status,
     "Review Status": details.review_status,
+    // The masking record, when this IEC has one — the same rows the mask
+    // routes show, so an exam reads the same wherever it's opened. An IEC
+    // that has never been masked has no status and no parameters, and these
+    // rows simply don't appear.
+    "Masking Status": maskingDetails?.masking_status,
+    ...describeMaskingParameters(maskingDetails?.masking_parameters),
     Modality: details.modality,
     "Patient ID": details.patient_id,
     "Series Instance UID": details.series_instance_uid,
@@ -145,11 +154,23 @@ export default function DicomReviewIEC({
 
   const [volumetric, setVolumetric] = useState(true);
   const [details, setDetails] = useState(true);
+  const [maskingDetails, setMaskingDetails] = useState(null);
 
   const [isSeg, setIsSeg] = useState(false);
   const [segBaseIEC, setSegBaseIEC] = useState(false);
   const [segMetadata, setSegMetadata] = useState([]);
   const loadRequestRef = useRef(0);
+
+  // The submitted mask's amber overlay, when this IEC has a masking record —
+  // the reviewer flagging exams for masking (the "f" hotkey) can see what any
+  // existing mask already covers. Shared with the mask and mask-review routes.
+  usePreviousMaskOverlay({
+    isInitialized,
+    volumetric,
+    volumeId,
+    imageIds,
+    maskingDetails,
+  });
 
   // Factor out the idea of "force stack view" from options
   // so we can use it as a useEffect dependency, and it
@@ -200,12 +221,17 @@ export default function DicomReviewIEC({
 
     const initialize = async () => {
       const details = await getDicomDetails(iec);
+      // Auxiliary to this route (it feeds the details rows and the submitted
+      // mask overlay), so a masking-endpoint failure must not take down the
+      // review of the exam itself.
+      const maskingDetails = await getMaskingDetails(iec).catch(() => null);
       if (isCancelled || requestId !== loadRequestRef.current) {
         console.log(
           "---------------> getDicomDetails & getMaskingDetails cancelled",
         );
         return;
       }
+      setMaskingDetails(maskingDetails);
       let { modality, volumetric } = details;
 
       let isSeg = false;
@@ -570,7 +596,9 @@ export default function DicomReviewIEC({
           {isSeg && (
             <SegPanel segments={segMetadata} segmentationId={segmentationId} />
           )}
-          <DetailsPanel details={transformDetails(details, currentImageId)} />
+          <DetailsPanel
+            details={transformDetails(details, maskingDetails, currentImageId)}
+          />
         </>
         // : null
       }

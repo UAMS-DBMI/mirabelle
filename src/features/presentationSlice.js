@@ -340,6 +340,12 @@ const presentationSlice = createSlice({
       state.panelConfig.visibility.reset = true;
       state.panelConfig.visibility.description = true;
 
+      // DICOM review IECs carry masking records (the reviewer's flag action
+      // feeds the masking queue), so the submitted-mask overlay control ships
+      // here too. The NIfTI route reuses this config and switches it back off
+      // — its files have no IEC and so no masking data.
+      state.toolsConfig.prevMaskToolGroup.visible = true;
+
       // Set visibility for left and right panels
       state.panelConfig.visibility.left = true;
       state.panelConfig.visibility.right = true;
@@ -425,6 +431,10 @@ const presentationSlice = createSlice({
     setNiftiConfig: (state, action) => {
       state.buttonConfig.visualReview.visibility.flag = false;
       state.toolsConfig.viewToolGroup.visibility.stack = false;
+      // Inherited from setVisualReviewConfig, but a NIfTI file has no IEC and
+      // so no masking record to overlay — a control here could never do
+      // anything.
+      state.toolsConfig.prevMaskToolGroup.visible = false;
 
       // Set visibility for left and right panels
       state.panelConfig.visibility.left = true;
