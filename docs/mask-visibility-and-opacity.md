@@ -1,10 +1,11 @@
 # Mask Show/Hide and Opacity — Implementation Notes
 
-The two Mask controls in the tools panel: an eye toggle that shows or hides the
-green selection box, and a slider that sets how strongly it is drawn. They
-change **appearance only** — the selection bounds live in the labelmap and are
-never touched, so accepting an exam with the box hidden submits exactly what was
-drawn.
+The Mask controls in the tools panel: an eye toggle that shows or hides a box,
+and a slider that sets how strongly it is drawn — one pair for the green
+selection box, one for the amber box of the mask already submitted for this exam
+(§7). They change **appearance only** — the selection bounds live in the
+labelmap and are never touched, so accepting an exam with the box hidden submits
+exactly what was drawn.
 
 **Audience:** developers working on the mask route. Companion to
 [masking-improvements.md](masking-improvements.md), which covers
@@ -17,24 +18,32 @@ it.
 |---|---|
 | [src/features/tools/ToolsPanel.jsx](../src/features/tools/ToolsPanel.jsx) | The control surface: eye button + slider |
 | [src/features/presentationSlice.js](../src/features/presentationSlice.js) | `maskToolGroup` — range, step, which routes show the control |
-| [src/features/optionSlice.js](../src/features/optionSlice.js) | `maskOpacity` / `maskVisible` state, and their exemption from `resetOptions` |
+| [src/features/optionSlice.js](../src/features/optionSlice.js) | `maskOpacity` / `maskVisible` (and the `prevMask*` pair) state, and their exemption from `resetOptions` |
 | [src/features/mask/MaskIEC.jsx](../src/features/mask/MaskIEC.jsx) | Consumes both: teardown-on-hide, style-only opacity effect, per-exam restore/save |
+| [src/features/mask/usePreviousMaskOverlay.js](../src/features/mask/usePreviousMaskOverlay.js) | The submitted mask's overlay as a hook — geometry resolution, draw/teardown, slider restyle — shared by MaskIEC and MaskReviewIEC (§7) |
 | [src/lib/maskBox.js](../src/lib/maskBox.js) | 3D: opacity → two shader fill alphas (wireframe edges stay full) |
 | [src/lib/viewportFrame.js](../src/lib/viewportFrame.js) | 2D: opacity → fill `background` alpha (border and handles stay full) |
-| [src/lib/maskViewPrefs.js](../src/lib/maskViewPrefs.js) | Per-exam memory of both values |
+| [src/lib/maskViewPrefs.js](../src/lib/maskViewPrefs.js) | Per-exam memory of all four values |
+| [src/lib/maskingParameters.js](../src/lib/maskingParameters.js) | The submitted mask's stored geometry (mm) → IJK bounds (§7) |
 | [src/components/VolumeViewport.jsx](../src/components/VolumeViewport.jsx) / [StackViewport.jsx](../src/components/StackViewport.jsx) | Colour the mask segment green so the scissors' drag rectangle matches the box (§4.4) |
 
 ---
 
 ## 1. The control surface
 
-[ToolsPanel.jsx:301–336](../src/features/tools/ToolsPanel.jsx#L301-L336) renders
-one row: an eye button and a range input, with a readout that shows either the
-percentage or the word `hidden`.
+[ToolsPanel.jsx](../src/features/tools/ToolsPanel.jsx) renders a row per box —
+an eye button and a range input, with a readout that shows either the percentage
+or the word `hidden`. **Mask Opacity** drives the live selection; **Submitted
+Mask Opacity** drives the previously submitted mask's box; it is on the panel
+for every mask exam, and goes inert (readout `none`) on exams that have no
+submitted mask (§7).
 
 ```jsx
-Mask: {maskVisible ? `${Math.round(maskOpacity * 100)}%` : "hidden"}
+Mask Opacity: {maskVisible ? `${Math.round(maskOpacity * 100)}%` : "hidden"}
 ```
+
+(The neighbouring volume control is labelled **Volume Opacity** — same reason:
+three sliders in one panel, each has to say what it acts on.)
 
 Both dispatch `setOption` and nothing else — the panel holds no state of its own,
 which is what lets the route restore a remembered value by dispatching into the
@@ -79,10 +88,25 @@ does" move (§4.3), not something worth having to undo on every exam.
 which is what an unadjusted exam is restored to (§5). Let them drift and an
 exam opens at one value while the panel reads another.
 
-Both are in `PRESERVED_ON_RESET`
-([optionSlice.js:38](../src/features/optionSlice.js#L38)), so navigation's
-`resetOptions()` leaves them alone. That exemption is not cosmetic. The mask
-route resets options and *then* navigates, so if the new exam id arrives even one
+The submitted mask's pair sits alongside them:
+
+```js
+prevMaskOpacity: 0.2,
+prevMaskVisible: true,    // shown by default — but only where one exists
+prevMaskAvailable: false, // set per exam by the route; gates the control (§7)
+```
+
+All five are in `PRESERVED_ON_RESET`
+([optionSlice.js](../src/features/optionSlice.js)), so navigation's
+`resetOptions()` leaves them alone. `prevMaskAvailable` earns its place
+differently from the rest: it is per-exam state owned by the route (recomputed
+on every load), but MaskVR resets options *before* asking the route to
+navigate, and at the end of the queue that navigation never happens — a reset
+here would kill the control for an exam that stays on screen, with nothing
+left to recompute it.
+
+That exemption is not cosmetic. The mask route resets options and *then*
+navigates, so if the new exam id arrives even one
 render later there is a render still showing the **old** exam with opacity
 already snapped back to the default. The per-exam saver (§5) cannot distinguish
 that from the curator moving the slider, and would record the default over the
@@ -462,7 +486,99 @@ point of the default is that it is the same every time.
 
 ---
 
-## 7. Constants
+## 7. The submitted mask's box
+
+The second box: the geometry this exam was **already masked with**, drawn in
+amber so it reads as a reference rather than as the thing being edited. Shown by
+default at 20% — "what was masked here before?" is context you want before
+drawing, not after — but faint, so it sits behind the work instead of competing
+with it. On an exam that has never been masked there is nothing to draw, so the
+pane looks exactly as it did before.
+
+The whole mechanism lives in one hook,
+[`usePreviousMaskOverlay`](../src/features/mask/usePreviousMaskOverlay.js),
+mounted by **two routes**: the mask route (box beside the live selection) and
+the **mask review route**, where the reviewer is looking at the already-masked
+images and the box shows where the mask that produced them sits. The review
+panel gets the same Submitted Mask Opacity control via its own config entry,
+`prevMaskToolGroup` — separate from `maskToolGroup` because review has no
+selection box to control. Review stacks don't preload their images, so the
+hook re-resolves the geometry on `IMAGE_LOADED` until the first frame is
+cached.
+
+**Where the geometry comes from.** The API returns `masking_parameters` on
+`getMaskingDetails(iec)` — the same blob the details panel formats — as a box
+centre (`LR/PA/IS`) and extent in millimetres. **Several coordinate conventions
+coexist in that field**, and `maskingParametersToBounds`
+([maskingParameters.js](../src/lib/maskingParameters.js)) tries them in order
+until one lands on the volume:
+
+1. **Origin-relative `index × spacing`** — what this app's `submitFinalCoords`
+   writes (it applies neither origin nor direction; its "LR" is really "the i
+   axis in mm"). Inverted by dividing by the **currently loaded** volume's
+   spacing, which is also the trick for decimation: a decimated volume has
+   proportionally larger spacing, so the same millimetre offset lands on the
+   equivalent slice of whatever is loaded now. Tried first so masks submitted
+   here round-trip exactly.
+2. **Patient-axis mm from the volume's bounding-box corner** — what POSDA's
+   auto-created masks (status `created`) carry. Verified against real exams by
+   reading the DICOM headers: e.g. a whole-body sagittal CT spanning patient
+   z 37→1671mm stores its defacing cylinder as `IS: 1504` — 1504mm above the
+   volume's *corner*, squarely on the face — and values like that can never be
+   `index × spacing` for the loaded extent, which is what makes the fallback
+   safe. The world box's 8 corners go through the loaded geometry's full
+   world→index transform (`volume.imageData.worldToIndex`, with the corner
+   from `getBounds()`; for stacks, both built from `imagePlaneModule`), which
+   applies origin *and* direction — so sagittal/coronal volumes permute the
+   axes correctly. For a **one-image stack** the through-plane axis is exempt
+   from the on-volume test: the pipeline stores a 3D box even for a 2D image
+   and masks it in-plane, so that axis must not veto the overlay.
+3. **Raw scanner-world coordinates**, as a last resort. No observed exam needs
+   it; it catches a backend that stores DICOM positions verbatim.
+
+The residual ambiguity is a mask in one convention whose offsets happen to
+also fit an earlier reading: that reading wins and the box lands shifted.
+Nothing in the blob says which convention it is; if the backend ever stamps
+one, switch on that instead of the fallback chain.
+
+It returns `null` for an exam that has never been masked, an incomplete blob,
+or a box that falls entirely off this volume under every reading; `null`
+clears `prevMaskAvailable`, which greys the control out and puts `none` in its
+readout.
+
+The control itself stays on the panel either way. Curators asked for it to be
+in the same place on every exam — a row that disappears leaves you unable to
+tell "this exam has no submitted mask" from "this build has no such control",
+and the answer to that question is exactly what the row is for.
+
+**Rendering.** Same two halves as the selection box, so the two read as the same
+kind of object:
+
+- 3D: its own wireframe actor (`mask-previous-box`) plus a **second slot** in the
+  patched volume shader — `maskBoxPrev*` uniforms alongside `maskBox*`, both
+  driven through one `maskBoxBlendShell()` GLSL function. The previous box is
+  blended first, so where the two overlap the live selection is on top.
+- 2D: `addPreviousMaskBox2D` ([viewportFrame.js](../src/lib/viewportFrame.js)) —
+  a static, click-through div, dashed and stacked under the selection box. It
+  has none of the drag machinery: this box is never editable.
+
+**Wiring.** Three effects in MaskIEC, deliberately separate from the selection's:
+one resolves the bounds once the load finishes, one draws/tears down on
+`prevMaskVisible`, one restyles in place on the slider. Toggling the reference
+box must not tear down the selection's listeners or an in-flight drag, and
+vice versa. It is redrawn on `VolumeReallyLoaded` / `StackSegmentationReady`
+because the 3D volume actor is attached asynchronously — without that, an exam
+that *opens* with the box on can draw its wireframe before there is a volume to
+blend glass into.
+
+**During a drag**, the selection's preview coarsens the ray-march for the whole
+viewport, so the previous box's shell is rescaled with it
+(`applyStoredPrevFill`) — otherwise the coarse march steps clean over a 2-voxel
+shell and the reference box vanishes for the length of every drag.
+
+---
+
+## 8. Constants
 
 | Constant | File | Value | Effect |
 |---|---|---|---|
@@ -473,7 +589,9 @@ point of the default is that it is the same every time.
 | `box2d.fillAlpha` | MaskIEC.jsx | 0.18 | 2D fill base alpha at slider 100%, matching the stylesheet's default background |
 | `DEFAULT_STYLE.width` | maskBox.js | 1 | Wireframe edge width, in px. A hairline: the shader draws its own edge band underneath |
 | `EDGE_THICKNESS` | maskBox.js | 0.75 | Width of the shader's bright edge band, in voxels. Keep below `SHELL_THICKNESS` |
-| `DEFAULT_MASK_VIEW` | MaskIEC.jsx | `{opacity: 0.5, visible: true}` | How an unadjusted exam opens; mirror of the two defaults below |
+| `DEFAULT_MASK_VIEW` | MaskIEC.jsx | `{opacity: 0.5, visible: true, prevOpacity: 0.2, prevVisible: false}` | How an unadjusted exam opens; mirror of the defaults below |
+| `prevMaskOpacity` / `prevMaskVisible` initial | optionSlice.js | `0.2` / `true` | The submitted mask is shown by default but faint — context behind the work (§7). Mirror of `DEFAULT_MASK_VIEW`'s `prev*` pair |
+| `PREVIOUS_EDGE_COLOR` | maskBox.js | `[0.984, 0.749, 0.141]` | The submitted mask's amber — far from the selection green, since the two boxes often overlap. Mirrored by `.viewport-prev-mask-box` in VolumeViewport.css |
 | `DEFAULT_STYLE.fillAlpha` | maskBox.js | 0.15 | Base per-sample pane alpha, the low end of the ramp |
 | `MAX_FILL_ALPHA` | maskBox.js | 0.97 | Per-sample pane alpha at 100%. Just under 1 so a grazing ray still darkens |
 | `MAX_CORE_ALPHA` | maskBox.js | 0.9 | Per-sample interior alpha at 100%; what blocks the region under MIP |
@@ -483,7 +601,7 @@ point of the default is that it is the same every time.
 
 ---
 
-## 8. If you change this
+## 9. If you change this
 
 - **Adding a third appearance control** (colour, edge width, …): decide first
   which path it takes. Anything that only changes paint goes through the
