@@ -1,6 +1,13 @@
 /**
- * A cornerstone plugin that renders the mask selection box's glass fill
- * inside the volume ray march itself, driven by shader uniforms.
+ * A cornerstone plugin that renders the mask boxes' glass fill inside the
+ * volume ray march itself, driven by shader uniforms.
+ *
+ * Two boxes are supported, each its own set of uniforms: the live SELECTION
+ * (`maskBox*`) and the PREVIOUS mask this exam was already masked with
+ * (`maskBoxPrev*`, drawn in its own colour). They are independent — either can
+ * be on with the other off — and both are evaluated at the same ray sample, so
+ * the only place their order matters is where the two shells overlap in space.
+ * The previous box is blended first so the live selection sits on top of it.
  *
  * The previous fill implementation interleaved a second voxel component into
  * the volume's data. That was depth-correct but paid for it in memory: a
@@ -93,9 +100,13 @@ const INSERT_ANCHOR = "bool valueWithinScalarRange(";
 // The wrapper blends the shell "over" the sample in straight (unpremultiplied)
 // alpha — the convention the blend loops consume — so the pane is visible
 // over empty space, tints anatomy inside the volume, and reads fully solid at
-// alpha 1. The shell is the region within maskBoxThickness of any box face.
+// alpha 1. The shell is the region within `thickness` of any box face.
 // Under MIP-style blends only the winning sample is colored, so the fill is
 // faint there by nature; the wireframe box still delineates the selection.
+//
+// The shell math is a function rather than inline code so both boxes go
+// through exactly the same one — the previous mask must read as the same kind
+// of object as the selection, differing only in colour.
 const WRAPPER_SOURCE = `
 uniform int maskBoxEnabled;
 uniform vec3 maskBoxMin;
@@ -108,20 +119,31 @@ uniform vec3 maskBoxFaceShade;
 uniform float maskBoxEdgeBoost;
 uniform vec3 maskBoxEdgeThickness;
 
-// Injected by mirabelle's mask-box plugin (src/lib/maskBoxVolumeMapper.js).
-vec4 getColorForValue(vec4 tValue, vec3 posIS, vec3 tstep)
-{
-  vec4 color = ${COLOR_FN_IMPL}(tValue, posIS, tstep);
-  if (maskBoxEnabled == 0) { return color; }
+uniform int maskBoxPrevEnabled;
+uniform vec3 maskBoxPrevMin;
+uniform vec3 maskBoxPrevMax;
+uniform vec3 maskBoxPrevThickness;
+uniform vec3 maskBoxPrevColor;
+uniform float maskBoxPrevAlpha;
+uniform float maskBoxPrevCoreAlpha;
+uniform vec3 maskBoxPrevFaceShade;
+uniform float maskBoxPrevEdgeBoost;
+uniform vec3 maskBoxPrevEdgeThickness;
 
-  vec3 lo = posIS - maskBoxMin;
-  vec3 hi = maskBoxMax - posIS;
+// Injected by mirabelle's mask-box plugin (src/lib/maskBoxVolumeMapper.js).
+vec4 maskBoxBlendShell(vec4 color, vec3 posIS, vec3 boxMin, vec3 boxMax,
+                       vec3 thickness, vec3 boxColor, float boxAlpha,
+                       float coreAlpha, vec3 faceShade, float edgeBoost,
+                       vec3 edgeThickness)
+{
+  vec3 lo = posIS - boxMin;
+  vec3 hi = boxMax - posIS;
   if (any(lessThan(lo, vec3(0.0))) || any(lessThan(hi, vec3(0.0)))) { return color; }
 
   // Distance to the nearest face along each axis, and which of those we are
   // close enough to be standing in the glass of.
   vec3 dist = min(lo, hi);
-  vec3 inShell = step(dist, maskBoxThickness);
+  vec3 inShell = step(dist, thickness);
   float shellAxes = inShell.x + inShell.y + inShell.z;
 
   vec3 paneColor;
@@ -132,17 +154,17 @@ vec4 getColorForValue(vec4 tValue, vec3 posIS, vec3 tstep)
     // sits and becomes a preview of WHAT the mask does — the anatomy inside
     // is about to be removed, so it gets filled in and blocked out. Kept
     // faint per sample because a ray crosses hundreds of interior samples.
-    if (maskBoxCoreAlpha <= 0.0) { return color; }
-    paneColor = maskBoxColor * 0.7;
-    alpha = maskBoxCoreAlpha;
+    if (coreAlpha <= 0.0) { return color; }
+    paneColor = boxColor * 0.7;
+    alpha = coreAlpha;
   } else {
     // Dimensional shading: each pair of opposing faces gets its own
     // brightness, the way an isometric cube illustration shades its three
     // visible sides. Without this every face is the same flat green and the
     // box reads as a silhouette rather than a solid with form.
-    float shade = max(max(inShell.x * maskBoxFaceShade.x,
-                          inShell.y * maskBoxFaceShade.y),
-                      inShell.z * maskBoxFaceShade.z);
+    float shade = max(max(inShell.x * faceShade.x,
+                          inShell.y * faceShade.y),
+                      inShell.z * faceShade.z);
 
     // Two overlapping faces means we are along one of the 12 edges (three
     // means a corner). Edges get lifted toward white and made denser, which
@@ -150,19 +172,42 @@ vec4 getColorForValue(vec4 tValue, vec3 posIS, vec3 tstep)
     //
     // The edge band is measured against its OWN thickness, not the pane's.
     // Reusing the pane thickness made every edge as wide as the glass is
-    // deep (a maskBoxThickness-square prism down each of the 12 edges), which
-    // on a low-resolution or decimated volume is several screen pixels of
-    // bright green — the box read as chunky rather than crisply outlined.
-    vec3 inEdge = step(dist, maskBoxEdgeThickness);
+    // deep (a thickness-square prism down each of the 12 edges), which on a
+    // low-resolution or decimated volume is several screen pixels of bright
+    // green — the box read as chunky rather than crisply outlined.
+    vec3 inEdge = step(dist, edgeThickness);
     float edge = clamp(inEdge.x + inEdge.y + inEdge.z - 1.0, 0.0, 1.0);
-    paneColor = clamp(maskBoxColor * shade + vec3(edge * maskBoxEdgeBoost), 0.0, 1.0);
-    alpha = clamp(maskBoxAlpha * (1.0 + edge), 0.0, 1.0);
+    paneColor = clamp(boxColor * shade + vec3(edge * edgeBoost), 0.0, 1.0);
+    alpha = clamp(boxAlpha * (1.0 + edge), 0.0, 1.0);
   }
 
   float outAlpha = alpha + color.a * (1.0 - alpha);
   if (outAlpha <= 0.0) { return color; }
   color.rgb = (paneColor * alpha + color.rgb * color.a * (1.0 - alpha)) / outAlpha;
   color.a = outAlpha;
+  return color;
+}
+
+vec4 getColorForValue(vec4 tValue, vec3 posIS, vec3 tstep)
+{
+  vec4 color = ${COLOR_FN_IMPL}(tValue, posIS, tstep);
+
+  // Previous mask first, so where the two boxes overlap the live selection —
+  // the thing being edited — is the one on top.
+  if (maskBoxPrevEnabled == 1) {
+    color = maskBoxBlendShell(color, posIS, maskBoxPrevMin, maskBoxPrevMax,
+                              maskBoxPrevThickness, maskBoxPrevColor,
+                              maskBoxPrevAlpha, maskBoxPrevCoreAlpha,
+                              maskBoxPrevFaceShade, maskBoxPrevEdgeBoost,
+                              maskBoxPrevEdgeThickness);
+  }
+  if (maskBoxEnabled == 1) {
+    color = maskBoxBlendShell(color, posIS, maskBoxMin, maskBoxMax,
+                              maskBoxThickness, maskBoxColor,
+                              maskBoxAlpha, maskBoxCoreAlpha,
+                              maskBoxFaceShade, maskBoxEdgeBoost,
+                              maskBoxEdgeThickness);
+  }
   return color;
 }
 `;
@@ -199,6 +244,7 @@ function vtkMaskBoxVolumeMapperClass(publicAPI, model) {
   model.classHierarchy.push(RENDERABLE_CLASS);
 
   model.maskBoxParams = DISABLED_PARAMS;
+  model.maskBoxPrevParams = DISABLED_PARAMS;
 
   // Deliberately NOT macro.setGet: setting box params must not bump the
   // mapper's mtime, or getNeedToRebuildShaders would re-run the whole shader
@@ -208,6 +254,14 @@ function vtkMaskBoxVolumeMapperClass(publicAPI, model) {
     model.maskBoxParams = params || DISABLED_PARAMS;
   };
   publicAPI.getMaskBoxParams = () => model.maskBoxParams;
+
+  // The previously submitted mask's box. Kept in its own slot rather than
+  // replacing the selection's, so showing or hiding one never disturbs the
+  // other.
+  publicAPI.setMaskBoxPrevParams = (params) => {
+    model.maskBoxPrevParams = params || DISABLED_PARAMS;
+  };
+  publicAPI.getMaskBoxPrevParams = () => model.maskBoxPrevParams;
 }
 
 function extendRenderable(publicAPI, model, initialValues = {}) {
@@ -310,6 +364,27 @@ function vtkMaskBoxOpenGLVolumeMapperClass(publicAPI, model) {
     superBuildBufferObjects(ren, actor);
   };
 
+  // Push one box's params into its uniform group. `prefix` selects the group:
+  // "maskBox" for the live selection, "maskBoxPrev" for the previous mask.
+  const setBoxUniforms = (program, prefix, params) => {
+    if (!params?.enabled) {
+      program.setUniformi(`${prefix}Enabled`, 0);
+      return;
+    }
+    program.setUniformi(`${prefix}Enabled`, 1);
+    const setVec3 = (name, value) =>
+      program.setUniform3f(`${prefix}${name}`, value[0], value[1], value[2]);
+    setVec3("Min", params.boxMin);
+    setVec3("Max", params.boxMax);
+    setVec3("Thickness", params.thickness);
+    setVec3("Color", params.color);
+    program.setUniformf(`${prefix}Alpha`, params.alpha);
+    program.setUniformf(`${prefix}CoreAlpha`, params.coreAlpha);
+    setVec3("FaceShade", params.faceShade);
+    program.setUniformf(`${prefix}EdgeBoost`, params.edgeBoost);
+    setVec3("EdgeThickness", params.edgeThickness);
+  };
+
   const superSetMapperShaderParameters = publicAPI.setMapperShaderParameters;
   publicAPI.setMapperShaderParameters = (cellBO, ren, actor) => {
     superSetMapperShaderParameters(cellBO, ren, actor);
@@ -317,50 +392,11 @@ function vtkMaskBoxOpenGLVolumeMapperClass(publicAPI, model) {
       return;
     }
     const program = cellBO.getProgram();
-    const params = model.renderable?.getMaskBoxParams?.();
-    if (!params?.enabled) {
-      program.setUniformi("maskBoxEnabled", 0);
-      return;
-    }
-    program.setUniformi("maskBoxEnabled", 1);
-    program.setUniform3f(
-      "maskBoxMin",
-      params.boxMin[0],
-      params.boxMin[1],
-      params.boxMin[2],
-    );
-    program.setUniform3f(
-      "maskBoxMax",
-      params.boxMax[0],
-      params.boxMax[1],
-      params.boxMax[2],
-    );
-    program.setUniform3f(
-      "maskBoxThickness",
-      params.thickness[0],
-      params.thickness[1],
-      params.thickness[2],
-    );
-    program.setUniform3f(
-      "maskBoxColor",
-      params.color[0],
-      params.color[1],
-      params.color[2],
-    );
-    program.setUniformf("maskBoxAlpha", params.alpha);
-    program.setUniformf("maskBoxCoreAlpha", params.coreAlpha);
-    program.setUniform3f(
-      "maskBoxFaceShade",
-      params.faceShade[0],
-      params.faceShade[1],
-      params.faceShade[2],
-    );
-    program.setUniformf("maskBoxEdgeBoost", params.edgeBoost);
-    program.setUniform3f(
-      "maskBoxEdgeThickness",
-      params.edgeThickness[0],
-      params.edgeThickness[1],
-      params.edgeThickness[2],
+    setBoxUniforms(program, "maskBox", model.renderable?.getMaskBoxParams?.());
+    setBoxUniforms(
+      program,
+      "maskBoxPrev",
+      model.renderable?.getMaskBoxPrevParams?.(),
     );
   };
 }
@@ -371,7 +407,10 @@ function extendOpenGLNode(publicAPI, model, initialValues = {}) {
 }
 
 export const vtkMaskBoxOpenGLVolumeMapper = {
-  newInstance: macro.newInstance(extendOpenGLNode, "vtkMaskBoxOpenGLVolumeMapper"),
+  newInstance: macro.newInstance(
+    extendOpenGLNode,
+    "vtkMaskBoxOpenGLVolumeMapper",
+  ),
   extend: extendOpenGLNode,
 };
 
