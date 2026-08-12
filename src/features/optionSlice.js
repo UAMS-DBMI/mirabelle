@@ -21,6 +21,20 @@ const initialState = {
   // move, not something to have to undo on every exam.
   maskOpacity: 0.5,
   maskVisible: true,
+  // The PREVIOUS mask's box — the geometry this exam was already masked with,
+  // read back from the API. Shown by default, because "what was masked here
+  // before?" is context the curator wants before drawing rather than after,
+  // and an exam that has one is the only exam this appears on at all. Faint,
+  // though: it is a reference sitting behind the work, not the work, and at
+  // this end of the slider it reads as a hollow glass outline that doesn't
+  // compete with the selection being drawn on top of it.
+  prevMaskOpacity: 0.2,
+  prevMaskVisible: true,
+  // Whether this exam HAS a previous mask to show. Set by the mask viewer once
+  // the stored parameters are resolved against the loaded volume. The control
+  // itself is always on the panel — this only decides whether it is live, so
+  // an exam with nothing to show says so instead of the row vanishing.
+  prevMaskAvailable: false,
   preset: "CT-MIP",
   decimate: 0,
   persistent: true,
@@ -44,6 +58,15 @@ const PRESERVED_ON_RESET = new Set([
   "persistent",
   "maskOpacity",
   "maskVisible",
+  "prevMaskOpacity",
+  "prevMaskVisible",
+  // Owned by the mask route, which recomputes it on every exam load (false
+  // while loading, then whatever the new exam has). resetOptions must leave it
+  // alone: MaskVR resets options BEFORE asking the route to navigate, and at
+  // the end of the queue that navigation never happens — resetting here then
+  // killed the control for an exam that stayed on screen, with nothing left to
+  // recompute it.
+  "prevMaskAvailable",
 ]);
 
 const optionSlice = createSlice({
