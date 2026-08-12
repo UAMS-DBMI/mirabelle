@@ -20,7 +20,7 @@ it.
 | [src/features/presentationSlice.js](../src/features/presentationSlice.js) | `maskToolGroup` — range, step, which routes show the control |
 | [src/features/optionSlice.js](../src/features/optionSlice.js) | `maskOpacity` / `maskVisible` (and the `prevMask*` pair) state, and their exemption from `resetOptions` |
 | [src/features/mask/MaskIEC.jsx](../src/features/mask/MaskIEC.jsx) | Consumes both: teardown-on-hide, style-only opacity effect, per-exam restore/save |
-| [src/features/mask/usePreviousMaskOverlay.js](../src/features/mask/usePreviousMaskOverlay.js) | The submitted mask's overlay as a hook — geometry resolution, draw/teardown, slider restyle — shared by MaskIEC and MaskReviewIEC (§7) |
+| [src/features/mask/usePreviousMaskOverlay.js](../src/features/mask/usePreviousMaskOverlay.js) | The submitted mask's overlay as a hook — geometry resolution, draw/teardown, slider restyle — mounted by MaskIEC, MaskReviewIEC and DicomReviewIEC (§7) |
 | [src/lib/maskBox.js](../src/lib/maskBox.js) | 3D: opacity → two shader fill alphas (wireframe edges stay full) |
 | [src/lib/viewportFrame.js](../src/lib/viewportFrame.js) | 2D: opacity → fill `background` alpha (border and handles stay full) |
 | [src/lib/maskViewPrefs.js](../src/lib/maskViewPrefs.js) | Per-exam memory of all four values |
@@ -497,14 +497,29 @@ pane looks exactly as it did before.
 
 The whole mechanism lives in one hook,
 [`usePreviousMaskOverlay`](../src/features/mask/usePreviousMaskOverlay.js),
-mounted by **two routes**: the mask route (box beside the live selection) and
-the **mask review route**, where the reviewer is looking at the already-masked
-images and the box shows where the mask that produced them sits. The review
-panel gets the same Submitted Mask Opacity control via its own config entry,
-`prevMaskToolGroup` — separate from `maskToolGroup` because review has no
-selection box to control. Review stacks don't preload their images, so the
-hook re-resolves the geometry on `IMAGE_LOADED` until the first frame is
-cached.
+mounted by **three routes**:
+
+- the **mask route** — the box beside the live selection;
+- the **mask review route** — the reviewer is looking at the already-masked
+  images, and the box shows where the mask that produced them sits;
+- the **DICOM review route** — its IECs carry masking records too (the
+  reviewer's flag action feeds the masking queue), so the overlay and the
+  masking rows in the details panel show what any existing mask already
+  covers. The masking fetch is `.catch(() => null)`-guarded there: it is
+  auxiliary to the route, so a masking-endpoint failure must not take down
+  the review itself. An IEC with no masking record gets `{"history":[]}` from
+  the API — no parameters, so no rows, no box, control reading `none`.
+
+The **NIfTI review route** is the deliberate exception: its API is file-based
+(`/papi/v1/nifti/{file_id}`) with no IEC and no masking fields, so there is
+nothing to overlay. It reuses `setVisualReviewConfig` (which enables the
+control for DICOM review) and its own `setNiftiConfig` switches the control
+back off.
+
+The panel control is gated by its own config entry, `prevMaskToolGroup` —
+separate from `maskToolGroup` because the review routes have no selection box
+to control. The review routes don't preload their stack images, so the hook
+re-resolves the geometry on `IMAGE_LOADED` until the first frame is cached.
 
 **Where the geometry comes from.** The API returns `masking_parameters` on
 `getMaskingDetails(iec)` — the same blob the details panel formats — as a box
