@@ -39,6 +39,21 @@
   z-index: 11;
 }
 
+/* Outline of the previously submitted mask, in amber (see lib/maskBox's
+   PREVIOUS_EDGE_COLOR — the two must stay in step so the box is one colour
+   whichever pane you look at). Dashed, and stacked UNDER the selection box, so
+   an old mask sitting behind a new selection reads as the reference it is
+   rather than competing with the box being edited. */
+.viewport-prev-mask-box {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+  border: 2px dashed rgba(251, 191, 36, 0.95);
+  background: rgba(251, 191, 36, 0.18);
+  border-radius: 6px;
+  z-index: 10;
+}
+
 /* Drag handles on the mask-selection box for resizing it in the slice plane.
    A non-editable box is click-through (pointer-events: none); an editable one
    opts into pointer events in JS (see attachBoxInteractions) so its body can be

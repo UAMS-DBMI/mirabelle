@@ -1,5 +1,8 @@
 /**
- * Renders the masking selection as a box in a 3D viewport.
+ * Renders the masking boxes in a 3D viewport: the live SELECTION (green), and
+ * the PREVIOUS mask this exam was already masked with (amber, read back from
+ * the API — see lib/maskingParameters). Both are drawn the same way and are
+ * independent of each other; the previous one is never editable.
  *
  * The mask labelmap always fills the selection's IJK bounding box edge-to-edge,
  * so the masked region is a box. We draw that box explicitly rather than
@@ -47,8 +50,9 @@ import { Representation } from "@kitware/vtk.js/Rendering/Core/Property/Constant
 
 import { ensureMaskBoxMapper } from "@/lib/maskBoxVolumeMapper";
 
-// Stable id so the box can be found, replaced, and removed on a viewport.
+// Stable ids so each box can be found, replaced, and removed on a viewport.
 const MASK_BOX_ACTOR_UID = "mask-selection-box";
+const PREV_BOX_ACTOR_UID = "mask-previous-box";
 
 /**
  * The one green the whole selection is drawn in, 0-1 per channel as vtk wants
@@ -65,6 +69,20 @@ const FILL_DARKEN = 0.75;
 
 /** Face colour of the 3D box's glass, a darker shade of the edge green. */
 export const SELECTION_FILL_COLOR = SELECTION_EDGE_COLOR.map(
+  (channel) => channel * FILL_DARKEN,
+);
+
+/**
+ * The amber the PREVIOUS mask — the geometry this exam was already masked
+ * with, read back from the API — is drawn in, equivalently rgb(251, 191, 36).
+ * Deliberately far from the selection green on the hue circle: the two boxes
+ * are often nested or overlapping, and which one is the live selection has to
+ * be readable at a glance rather than inferred from position.
+ */
+export const PREVIOUS_EDGE_COLOR = [0.984, 0.749, 0.141];
+
+/** Face colour of the previous mask's glass, a darker shade of its amber. */
+export const PREVIOUS_FILL_COLOR = PREVIOUS_EDGE_COLOR.map(
   (channel) => channel * FILL_DARKEN,
 );
 
@@ -131,6 +149,11 @@ function smoothstep(edge0, edge1, value) {
 // handed the coords again. Cleared on removeMaskBox, which is what keeps a
 // restyle from resurrecting a hidden box.
 const FILL_BOXES = new WeakMap();
+
+// Same, for the previous mask's box — plus its style, because unlike the
+// selection it is also re-applied without a caller in the loop: a drag
+// preview rescales BOTH shells (see applyStoredPrevFill).
+const PREV_FILL_BOXES = new WeakMap();
 
 // How thick (in voxels) the glass shell around the box's faces is. Thin
 // enough to read as panes, thick enough that the ray march can't step across
@@ -235,19 +258,12 @@ function coreAlphaForOpacity(opacity) {
   return MAX_CORE_ALPHA * smoothstep(CORE_FILL_START, 1, clamped);
 }
 
-/**
- * Point the shader fill at `coords`, converting the IJK bounds to the
- * normalized texture coordinates the patched shader works in. The box's
- * faces sit on voxel boundaries (index min − 0.5 → normalized min/dim),
- * matching the wireframe's corner convention exactly. previewScale thickens
- * the shell while a coarse-sampled drag preview is running.
- */
-function applyFill(viewport, coords, style, previewScale = 1) {
-  const mapper = ensureMaskBoxMapper(getVolumeActor(viewport));
-  const dims = mapper?.getInputData?.()?.getDimensions?.();
-  if (!dims || !dims[0] || !dims[1] || !dims[2]) {
-    return;
-  }
+// The shader params for one box, converting the IJK bounds to the normalized
+// texture coordinates the patched shader works in. The box's faces sit on
+// voxel boundaries (index min − 0.5 → normalized min/dim), matching the
+// wireframe's corner convention exactly. previewScale thickens the shell while
+// a coarse-sampled drag preview is running.
+function buildFillParams(dims, coords, style, previewScale) {
   const thickness = SHELL_THICKNESS * previewScale;
   // Scaled by previewScale for the same reason the shell is: a coarse preview
   // ray-march would otherwise step clean over a band this thin and the edges
@@ -255,7 +271,7 @@ function applyFill(viewport, coords, style, previewScale = 1) {
   // past that the "edge" test would light up on plain faces and thicken the
   // outline into exactly the chunk this constant exists to avoid.
   const edgeThickness = Math.min(EDGE_THICKNESS * previewScale, thickness);
-  mapper.setMaskBoxParams({
+  return {
     enabled: true,
     boxMin: [
       coords.i.min / dims[0],
@@ -267,11 +283,7 @@ function applyFill(viewport, coords, style, previewScale = 1) {
       (coords.j.max + 1) / dims[1],
       (coords.k.max + 1) / dims[2],
     ],
-    thickness: [
-      thickness / dims[0],
-      thickness / dims[1],
-      thickness / dims[2],
-    ],
+    thickness: [thickness / dims[0], thickness / dims[1], thickness / dims[2]],
     color: style.fillColor,
     alpha: fillAlphaForOpacity(style.fillAlpha, style.opacity),
     coreAlpha: coreAlphaForOpacity(style.opacity),
@@ -282,26 +294,99 @@ function applyFill(viewport, coords, style, previewScale = 1) {
       edgeThickness / dims[1],
       edgeThickness / dims[2],
     ],
-  });
+  };
 }
 
-// Turn the shader fill off, if this viewport's volume actor carries the
-// mask-box mapper. Never creates the mapper — removal must not convert.
-function disableFill(viewport) {
+// The mask-box mapper for this viewport's volume (converting the actor's
+// mapper on first use) together with the volume's dimensions, or null while
+// the volume isn't ready to carry a fill.
+function fillTarget(viewport) {
+  const mapper = ensureMaskBoxMapper(getVolumeActor(viewport));
+  const dims = mapper?.getInputData?.()?.getDimensions?.();
+  if (!dims || !dims[0] || !dims[1] || !dims[2]) {
+    return null;
+  }
+  return { mapper, dims };
+}
+
+/** Point the selection's shader fill at `coords`. */
+function applyFill(viewport, coords, style, previewScale = 1) {
+  const target = fillTarget(viewport);
+  target?.mapper.setMaskBoxParams(
+    buildFillParams(target.dims, coords, style, previewScale),
+  );
+}
+
+/** Point the previous mask's shader fill at `coords` (the second slot). */
+function applyPrevFill(viewport, coords, style, previewScale = 1) {
+  const target = fillTarget(viewport);
+  target?.mapper.setMaskBoxPrevParams(
+    buildFillParams(target.dims, coords, style, previewScale),
+  );
+}
+
+// Re-apply the previous mask's fill from what's already on this viewport, at a
+// new preview scale. The previous box isn't being dragged, but it is rendered
+// by the same ray-march the drag coarsens — so its shell has to thicken and
+// thin along with the selection's or it drops out for the length of the drag.
+function applyStoredPrevFill(viewport, previewScale) {
+  const stored = PREV_FILL_BOXES.get(viewport);
+  if (stored) {
+    applyPrevFill(viewport, stored.coords, stored.style, previewScale);
+  }
+}
+
+// Turn one of the shader fills off, if this viewport's volume actor carries
+// the mask-box mapper. Never creates the mapper — removal must not convert.
+function disableFill(viewport, previous = false) {
   const mapper = getVolumeActor(viewport)?.getMapper?.();
   if (mapper?.isA?.("vtkMaskBoxVolumeMapper")) {
-    mapper.setMaskBoxParams(null);
+    if (previous) mapper.setMaskBoxPrevParams(null);
+    else mapper.setMaskBoxParams(null);
     return true;
   }
   return false;
 }
 
-function removeWireframeActor(viewport) {
-  if (!viewport.getActor(MASK_BOX_ACTOR_UID)) {
+function removeWireframeActor(viewport, uid = MASK_BOX_ACTOR_UID) {
+  if (!viewport.getActor(uid)) {
     return false;
   }
-  viewport.removeActors([MASK_BOX_ACTOR_UID]);
+  viewport.removeActors([uid]);
   return true;
+}
+
+/**
+ * Build and attach the wireframe half of a box (its 12 edges). The edges are a
+ * vtk actor so the volume occludes them where it sits in front — see the
+ * module comment.
+ */
+function addWireframeActor(viewport, uid, volume, coords, { color, width }) {
+  const polyData = vtkPolyData.newInstance();
+  polyData.getPoints().setData(boxCornerPoints(volume.imageData, coords), 3);
+  polyData.getPolys().setData(boxFaceCells());
+
+  const mapper = vtkMapper.newInstance();
+  mapper.setInputData(polyData);
+
+  const actor = vtkActor.newInstance();
+  actor.setMapper(mapper);
+
+  const property = actor.getProperty();
+  // WIREFRAME draws the quad faces as their outlines, giving the 12 box edges.
+  // (vtk has no rounded-cube primitive, so the corners stay square; the edges
+  // are what make it read as a deliberate box rather than a flat slab.)
+  property.setRepresentation(Representation.WIREFRAME);
+  property.setColor(...color);
+  property.setLineWidth(width);
+  // Always full strength: the opacity slider fades the glass fill only, so
+  // the edges keep delineating the box however faint the surfaces are.
+  property.setOpacity(1);
+  // Shading would dim the edges facing away from the light, and an edge that
+  // fades out stops delineating the box.
+  property.setLighting(false);
+
+  viewport.addActor({ uid, actor });
 }
 
 // Trade ray-march quality for speed while a drag preview is in flight: a
@@ -362,42 +447,60 @@ export function addMaskBox(viewport, volume, coords, options = {}) {
   // confirmed twice now, so don't retry it. The rebuild itself is cheap next
   // to the volume ray-cast the render performs either way.
   removeWireframeActor(viewport);
-
-  const polyData = vtkPolyData.newInstance();
-  polyData.getPoints().setData(boxCornerPoints(volume.imageData, coords), 3);
-  polyData.getPolys().setData(boxFaceCells());
-
-  const mapper = vtkMapper.newInstance();
-  mapper.setInputData(polyData);
-
-  const actor = vtkActor.newInstance();
-  actor.setMapper(mapper);
-
-  const property = actor.getProperty();
-  // WIREFRAME draws the quad faces as their outlines, giving the 12 box edges.
-  // (vtk has no rounded-cube primitive, so the corners stay square; the edges
-  // are what make it read as a deliberate box rather than a flat slab.)
-  property.setRepresentation(Representation.WIREFRAME);
-  property.setColor(...color);
-  property.setLineWidth(width);
-  // Always full strength: the opacity slider fades the glass fill only, so
-  // the edges keep delineating the selection however faint the surfaces are.
-  property.setOpacity(1);
-  // Shading would dim the edges facing away from the light, and an edge that
-  // fades out stops delineating the selection.
-  property.setLighting(false);
-
-  viewport.addActor({ uid: MASK_BOX_ACTOR_UID, actor });
+  addWireframeActor(viewport, MASK_BOX_ACTOR_UID, volume, coords, {
+    color,
+    width,
+  });
 
   const style = { fillColor, fillAlpha, opacity };
   FILL_BOXES.set(viewport, coords);
   if (previewOnly) {
     applyFill(viewport, coords, style, PREVIEW_SHELL_SCALE);
+    applyStoredPrevFill(viewport, PREVIEW_SHELL_SCALE);
     enterPreviewQuality(viewport);
   } else {
     exitPreviewQuality(viewport);
     applyFill(viewport, coords, style);
+    applyStoredPrevFill(viewport, 1);
   }
+
+  viewport.render();
+}
+
+/**
+ * Add (or replace) the PREVIOUS mask's box on a 3D viewport — the geometry
+ * this exam was already masked with, drawn in amber alongside the live
+ * selection. Same two halves as addMaskBox (wireframe edges + in-raymarch
+ * glass), and the same meaning for `opacity`: it fades the glass only.
+ *
+ * There is no preview path here: this box never moves. It is redrawn only when
+ * the exam changes or it is shown/hidden.
+ */
+export function addPreviousMaskBox(viewport, volume, coords, options = {}) {
+  const {
+    color = PREVIOUS_EDGE_COLOR,
+    width = DEFAULT_STYLE.width,
+    opacity = DEFAULT_STYLE.opacity,
+    fillColor = PREVIOUS_FILL_COLOR,
+    fillAlpha = DEFAULT_STYLE.fillAlpha,
+  } = options;
+
+  removeWireframeActor(viewport, PREV_BOX_ACTOR_UID);
+  addWireframeActor(viewport, PREV_BOX_ACTOR_UID, volume, coords, {
+    color,
+    width,
+  });
+
+  const style = { fillColor, fillAlpha, opacity };
+  PREV_FILL_BOXES.set(viewport, { coords, style });
+  // Match whatever quality the viewport is rendering at: showing this box
+  // mid-drag must not leave its shell too thin for the coarse ray-march.
+  applyPrevFill(
+    viewport,
+    coords,
+    style,
+    PREVIEW_QUALITY.has(viewport) ? PREVIEW_SHELL_SCALE : 1,
+  );
 
   viewport.render();
 }
@@ -437,13 +540,69 @@ export function setMaskBoxStyle(viewport, options = {}) {
   viewport.render();
 }
 
+/**
+ * Restyle the previous mask's box in place — the counterpart of
+ * setMaskBoxStyle, for its own opacity slider. No-ops when that box isn't
+ * currently shown, so a restyle can't resurrect a hidden one.
+ */
+export function setPreviousMaskBoxStyle(viewport, options = {}) {
+  const {
+    color = PREVIOUS_EDGE_COLOR,
+    width = DEFAULT_STYLE.width,
+    opacity = DEFAULT_STYLE.opacity,
+    fillColor = PREVIOUS_FILL_COLOR,
+    fillAlpha = DEFAULT_STYLE.fillAlpha,
+  } = options;
+
+  const wireframe = viewport.getActor(PREV_BOX_ACTOR_UID)?.actor;
+  const stored = PREV_FILL_BOXES.get(viewport);
+  if (!wireframe || !stored) {
+    return;
+  }
+
+  const property = wireframe.getProperty();
+  property.setColor(...color);
+  property.setLineWidth(width);
+  // Wireframe opacity is pinned to 1 at creation — `opacity` reaches only the
+  // fill below.
+
+  const style = { fillColor, fillAlpha, opacity };
+  PREV_FILL_BOXES.set(viewport, { coords: stored.coords, style });
+  applyPrevFill(
+    viewport,
+    stored.coords,
+    style,
+    PREVIEW_QUALITY.has(viewport) ? PREVIEW_SHELL_SCALE : 1,
+  );
+
+  viewport.render();
+}
+
 /** Remove the selection box from a 3D viewport, if present. */
 export function removeMaskBox(viewport) {
   let changed = removeWireframeActor(viewport);
   exitPreviewQuality(viewport);
   FILL_BOXES.delete(viewport);
+  // The selection owns the preview quality, so dropping it puts the viewport
+  // back to full sampling — the previous mask's shell has to come back down
+  // with it (no-op when that box isn't shown).
+  applyStoredPrevFill(viewport, 1);
 
   if (disableFill(viewport)) {
+    changed = true;
+  }
+
+  if (changed) {
+    viewport.render();
+  }
+}
+
+/** Remove the previous mask's box from a 3D viewport, if present. */
+export function removePreviousMaskBox(viewport) {
+  let changed = removeWireframeActor(viewport, PREV_BOX_ACTOR_UID);
+  PREV_FILL_BOXES.delete(viewport);
+
+  if (disableFill(viewport, true)) {
     changed = true;
   }
 

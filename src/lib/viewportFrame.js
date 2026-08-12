@@ -1,7 +1,8 @@
 /**
  * DOM overlays for the 2D viewports:
- *   - the data-boundary frame (the drawing limits), and
- *   - the mask-selection box (the expanded region) in the slice plane.
+ *   - the data-boundary frame (the drawing limits),
+ *   - the mask-selection box (the expanded region) in the slice plane, and
+ *   - the previous mask's box, the geometry this exam was already masked with.
  *
  * Both are drawn as plain DOM borders rather than vtk actors so they can't be
  * clipped by the viewport's slab and are trivial to style. Cornerstone won't
@@ -19,6 +20,7 @@ import { Enums } from "@cornerstonejs/core";
 const DATA_FRAME_CLASS = "viewport-data-frame";
 const MASK_BOX_CLASS = "viewport-mask-box";
 const MASK_BOX_HANDLE_CLASS = "viewport-mask-box-handle";
+const PREV_MASK_BOX_CLASS = "viewport-prev-mask-box";
 
 // The 8 corners of a box as (i, j, k) ∈ {0, 1}: 0 picks the low bound, 1 the
 // high bound along that axis.
@@ -91,6 +93,44 @@ function positionFrame(frame, rect) {
   frame.style.top = `${rect.top}px`;
   frame.style.width = `${rect.width}px`;
   frame.style.height = `${rect.height}px`;
+}
+
+/**
+ * Position a box overlay over `coords` (IJK min/max bounds) in this viewport,
+ * hiding it where the box doesn't apply: no image data yet, no index→world
+ * transform, or — unless gateBySlice is false — a slice the box doesn't cover.
+ * Shared by the selection box and the previous mask's box, which differ only
+ * in what they let you do with the div, not in where it goes.
+ */
+function placeBoxFrame(viewport, frame, coords, gateBySlice) {
+  const imageData = viewport.getImageData()?.imageData;
+  if (!imageData) {
+    frame.style.display = "none";
+    return;
+  }
+  const lo = [coords.i.min - 0.5, coords.j.min - 0.5, coords.k.min - 0.5];
+  const hi = [coords.i.max + 0.5, coords.j.max + 0.5, coords.k.max + 0.5];
+  const corners = boxWorldCorners(imageData, lo, hi);
+  const hidden =
+    !corners ||
+    (gateBySlice !== false &&
+      !sliceIntersectsCorners(viewport, corners, imageData));
+  if (hidden) {
+    frame.style.display = "none";
+    return;
+  }
+  frame.style.display = "block";
+  positionFrame(frame, canvasRect(viewport, corners));
+}
+
+// The translucent middle at the current opacity, as a CSS colour — or null to
+// leave the stylesheet's default background alone (callers that don't pass
+// fill settings keep the old look).
+function fillBackground({ fillColor, fillAlpha, opacity }) {
+  if (!fillColor || fillAlpha === undefined) return null;
+  const alpha = fillAlpha * (opacity === undefined ? 1 : opacity);
+  const rgb = fillColor.map((channel) => Math.round(channel * 255)).join(", ");
+  return `rgba(${rgb}, ${alpha})`;
 }
 
 function clamp(value, min, max) {
@@ -273,36 +313,10 @@ export function addMaskBox2D(viewport, coords, options = {}) {
   // owns the bounds until it commits.
   let dragging = false;
 
-  const update = () => {
-    const imageData = viewport.getImageData()?.imageData;
-    if (!imageData) {
-      frame.style.display = "none";
-      return;
-    }
-    const lo = [
-      liveCoords.i.min - 0.5,
-      liveCoords.j.min - 0.5,
-      liveCoords.k.min - 0.5,
-    ];
-    const hi = [
-      liveCoords.i.max + 0.5,
-      liveCoords.j.max + 0.5,
-      liveCoords.k.max + 0.5,
-    ];
-    const corners = boxWorldCorners(imageData, lo, hi);
-    // Hide the box on slices it doesn't cover (volume). For a single-image
-    // stack the box always applies, so callers pass gateBySlice: false.
-    const hidden =
-      !corners ||
-      (settings.gateBySlice !== false &&
-        !sliceIntersectsCorners(viewport, corners, imageData));
-    if (hidden) {
-      frame.style.display = "none";
-      return;
-    }
-    frame.style.display = "block";
-    positionFrame(frame, canvasRect(viewport, corners));
-  };
+  // Hide the box on slices it doesn't cover (volume). For a single-image
+  // stack the box always applies, so callers pass gateBySlice: false.
+  const update = () =>
+    placeBoxFrame(viewport, frame, liveCoords, settings.gateBySlice);
 
   const hooks = {
     getCoords: () => liveCoords,
@@ -330,17 +344,6 @@ export function addMaskBox2D(viewport, coords, options = {}) {
 
   const handles = attachBoxInteractions(viewport, frame, hooks);
 
-  // The translucent middle at the current opacity, as a CSS colour — or null
-  // to leave the stylesheet's default background alone (callers that don't
-  // pass fill settings keep the old look).
-  const fillBackground = () => {
-    const { fillColor, fillAlpha, opacity } = settings;
-    if (!fillColor || fillAlpha === undefined) return null;
-    const alpha = fillAlpha * (opacity === undefined ? 1 : opacity);
-    const rgb = fillColor.map((channel) => Math.round(channel * 255)).join(", ");
-    return `rgba(${rgb}, ${alpha})`;
-  };
-
   const applyStyle = () => {
     frame.style.borderColor = settings.borderColor || "";
     // The opacity slider drives the SURFACE only: the translucent middle
@@ -350,7 +353,7 @@ export function addMaskBox2D(viewport, coords, options = {}) {
     // opacity is deliberately not used — it scales border, fill and handles
     // as one, and an element at opacity 0 still takes pointer events, which
     // once left invisible-but-working drag handles on screen.
-    const background = fillBackground();
+    const background = fillBackground(settings);
     frame.style.background = background === null ? "" : background;
     const interactive = hooks.isInteractive();
     frame.style.pointerEvents = interactive ? "auto" : "none";
@@ -403,6 +406,82 @@ export function addMaskBox2D(viewport, coords, options = {}) {
 
   applyStyle();
   update();
+}
+
+/**
+ * Draw (or replace) the PREVIOUS mask's box on a 2D viewport — the geometry
+ * this exam was already masked with, in its own colour.
+ *
+ * Deliberately far simpler than addMaskBox2D: this box is a read-only
+ * reference, so it has no handles, takes no pointer events, and never has to
+ * survive a drag. It only has to track zoom/pan/slice, which it does off the
+ * same IMAGE_RENDERED it shares with the selection box.
+ *
+ * @param {object} viewport A cornerstone 2D viewport.
+ * @param {{i,j,k}} coords IJK min/max bounds of the previous mask.
+ * @param {{borderColor?: string, fillColor?: number[], fillAlpha?: number,
+ *   opacity?: number, gateBySlice?: boolean}} [options] `opacity` scales the
+ *   translucent middle only, exactly as it does for the selection box.
+ */
+export function addPreviousMaskBox2D(viewport, coords, options = {}) {
+  const element = viewport.element;
+
+  // Re-point the overlay that's already up rather than rebuilding it (same
+  // reasoning as addMaskBox2D: fewer nodes, no listener churn per refresh).
+  if (element.__prevMaskBox2dApply) {
+    element.__prevMaskBox2dApply(coords, options);
+    return;
+  }
+
+  const frame = document.createElement("div");
+  frame.className = PREV_MASK_BOX_CLASS;
+  element.appendChild(frame);
+
+  let settings = options;
+  let boxCoords = coords;
+
+  const update = () =>
+    placeBoxFrame(viewport, frame, boxCoords, settings.gateBySlice);
+
+  const applyStyle = () => {
+    frame.style.borderColor = settings.borderColor || "";
+    // Surfaces only, like the selection box: the outline stays full strength
+    // at every slider position so the previous mask's extent is still
+    // readable when its glass is turned all the way down.
+    const background = fillBackground(settings);
+    frame.style.background = background === null ? "" : background;
+  };
+
+  element.addEventListener(Enums.Events.IMAGE_RENDERED, update);
+
+  element.__prevMaskBox2dApply = (nextCoords, nextOptions) => {
+    settings = nextOptions;
+    boxCoords = nextCoords;
+    applyStyle();
+    update();
+  };
+
+  // Restyle in place for the opacity slider, without rebuilding the overlay.
+  element.__prevMaskBox2dSetOpacity = (next) => {
+    settings = { ...settings, opacity: next };
+    applyStyle();
+  };
+
+  element.__prevMaskBox2dCleanup = () => {
+    element.removeEventListener(Enums.Events.IMAGE_RENDERED, update);
+    frame.remove();
+    delete element.__prevMaskBox2dCleanup;
+    delete element.__prevMaskBox2dApply;
+    delete element.__prevMaskBox2dSetOpacity;
+  };
+
+  applyStyle();
+  update();
+}
+
+/** Remove the previous mask's box overlay from a 2D viewport, if present. */
+export function removePreviousMaskBox2D(viewport) {
+  viewport?.element?.__prevMaskBox2dCleanup?.();
 }
 
 // Run a drag: forward each move to onMove, and on release commit the result.
@@ -474,7 +553,11 @@ function attachBoxInteractions(viewport, frame, hooks) {
 
       const imageData = viewport.getImageData()?.imageData;
       if (!imageData) return;
-      const mapping = inPlaneAxisMapping(viewport, imageData, hooks.getCoords());
+      const mapping = inPlaneAxisMapping(
+        viewport,
+        imageData,
+        hooks.getCoords(),
+      );
       if (!mapping) return;
       const dims = imageData.getDimensions();
       const rect = viewport.element.getBoundingClientRect();
