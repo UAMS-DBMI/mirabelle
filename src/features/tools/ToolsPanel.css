@@ -45,6 +45,23 @@
   @apply bg-blue-500 border-blue-500 text-white;
 }
 
+/* Matches the sliders' disabled treatment, so a row with nothing to control
+   reads as unavailable rather than broken. */
+.mask-visibility-btn:disabled {
+  @apply opacity-40 cursor-not-allowed;
+}
+
+/* The submitted mask's control is tinted with the amber its box is drawn in
+   (lib/maskBox PREVIOUS_EDGE_COLOR), so which row drives which box on screen
+   is obvious without reading the labels. */
+.prev-mask-control .mask-visibility-btn.is-active {
+  @apply bg-amber-500 border-amber-500 text-white;
+}
+
+.prev-mask-control input[type="range"] {
+  accent-color: rgb(251, 191, 36);
+}
+
 .mask-visibility-btn:focus-visible {
   outline: 2px solid #60a5fa;
   outline-offset: 2px;

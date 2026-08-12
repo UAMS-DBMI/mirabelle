@@ -77,6 +77,23 @@ export default function ToolsPanel({
     dispatch(setOption({ key: "maskVisible", value: !maskVisible }));
   };
 
+  // The previously submitted mask's box. Its own tool group, because it ships
+  // to more routes than the selection box does: the mask review route shows
+  // the submitted mask without any selection to control.
+  const { prevMaskToolGroup } = globalToolsConfig;
+  const prevMaskOpacity = globalStateValues.prevMaskOpacity;
+  const prevMaskVisible = globalStateValues.prevMaskVisible;
+  const prevMaskAvailable = globalStateValues.prevMaskAvailable;
+
+  const handlePrevMaskOpacityChange = (e) => {
+    const value = parseFloat(e.target.value);
+    dispatch(setOption({ key: "prevMaskOpacity", value }));
+  };
+
+  const handlePrevMaskVisibleToggle = () => {
+    dispatch(setOption({ key: "prevMaskVisible", value: !prevMaskVisible }));
+  };
+
   // pull decimate config + value from Redux
   const { decimateToolGroup } = globalToolsConfig;
   const decimate = globalStateValues.decimate;
@@ -268,7 +285,7 @@ export default function ToolsPanel({
         {opacityToolGroup.visible && (
           <div className="opacity-control">
             <p>
-              Opacity: <span>{opacity.toFixed(1)}</span>
+              Volume Opacity: <span>{opacity.toFixed(1)}</span>
             </p>
             <input
               type="range"
@@ -301,7 +318,7 @@ export default function ToolsPanel({
         {maskToolGroup.visible && (
           <div className="mask-control">
             <p>
-              Mask:{" "}
+              Mask Opacity:{" "}
               <span>
                 {maskVisible ? `${Math.round(maskOpacity * 100)}%` : "hidden"}
               </span>
@@ -330,6 +347,63 @@ export default function ToolsPanel({
                 disabled={!maskVisible}
                 onChange={handleMaskOpacityChange}
                 aria-label="Mask opacity"
+              />
+            </div>
+          </div>
+        )}
+        {/* Shown on every mask and mask-review exam, so the curator always has
+            the control for this box in the same place — including on exams
+            with nothing to show, where it reads "none" rather than
+            disappearing and leaving them to wonder whether the exam has no
+            submitted mask or the panel has no control for it. */}
+        {prevMaskToolGroup.visible && (
+          <div className="mask-control prev-mask-control">
+            <p>
+              Submitted Mask Opacity:{" "}
+              <span>
+                {!prevMaskAvailable
+                  ? "none"
+                  : prevMaskVisible
+                    ? `${Math.round(prevMaskOpacity * 100)}%`
+                    : "hidden"}
+              </span>
+            </p>
+            <div className="mask-control-row">
+              <button
+                type="button"
+                title={
+                  !prevMaskAvailable
+                    ? "This exam has no submitted mask"
+                    : prevMaskVisible
+                      ? "Hide submitted mask"
+                      : "Show submitted mask"
+                }
+                className={`mask-visibility-btn ${prevMaskVisible ? "is-active" : ""}`}
+                aria-label={
+                  prevMaskVisible
+                    ? "Hide submitted mask"
+                    : "Show submitted mask"
+                }
+                aria-pressed={prevMaskVisible}
+                // Only the "there is no such mask" case disables the toggle;
+                // whenever the exam has one, hiding and showing it is the
+                // curator's call.
+                disabled={!prevMaskAvailable}
+                onClick={handlePrevMaskVisibleToggle}
+              >
+                <MaterialIcon
+                  icon={prevMaskVisible ? "visibility" : "visibility_off"}
+                />
+              </button>
+              <input
+                type="range"
+                min={prevMaskToolGroup.min}
+                max={prevMaskToolGroup.max}
+                step={prevMaskToolGroup.step}
+                value={prevMaskOpacity}
+                disabled={!prevMaskAvailable || !prevMaskVisible}
+                onChange={handlePrevMaskOpacityChange}
+                aria-label="Submitted mask opacity"
               />
             </div>
           </div>

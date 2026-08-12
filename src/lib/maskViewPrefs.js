@@ -1,6 +1,6 @@
 /*
- * Session-local, per-IEC appearance of the mask selection box — the Mask
- * opacity slider and its show/hide toggle.
+ * Session-local, per-IEC appearance of the mask boxes — the Mask Opacity and
+ * Submitted Mask Opacity sliders and their show/hide toggles.
  *
  * Curators set this per exam, and the right value is a property of the exam
  * rather than of the session: a faint box to check the selection against the
@@ -25,14 +25,19 @@ const views = new Map();
 /** Record the box appearance the curator chose for this exam. */
 export function rememberMaskView(iec, view) {
   if (iec == null || !view) return;
-  views.set(String(iec), { opacity: view.opacity, visible: view.visible });
+  views.set(String(iec), {
+    opacity: view.opacity,
+    visible: view.visible,
+    prevOpacity: view.prevOpacity,
+    prevVisible: view.prevVisible,
+  });
 }
 
 /**
- * The appearance to show for this exam: its own remembered value if it has
- * one, otherwise `fallback` — the route's default, so an exam that has never
- * been adjusted always opens fully opaque rather than carrying over whatever
- * was set on the exam before it.
+ * The appearance to show for this exam — both boxes, as one record: its own
+ * remembered value if it has one, otherwise `fallback` — the route's default,
+ * so an exam that has never been adjusted always opens at the same known state
+ * rather than carrying over whatever was set on the exam before it.
  */
 export function getMaskView(iec, fallback) {
   if (iec != null) {
