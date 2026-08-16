@@ -52,7 +52,7 @@ export default function DetailsPanel({ details }) {
   const handleDownload = "File ID" in details ? downloadFile : download;
 
   function handleOpenInQuince(iec) {
-    const url = `https://tcia-posda-rh-1.ad.uams.edu/viewer/iec/${iec}`;
+    const url = `/viewer/iec/${iec}`;
     window.open(url, "_blank");
   }
 

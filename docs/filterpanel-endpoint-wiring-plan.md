@@ -50,7 +50,7 @@ The mask routes already follow this pattern. The problem is *which endpoints* th
 Both are in the **oneposda** project, file
 `posda/fastapi/app/papi/routes/masking.py`, and browsable in the live production
 Swagger UI at
-[http://tcia-posda-rh-1.ad.uams.edu/papi/docs](http://tcia-posda-rh-1.ad.uams.edu/papi/docs)
+[http://posda.uams.edu/papi/docs](http://posda.uams.edu/papi/docs)
 under "Functions for masking series". (The localhost oneposda is currently behind and
 does not have these endpoints yet — pull/rebuild it before local end-to-end testing,
 or verify against production.)
