@@ -10,6 +10,9 @@ const { DicomMetaDictionary } = dcmjs.data;
 
 const MAX_VALUE_LENGTH = 100;
 const MAX_NUMERIC_VALUES = 16;
+// Per-frame functional group sequences can carry one item per frame, so cap
+// how deep we expand rather than rendering thousands of near-identical rows.
+const MAX_SEQUENCE_ITEMS = 20;
 
 // VRs whose values are bulk binary data — never worth rendering inline.
 const BINARY_VRS = new Set(["OB", "OW", "OF", "OD", "OL", "OV", "UN"]);
@@ -71,30 +74,70 @@ function formatValue(dataSet, element, vr) {
     : str;
 }
 
-function buildRows(dataSet) {
+/** Item delimiter rows ("Item 1") that head each sequence item's contents. */
+function itemRow(key, depth, label) {
+  return { key, depth, kind: "item", label };
+}
+
+/** Flatten a sequence's items into item headers followed by their elements. */
+function sequenceRows(element, depth, keyPrefix) {
+  const rows = [];
+  const shown = Math.min(element.items.length, MAX_SEQUENCE_ITEMS);
+  for (let i = 0; i < shown; i++) {
+    const itemKey = `${keyPrefix}/item${i}`;
+    rows.push(itemRow(itemKey, depth, `Item ${i + 1}`));
+    const itemDataSet = element.items[i].dataSet;
+    if (itemDataSet) {
+      rows.push(...buildRows(itemDataSet, depth + 1, itemKey));
+    }
+  }
+  const hidden = element.items.length - shown;
+  if (hidden > 0) {
+    rows.push(itemRow(`${keyPrefix}/more`, depth, `… ${hidden} more item(s)`));
+  }
+  return rows;
+}
+
+/**
+ * Flatten a dataSet into display rows, descending into sequences. Nested rows
+ * carry a depth so the renderer can indent them under their parent.
+ */
+function buildRows(dataSet, depth = 0, keyPrefix = "") {
   return Object.values(dataSet.elements)
     .sort((a, b) => (a.tag < b.tag ? -1 : 1))
-    .map((element) => {
+    .flatMap((element) => {
       const dictEntry = dictEntryFor(element.tag);
       const vr = element.vr || dictEntry?.vr || "";
-      return {
+      const key = `${keyPrefix}/${element.tag}`;
+      const row = {
+        key,
+        depth,
         tag: formatTag(element.tag),
         name: dictEntry?.name || "(private / unknown)",
         vr,
         value: formatValue(dataSet, element, vr),
       };
+      return element.items
+        ? [row, ...sequenceRows(element, depth + 1, key)]
+        : [row];
     });
 }
 
-/** Bucket sorted rows into their DICOM groups: "(0008,....)" → "Group 0008". */
+/**
+ * Bucket sorted rows into their DICOM groups: "(0008,....)" → "Group 0008".
+ * Only top-level rows open a group; nested sequence contents stay with the
+ * sequence they belong to, whatever group their own tags are in.
+ */
 function buildGroups(rows) {
   const groups = [];
   let current = null;
   for (const row of rows) {
-    const group = row.tag.slice(1, 5);
-    if (!current || current.group !== group) {
-      current = { group, rows: [] };
-      groups.push(current);
+    if (row.depth === 0) {
+      const group = row.tag.slice(1, 5);
+      if (!current || current.group !== group) {
+        current = { group, rows: [] };
+        groups.push(current);
+      }
     }
     current.rows.push(row);
   }
@@ -115,6 +158,7 @@ export default function QCDicomDump({ fileByUrl, frameIndex, frameCount }) {
   const rows = useMemo(() => (dataSet ? buildRows(dataSet) : null), [dataSet]);
   const groups = useMemo(() => (rows ? buildGroups(rows) : null), [rows]);
 
+  const tagCount = rows ? rows.filter((row) => row.kind !== "item").length : 0;
   const file = url ? fileByUrl?.[url] : null;
   const frameLabel =
     frameIndex >= 0 && frameCount ? `${frameIndex + 1} / ${frameCount}` : "—";
@@ -127,7 +171,7 @@ export default function QCDicomDump({ fileByUrl, frameIndex, frameCount }) {
         </div>
         <div className="qc-dump-meta">
           {file && `File ${file.file_id} · `}
-          {rows ? `${rows.length} tags` : ""}
+          {rows ? `${tagCount} tags` : ""}
         </div>
       </div>
 
@@ -136,14 +180,28 @@ export default function QCDicomDump({ fileByUrl, frameIndex, frameCount }) {
           {groups.map(({ group, rows: groupRows }) => (
             <div key={group} className="qc-dump-group">
               <div className="qc-dump-group-header">Group {group}</div>
-              {groupRows.map((row) => (
-                <div key={row.tag} className="qc-dump-row">
-                  <div className="qc-dump-tag">{row.tag}</div>
-                  <div className="qc-dump-name">{row.name}</div>
-                  <div className="qc-dump-vr">{row.vr}</div>
-                  <div className="qc-dump-value">{row.value}</div>
-                </div>
-              ))}
+              {groupRows.map((row) =>
+                row.kind === "item" ? (
+                  <div
+                    key={row.key}
+                    className="qc-dump-item"
+                    style={{ "--qc-dump-depth": row.depth }}
+                  >
+                    {row.label}
+                  </div>
+                ) : (
+                  <div
+                    key={row.key}
+                    className="qc-dump-row"
+                    style={{ "--qc-dump-depth": row.depth }}
+                  >
+                    <div className="qc-dump-tag">{row.tag}</div>
+                    <div className="qc-dump-name">{row.name}</div>
+                    <div className="qc-dump-vr">{row.vr}</div>
+                    <div className="qc-dump-value">{row.value}</div>
+                  </div>
+                ),
+              )}
             </div>
           ))}
         </div>

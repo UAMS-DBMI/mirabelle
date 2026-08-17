@@ -27,7 +27,16 @@
 
 #qc-dicom-dump .qc-dump-row {
   @apply grid gap-x-2.5 gap-y-0.5 py-1 font-mono text-[11px];
+  /* Nested sequence contents indent one step per level. */
+  padding-left: calc(var(--qc-dump-depth, 0) * 0.75rem);
   grid-template-columns: 82px 1fr;
+  border-bottom: 1px solid var(--qc-border-faint);
+}
+
+#qc-dicom-dump .qc-dump-item {
+  @apply py-1 font-mono text-[11px] italic;
+  padding-left: calc(var(--qc-dump-depth, 0) * 0.75rem);
+  color: var(--qc-text-muted);
   border-bottom: 1px solid var(--qc-border-faint);
 }
 
