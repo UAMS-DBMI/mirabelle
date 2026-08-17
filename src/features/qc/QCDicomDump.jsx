@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 
 import dcmjs from "dcmjs";
 
@@ -74,74 +74,116 @@ function formatValue(dataSet, element, vr) {
     : str;
 }
 
-/** Item delimiter rows ("Item 1") that head each sequence item's contents. */
-function itemRow(key, depth, label) {
-  return { key, depth, kind: "item", label };
-}
-
-/** Flatten a sequence's items into item headers followed by their elements. */
-function sequenceRows(element, depth, keyPrefix) {
-  const rows = [];
+/** One item of a sequence: a label plus the rows its own dataSet produces. */
+function buildItems(element, keyPrefix) {
+  const items = [];
   const shown = Math.min(element.items.length, MAX_SEQUENCE_ITEMS);
   for (let i = 0; i < shown; i++) {
-    const itemKey = `${keyPrefix}/item${i}`;
-    rows.push(itemRow(itemKey, depth, `Item ${i + 1}`));
+    const key = `${keyPrefix}/item${i}`;
     const itemDataSet = element.items[i].dataSet;
-    if (itemDataSet) {
-      rows.push(...buildRows(itemDataSet, depth + 1, itemKey));
-    }
+    items.push({
+      key,
+      label: `Item ${i + 1}`,
+      rows: itemDataSet ? buildRows(itemDataSet, key) : [],
+    });
   }
   const hidden = element.items.length - shown;
   if (hidden > 0) {
-    rows.push(itemRow(`${keyPrefix}/more`, depth, `… ${hidden} more item(s)`));
+    items.push({
+      key: `${keyPrefix}/more`,
+      label: `… ${hidden} more item(s)`,
+      rows: [],
+    });
   }
-  return rows;
+  return items;
 }
 
 /**
- * Flatten a dataSet into display rows, descending into sequences. Nested rows
- * carry a depth so the renderer can indent them under their parent.
+ * Turn a dataSet into display rows. Sequence rows carry their items as a
+ * nested `items` array rather than being flattened here, so the renderer can
+ * decide which subtrees are currently disclosed.
  */
-function buildRows(dataSet, depth = 0, keyPrefix = "") {
+function buildRows(dataSet, keyPrefix = "") {
   return Object.values(dataSet.elements)
     .sort((a, b) => (a.tag < b.tag ? -1 : 1))
-    .flatMap((element) => {
+    .map((element) => {
       const dictEntry = dictEntryFor(element.tag);
       const vr = element.vr || dictEntry?.vr || "";
       const key = `${keyPrefix}/${element.tag}`;
       const row = {
         key,
-        depth,
         tag: formatTag(element.tag),
         name: dictEntry?.name || "(private / unknown)",
         vr,
         value: formatValue(dataSet, element, vr),
       };
-      return element.items
-        ? [row, ...sequenceRows(element, depth + 1, key)]
-        : [row];
+      return element.items ? { ...row, items: buildItems(element, key) } : row;
     });
 }
 
-/**
- * Bucket sorted rows into their DICOM groups: "(0008,....)" → "Group 0008".
- * Only top-level rows open a group; nested sequence contents stay with the
- * sequence they belong to, whatever group their own tags are in.
- */
+/** Bucket sorted top-level rows into groups: "(0008,....)" → "Group 0008". */
 function buildGroups(rows) {
   const groups = [];
   let current = null;
   for (const row of rows) {
-    if (row.depth === 0) {
-      const group = row.tag.slice(1, 5);
-      if (!current || current.group !== group) {
-        current = { group, rows: [] };
-        groups.push(current);
-      }
+    const group = row.tag.slice(1, 5);
+    if (!current || current.group !== group) {
+      current = { group, rows: [] };
+      groups.push(current);
     }
     current.rows.push(row);
   }
   return groups;
+}
+
+/** Every element row in the tree, including those inside sequences. */
+function countTags(rows) {
+  let count = 0;
+  for (const row of rows) {
+    count += 1;
+    for (const item of row.items || []) {
+      count += countTags(item.rows);
+    }
+  }
+  return count;
+}
+
+/** Keys of every sequence row in the tree, for the expand/collapse-all control. */
+function collectSequenceKeys(rows, keys = []) {
+  for (const row of rows) {
+    if (!row.items) {
+      continue;
+    }
+    keys.push(row.key);
+    for (const item of row.items) {
+      collectSequenceKeys(item.rows, keys);
+    }
+  }
+  return keys;
+}
+
+/**
+ * Walk the row tree into the flat list to render, skipping the contents of
+ * collapsed sequences. Depth drives indentation: an item label sits one step
+ * under its sequence, and the item's elements one step under the label.
+ */
+function flattenVisible(rows, collapsed, depth = 0, out = []) {
+  for (const row of rows) {
+    out.push({ ...row, depth });
+    if (!row.items || collapsed.has(row.key)) {
+      continue;
+    }
+    for (const item of row.items) {
+      out.push({
+        key: item.key,
+        kind: "item",
+        label: item.label,
+        depth: depth + 1,
+      });
+      flattenVisible(item.rows, collapsed, depth + 2, out);
+    }
+  }
+  return out;
 }
 
 /**
@@ -155,10 +197,43 @@ function buildGroups(rows) {
 export default function QCDicomDump({ fileByUrl, frameIndex, frameCount }) {
   const { url, dataSet } = useCurrentDataSet();
 
+  // Collapsed sequences, by row key. Keys are tag paths, so the disclosure
+  // state survives cineing to another frame of the same series.
+  const [collapsed, setCollapsed] = useState(() => new Set());
+
   const rows = useMemo(() => (dataSet ? buildRows(dataSet) : null), [dataSet]);
   const groups = useMemo(() => (rows ? buildGroups(rows) : null), [rows]);
+  const sequenceKeys = useMemo(
+    () => (rows ? collectSequenceKeys(rows) : []),
+    [rows],
+  );
+  const visibleGroups = useMemo(
+    () =>
+      groups?.map(({ group, rows: groupRows }) => ({
+        group,
+        rows: flattenVisible(groupRows, collapsed),
+      })),
+    [groups, collapsed],
+  );
 
-  const tagCount = rows ? rows.filter((row) => row.kind !== "item").length : 0;
+  function toggleSequence(key) {
+    setCollapsed((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(key)) {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  const allCollapsed =
+    sequenceKeys.length > 0 && sequenceKeys.every((key) => collapsed.has(key));
+
+  function toggleAll() {
+    setCollapsed(allCollapsed ? new Set() : new Set(sequenceKeys));
+  }
+
+  const tagCount = rows ? countTags(rows) : 0;
   const file = url ? fileByUrl?.[url] : null;
   const frameLabel =
     frameIndex >= 0 && frameCount ? `${frameIndex + 1} / ${frameCount}` : "—";
@@ -169,15 +244,26 @@ export default function QCDicomDump({ fileByUrl, frameIndex, frameCount }) {
         <div className="qc-section-heading">
           DICOM Dump — Frame {frameLabel}
         </div>
-        <div className="qc-dump-meta">
-          {file && `File ${file.file_id} · `}
-          {rows ? `${tagCount} tags` : ""}
+        <div className="qc-dump-actions">
+          <span className="qc-dump-meta">
+            {file && `File ${file.file_id} · `}
+            {rows ? `${tagCount} tags` : ""}
+          </span>
+          {sequenceKeys.length > 0 && (
+            <button
+              type="button"
+              className="qc-dump-toggle-all"
+              onClick={toggleAll}
+            >
+              {allCollapsed ? "Expand all" : "Collapse all"}
+            </button>
+          )}
         </div>
       </div>
 
-      {groups ? (
+      {visibleGroups ? (
         <div className="qc-dump-scroll">
-          {groups.map(({ group, rows: groupRows }) => (
+          {visibleGroups.map(({ group, rows: groupRows }) => (
             <div key={group} className="qc-dump-group">
               <div className="qc-dump-group-header">Group {group}</div>
               {groupRows.map((row) =>
@@ -196,7 +282,23 @@ export default function QCDicomDump({ fileByUrl, frameIndex, frameCount }) {
                     style={{ "--qc-dump-depth": row.depth }}
                   >
                     <div className="qc-dump-tag">{row.tag}</div>
-                    <div className="qc-dump-name">{row.name}</div>
+                    <div className="qc-dump-name">
+                      {row.items ? (
+                        <button
+                          type="button"
+                          className="qc-dump-disclosure"
+                          aria-expanded={!collapsed.has(row.key)}
+                          onClick={() => toggleSequence(row.key)}
+                        >
+                          <span className="qc-dump-caret" aria-hidden="true">
+                            {collapsed.has(row.key) ? "▸" : "▾"}
+                          </span>
+                          {row.name}
+                        </button>
+                      ) : (
+                        row.name
+                      )}
+                    </div>
                     <div className="qc-dump-vr">{row.vr}</div>
                     <div className="qc-dump-value">{row.value}</div>
                   </div>
