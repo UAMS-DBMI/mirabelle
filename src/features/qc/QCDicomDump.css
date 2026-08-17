@@ -6,9 +6,22 @@
   @apply flex items-baseline justify-between shrink-0 px-5 pt-3.5 pb-1.5;
 }
 
+#qc-dicom-dump .qc-dump-actions {
+  @apply flex items-baseline gap-2.5;
+}
+
 #qc-dicom-dump .qc-dump-meta {
   @apply text-[11px];
   color: var(--qc-text-faint);
+}
+
+#qc-dicom-dump .qc-dump-toggle-all {
+  @apply text-[11px] cursor-pointer;
+  color: var(--qc-accent);
+}
+
+#qc-dicom-dump .qc-dump-toggle-all:hover {
+  @apply underline;
 }
 
 #qc-dicom-dump .qc-dump-scroll {
@@ -47,6 +60,22 @@
 #qc-dicom-dump .qc-dump-name {
   @apply font-medium;
   color: var(--qc-text);
+}
+
+/* Sequence rows put their name behind a disclosure button; it has to sit flush
+   with plain name cells, so no padding of its own. */
+#qc-dicom-dump .qc-dump-disclosure {
+  @apply flex items-baseline gap-1 text-left font-medium cursor-pointer;
+  color: var(--qc-text);
+}
+
+#qc-dicom-dump .qc-dump-disclosure:hover {
+  color: var(--qc-accent);
+}
+
+#qc-dicom-dump .qc-dump-caret {
+  @apply text-[9px];
+  color: var(--qc-text-faint);
 }
 
 #qc-dicom-dump .qc-dump-vr {
