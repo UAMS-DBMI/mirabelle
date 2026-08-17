@@ -117,6 +117,13 @@ module.exports = (env, argv) => {
           context: ["/papi", "/files"],
           target: apiTarget,
           headers: { Authorization: `Bearer ${apiToken || ""}` },
+          // The UAMS backend's cert chains to a CA that Node's bundled trust
+          // store doesn't carry yet, so verification fails. This only affects
+          // the dev server's own hop to the backend, so skip the check.
+          secure: false,
+          // Rewrite Host to the target so the backend's vhost/SNI matches,
+          // instead of forwarding the dev server's own localhost:<port>.
+          changeOrigin: true,
         },
       ],
       // historyApiFallback: true, // This helps with routing; ensure it's true if using React Router
