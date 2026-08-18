@@ -520,6 +520,13 @@ The panel control is gated by its own config entry, `prevMaskToolGroup` —
 separate from `maskToolGroup` because the review routes have no selection box
 to control. The review routes don't preload their stack images, so the hook
 re-resolves the geometry on `IMAGE_LOADED` until the first frame is cached.
+That retry reads the image off the **event itself**, not just the cache:
+Cornerstone dispatches `IMAGE_LOADED` from a `.then` attached to the load
+promise *before* the one that stores the image, so at event time
+`cache.getImage()` still misses the very image the event announces. A
+multi-frame stack recovers on the next frame's event; a single-image stack
+(every DX) never gets one, and without the event's image the overlay would
+sit at `none` forever.
 
 **Where the geometry comes from.** The API returns `masking_parameters` on
 `getMaskingDetails(iec)` — the same blob the details panel formats — as a box
