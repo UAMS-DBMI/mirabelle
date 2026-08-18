@@ -550,6 +550,16 @@ until one lands on the volume:
    and masks it in-plane, so that axis must not veto the overlay.
 3. **Raw scanner-world coordinates**, as a last resort. No observed exam needs
    it; it catches a backend that stores DICOM positions verbatim.
+4. **Raw pixel indices** — POSDA's convention for projection radiographs
+   (DX/CR). Verified against a real exam: a 2846×2330px chest DX (Imager
+   Pixel Spacing 0.148mm, so ~421mm across) stores its blackout box as
+   `LR: 2016, PA: 479, width: 606` — positions that only fit as pixels.
+   Projection images carry no `ImagePositionPatient`/`Orientation`, so this
+   reading is gated to geometry with **no world transform**: exactly where
+   readings 2–3 are impossible anyway, and the gate keeps a small pixel box
+   from accidentally fitting a volume's index range. Note the details panel
+   still labels these sizes "mm" — the blob doesn't say which convention it
+   uses, so the panel can't know either.
 
 The residual ambiguity is a mask in one convention whose offsets happen to
 also fit an earlier reading: that reading wins and the box lands shifted.
