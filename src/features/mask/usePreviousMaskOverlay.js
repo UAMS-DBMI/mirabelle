@@ -164,10 +164,19 @@ function stackWorldGeometry(imageIds, spacing, dimensions) {
   };
 }
 
-function loadedStackGeometry(imageIds) {
-  const image = imageIds?.length
-    ? cornerstone.cache.getImage(imageIds[0])
-    : null;
+// `justLoadedImage` covers a hole in the cache lookup: IMAGE_LOADED is
+// dispatched from a .then attached to the load promise BEFORE the one that
+// stores the image in the cache (imageLoader.js handleImageLoadPromise vs
+// cache.putImageLoadObject), so a listener running on that event sees
+// cache.getImage() miss for the very image the event announces. A multi-image
+// stack recovers on the next frame's event; a single-image stack (every DX)
+// never gets one — so the retry passes the event's own image through here.
+function loadedStackGeometry(imageIds, justLoadedImage) {
+  const firstImageId = imageIds?.length ? imageIds[0] : null;
+  if (!firstImageId) return null;
+  const image =
+    cornerstone.cache.getImage(firstImageId) ??
+    (justLoadedImage?.imageId === firstImageId ? justLoadedImage : null);
   if (!image) return null;
   const spacing = [
     image.columnPixelSpacing ?? 1,
@@ -249,10 +258,10 @@ export function usePreviousMaskOverlay({
     // until the geometry exists; volumes never take this path — their
     // geometry is available from volume creation.
     if (geometry) return undefined;
-    const retry = () => {
+    const retry = (evt) => {
       const retryGeometry = volumetric
         ? loadedVolumeGeometry(volumeId)
-        : loadedStackGeometry(imageIds);
+        : loadedStackGeometry(imageIds, evt?.detail?.image);
       if (!retryGeometry) return;
       cornerstone.eventTarget.removeEventListener(
         cornerstone.Enums.Events.IMAGE_LOADED,
