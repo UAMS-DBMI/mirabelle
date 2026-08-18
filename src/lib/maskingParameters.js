@@ -6,9 +6,10 @@
  * The blob is stored as a JSON *string* and its exact key set varies by
  * masking function (noise/fill only exist for the blur-style functions), so
  * the details panel renders whatever is present rather than a fixed table.
- * Geometry is in patient-space millimetres: LR/PA/IS is the box centre and
- * width/height/depth its extent along those same axes (see
- * masking.js submitFinalCoords).
+ * Geometry: LR/PA/IS is the box centre and width/height/depth its extent
+ * along those same axes — usually in patient-space millimetres (see
+ * masking.js submitFinalCoords), but in raw pixels for the pipeline's
+ * projection-radiograph masks (see maskingParametersToBounds).
  */
 
 const SEPARATOR = " ● ";
@@ -159,6 +160,24 @@ function boundsFromWorld(box, geometry) {
   return boundsFromPatientBox(box, geometry, null);
 }
 
+// Convention 4 — raw pixel indices: how the pipeline stores masks for
+// projection radiographs (DX/CR). Observed: a 2846×2330px chest DX whose
+// blackout box is centred at LR:2016 / PA:479 with width 606 — the whole
+// image is only ~421mm wide, so those can only be pixel positions. Projection
+// images carry no ImagePositionPatient/Orientation, so this reading is gated
+// to geometry with no world transform: it is exactly where the patient-box
+// readings are impossible, and the gate keeps pixel offsets from shadowing
+// the mm conventions on volumes (a small pixel box also fits a volume's index
+// range far too easily).
+function boundsFromPixelIndex({ center, size }, geometry) {
+  if (typeof geometry.worldToIndex === "function") return null;
+  const ranges = [0, 1, 2].map((axis) => [
+    center[axis] - size[axis] / 2,
+    center[axis] + size[axis] / 2,
+  ]);
+  return boundsFromRanges(ranges, geometry.dimensions);
+}
+
 /**
  * The IJK bounding box a stored `masking_parameters` blob describes, for the
  * volume currently loaded.
@@ -172,6 +191,9 @@ function boundsFromWorld(box, geometry) {
  *      pipeline's auto-created masks carry (its giveaway: offsets like
  *      IS:1504 that can never be index×spacing for the loaded extent).
  *   3. Raw scanner-world coordinates, as a last resort.
+ *   4. Raw pixel indices — the pipeline's convention for projection
+ *      radiographs (DX/CR), which have no patient space at all. Gated to
+ *      geometry with no world transform so it can never shadow readings 2–3.
  *
  * The residual ambiguity is a mask in one convention whose offsets happen to
  * also fit the volume under an earlier reading — that reading wins and the box
@@ -200,7 +222,8 @@ export function maskingParametersToBounds(raw, geometry) {
   return (
     boundsFromIndexRelative(box, geometry) ??
     boundsFromCornerRelative(box, geometry) ??
-    boundsFromWorld(box, geometry)
+    boundsFromWorld(box, geometry) ??
+    boundsFromPixelIndex(box, geometry)
   );
 }
 
