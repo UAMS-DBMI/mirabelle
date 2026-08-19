@@ -196,6 +196,68 @@ function loadedStackGeometry(imageIds, justLoadedImage) {
 }
 
 /**
+ * Run `draw` whenever a viewport receives its volume actor.
+ * VOLUME_VIEWPORT_NEW_VOLUME fires the moment the actor lands — pixels still
+ * streaming in — which is what lets a box overlay be up while the anatomy is
+ * still arriving. The event is dispatched on the viewport's element (it
+ * doesn't bubble to eventTarget), so each element gets its own listener,
+ * attached when ELEMENT_ENABLED announces it — and directly for viewports
+ * that already exist when the caller starts watching (show/hide toggles
+ * re-run effects long after setup). Returns a cleanup function. Shared by
+ * this hook's amber box and MaskIEC's green selection box.
+ */
+export function watchViewportVolumeAttach(draw) {
+  const newVolumeEvent = cornerstone.Enums.Events.VOLUME_VIEWPORT_NEW_VOLUME;
+  const listeningElements = new Set();
+  const attachNewVolumeListener = (element) => {
+    if (!element || listeningElements.has(element)) return;
+    listeningElements.add(element);
+    element.addEventListener(newVolumeEvent, draw);
+  };
+  const handleElementEnabled = (evt) =>
+    attachNewVolumeListener(evt.detail?.element);
+  cornerstone.eventTarget.addEventListener(
+    cornerstone.Enums.Events.ELEMENT_ENABLED,
+    handleElementEnabled,
+  );
+  cornerstone
+    .getRenderingEngines()[0]
+    ?.getViewports()
+    .forEach((item) => attachNewVolumeListener(item.element));
+  return () => {
+    cornerstone.eventTarget.removeEventListener(
+      cornerstone.Enums.Events.ELEMENT_ENABLED,
+      handleElementEnabled,
+    );
+    listeningElements.forEach((element) =>
+      element.removeEventListener(newVolumeEvent, draw),
+    );
+  };
+}
+
+/**
+ * The submitted mask's IJK bounds for whatever the host route has loaded —
+ * the same resolution this overlay draws from, exposed so the mask route can
+ * seed the live selection with it (the curator starts from the exam's last
+ * submitted state instead of an empty box). Null when the exam has no usable
+ * masking record, or when the volume/first frame isn't loaded yet.
+ */
+export function resolveSubmittedMaskBounds({
+  volumetric,
+  volumeId,
+  imageIds,
+  maskingDetails,
+}) {
+  const geometry = volumetric
+    ? loadedVolumeGeometry(volumeId)
+    : loadedStackGeometry(imageIds);
+  return maskingParametersToBounds(
+    maskingDetails?.masking_parameters,
+    geometry,
+  );
+}
+
+/**
  * Mount the submitted-mask overlay for the exam the host route has loaded.
  *
  * @param {object} args
@@ -328,31 +390,10 @@ export function usePreviousMaskOverlay({
     draw();
 
     // Draw as early as the viewports can carry the box, not just when the
-    // volume finishes loading. VOLUME_VIEWPORT_NEW_VOLUME fires the moment a
-    // viewport receives its volume actor — pixels still streaming in — and the
-    // submitted mask's geometry needs none of those pixels, so the amber box
-    // is up while the anatomy is still arriving. The event is dispatched on
-    // the viewport's element (it doesn't bubble to eventTarget), so each
-    // element gets its own listener, attached when ELEMENT_ENABLED announces
-    // it — and directly for viewports that already exist when this effect
-    // runs (show/hide toggles re-run it long after setup).
-    const newVolumeEvent = cornerstone.Enums.Events.VOLUME_VIEWPORT_NEW_VOLUME;
-    const listeningElements = new Set();
-    const attachNewVolumeListener = (element) => {
-      if (!element || listeningElements.has(element)) return;
-      listeningElements.add(element);
-      element.addEventListener(newVolumeEvent, draw);
-    };
-    const handleElementEnabled = (evt) =>
-      attachNewVolumeListener(evt.detail?.element);
-    cornerstone.eventTarget.addEventListener(
-      cornerstone.Enums.Events.ELEMENT_ENABLED,
-      handleElementEnabled,
-    );
-    cornerstone
-      .getRenderingEngines()[0]
-      ?.getViewports()
-      .forEach((item) => attachNewVolumeListener(item.element));
+    // volume finishes loading — the submitted mask's geometry needs no pixels,
+    // so the amber box is up while the anatomy is still arriving (see
+    // watchViewportVolumeAttach).
+    const detachVolumeAttach = watchViewportVolumeAttach(draw);
 
     // Late backstops: the full-load events. They matter even with the early
     // draw above — the 3D glass fill needs the volume actor's shared scalar
@@ -362,13 +403,7 @@ export function usePreviousMaskOverlay({
     cornerstone.eventTarget.addEventListener("StackSegmentationReady", draw);
 
     return () => {
-      cornerstone.eventTarget.removeEventListener(
-        cornerstone.Enums.Events.ELEMENT_ENABLED,
-        handleElementEnabled,
-      );
-      listeningElements.forEach((element) =>
-        element.removeEventListener(newVolumeEvent, draw),
-      );
+      detachVolumeAttach();
       cornerstone.eventTarget.removeEventListener("VolumeReallyLoaded", draw);
       cornerstone.eventTarget.removeEventListener(
         "StackSegmentationReady",
