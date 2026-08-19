@@ -46,6 +46,8 @@ import { describeMaskingParameters } from "@/lib/maskingParameters";
 import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
 import {
   usePreviousMaskOverlay,
+  resolveSubmittedMaskBounds,
+  watchViewportVolumeAttach,
   is2dViewport,
   is3dViewport,
 } from "@/features/mask/usePreviousMaskOverlay";
@@ -54,9 +56,11 @@ import {
   MASK_LIVE_DRAW_EVENT,
 } from "@/lib/clampedRectangleScissors";
 import {
+  applyMaskSelection,
   forgetMaskDraft,
   rememberMaskSelection,
   restoreMaskSelection,
+  selectionMatchesBounds,
 } from "@/lib/maskDrafts";
 import { getMaskView, rememberMaskView } from "@/lib/maskViewPrefs";
 
@@ -250,6 +254,12 @@ export default function MaskIEC({
   // so the load effect's cleanup doesn't re-save the now-irrelevant selection
   // as a draft after we forget it.
   const skipDraftSaveRef = useRef(false);
+  // The bounds the selection was seeded with from the exam's already-submitted
+  // mask (null when nothing was seeded, or once the curator edits). The draft
+  // savers compare against it: a selection still equal to the seed is the
+  // exam's stored state, not unfinished curator work, and saving it would flag
+  // every previously-masked exam as drafted just for being opened.
+  const seededBoundsRef = useRef(null);
   // Tracks the segmentation currently backing the viewers, so the unmount
   // cleanup can decache its labelmap volume (the segmentationId state captured
   // by the effect closure is stale by then).
@@ -333,11 +343,26 @@ export default function MaskIEC({
     let isCancelled = false;
 
     // Re-apply this IEC's saved (unsubmitted) selection as soon as its
-    // segmentation exists — "VolumeReallyLoaded" for volumes,
-    // "StackSegmentationReady" for stacks. Gated to the active segmentation
-    // and to one attempt per load, so the synthetic VolumeReallyLoaded that
-    // Clear fires can't resurrect the draft it just discarded.
+    // segmentation exists — "MaskSegmentationReady" for volumes, which fires
+    // the moment the empty labelmap is created, BEFORE the anatomy has
+    // streamed in (the selection is voxel-manager bounds; it needs no
+    // pixels), so the box is already up while the image loads.
+    // "VolumeReallyLoaded" is kept as a backstop, and stacks fire
+    // "StackSegmentationReady" (their labelmap is derived from the loaded
+    // images, so there is no earlier moment). Gated to the active
+    // segmentation and to one attempt per load, so the synthetic
+    // VolumeReallyLoaded that Clear fires can't resurrect the draft it just
+    // discarded.
+    //
+    // With no draft, the selection is instead seeded from the exam's
+    // already-submitted mask, so the curator starts from the exam's last
+    // submitted state rather than an empty box. Priority order: the curator's
+    // own unfinished draft always beats the seed.
     let draftRestored = false;
+    // What the seed needs from initialize(), captured before the loads it
+    // awaits can fire the events this handler runs on.
+    let seedContext = null;
+    seededBoundsRef.current = null;
     const restoreDraft = (evt) => {
       const segId = evt.detail?.segmentationId;
       if (
@@ -348,8 +373,24 @@ export default function MaskIEC({
         return;
       }
       draftRestored = true;
-      restoreMaskSelection(iec, segId);
+      if (restoreMaskSelection(iec, segId)) return;
+      if (!seedContext) return;
+      // Same geometry resolution the amber overlay draws from, so the green
+      // box lands exactly where the amber one shows the submitted mask.
+      const seedBounds = resolveSubmittedMaskBounds(seedContext);
+      if (!seedBounds) return;
+      // The ref must be set before the apply: applying fires the
+      // data-modified event synchronously, and the live draft saver reads the
+      // ref to know this edit is the seed, not the curator.
+      seededBoundsRef.current = seedBounds;
+      if (!applyMaskSelection(segId, seedBounds)) {
+        seededBoundsRef.current = null;
+      }
     };
+    cornerstone.eventTarget.addEventListener(
+      "MaskSegmentationReady",
+      restoreDraft,
+    );
     cornerstone.eventTarget.addEventListener(
       "VolumeReallyLoaded",
       restoreDraft,
@@ -397,6 +438,7 @@ export default function MaskIEC({
       setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
       activeSegmentationIdRef.current = segmentationId;
+      seedContext = { volumetric, volumeId, imageIds, maskingDetails };
 
       try {
         if (volumetric) {
@@ -496,9 +538,31 @@ export default function MaskIEC({
       // forgotten and must not be resurrected from the still-drawn box.
       if (skipDraftSaveRef.current) {
         skipDraftSaveRef.current = false;
-      } else {
+      } else if (
+        !seededBoundsRef.current ||
+        !selectionMatchesBounds(
+          activeSegmentationIdRef.current,
+          seededBoundsRef.current,
+        )
+      ) {
+        // A selection still equal to the seed is the exam's stored state, not
+        // curator work — leaving without touching it must not flag the exam
+        // as drafted.
         rememberMaskSelection(iec, activeSegmentationIdRef.current);
       }
+      // This exam's segmentation is going away, so the ref must stop naming
+      // it. A volume still streaming when the curator navigates fires its
+      // VolumeReallyLoaded AFTER the next exam's listeners are attached, and
+      // with the ref stale that event passes the identity gate and consumes
+      // the new load's one-shot restore before the new exam's own ready event
+      // arrives — the seed/draft then silently never applies. (This is timing
+      // dependent: it only bites when the previous volume outlives the
+      // navigation, which is what made the missing box intermittent.)
+      activeSegmentationIdRef.current = null;
+      cornerstone.eventTarget.removeEventListener(
+        "MaskSegmentationReady",
+        restoreDraft,
+      );
       cornerstone.eventTarget.removeEventListener(
         "VolumeReallyLoaded",
         restoreDraft,
@@ -872,12 +936,30 @@ export default function MaskIEC({
       handleDrawStart,
     );
 
+    // Draw as early as the panes can carry the box. A draft or seed applies
+    // the moment the empty labelmap exists — before the anatomy has streamed
+    // in (see loadVolumeAndSegmentation) — and drawing the box needs none of
+    // those pixels, so it goes up per viewport as each receives its volume
+    // actor: the same early-draw mechanism as the amber overlay's.
+    // "VolumeReallyLoaded" is the late backstop that completes the 3D glass
+    // (its fill needs the volume actor's scalar texture, which trails the
+    // actor itself); "StackSegmentationReady" covers the stack's first draw.
+    const detachVolumeAttach = watchViewportVolumeAttach(refreshSelectionBoxes);
+    cornerstone.eventTarget.addEventListener("VolumeReallyLoaded", handler);
+    cornerstone.eventTarget.addEventListener("StackSegmentationReady", handler);
+
     // Redraw immediately so a left-click tool change re-renders any existing box
     // with the right interactivity (frozen vs. movable) without waiting for the
     // next segmentation edit. No-op when nothing has been drawn yet.
     refreshSelectionBoxes();
 
     return () => {
+      detachVolumeAttach();
+      cornerstone.eventTarget.removeEventListener("VolumeReallyLoaded", handler);
+      cornerstone.eventTarget.removeEventListener(
+        "StackSegmentationReady",
+        handler,
+      );
       cornerstone.eventTarget.removeEventListener(
         csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,
         handler,
@@ -906,6 +988,17 @@ export default function MaskIEC({
       });
     };
     // `dispatch` is stable across renders, so listing it costs no extra runs.
+    //
+    // `isInitialized` is a dep for the seeded/restored selection: the draft or
+    // submitted-mask seed applies DURING the load (MaskSegmentationReady /
+    // StackSegmentationReady fire from inside initialize()), when the
+    // viewports don't exist yet, so that data-modified refresh draws nothing.
+    // Re-running this effect when isInitialized flips true — after the viewer
+    // has mounted — is what guarantees the post-mount draw. Volumes also get
+    // one from watchViewportVolumeAttach, but a stack viewport never fires
+    // VOLUME_VIEWPORT_NEW_VOLUME, so without this dep the stack's seeded box
+    // only appeared when load timings happened to land the events after the
+    // mount.
   }, [
     iec,
     segmentationId,
@@ -913,6 +1006,7 @@ export default function MaskIEC({
     volumetric,
     leftClickTool,
     maskVisible,
+    isInitialized,
     dispatch,
   ]);
 
@@ -1014,6 +1108,16 @@ export default function MaskIEC({
     if (!iec || !segmentationId) return undefined;
     const handleEdit = (evt) => {
       if (evt.detail?.segmentationId !== segmentationId) return;
+      // The seed's own apply fires this event too, and a selection still
+      // equal to the seed isn't curator work (see seededBoundsRef). The first
+      // real edit drops the ref, so a curator who later resizes back to the
+      // exact seed coordinates still gets a draft like any other edit.
+      if (seededBoundsRef.current) {
+        if (selectionMatchesBounds(segmentationId, seededBoundsRef.current)) {
+          return;
+        }
+        seededBoundsRef.current = null;
+      }
       rememberMaskSelection(iec, segmentationId);
     };
     cornerstone.eventTarget.addEventListener(
@@ -1072,6 +1176,9 @@ export default function MaskIEC({
     // volumetric branch below swaps in a fresh, empty segmentation without
     // firing a data-modified event, so the live listener wouldn't catch it.)
     forgetMaskDraft(iec);
+    // The seed is gone with the selection; the empty state the curator chose
+    // must not be mistaken for an untouched seed by the draft savers.
+    seededBoundsRef.current = null;
     // Clear the selection box overlays from the 3D and 2D viewports.
     const renderingEngine = cornerstone.getRenderingEngines()[0];
     renderingEngine?.getViewports().forEach((item) => {

@@ -23,7 +23,7 @@ should be masked. This branch rebuilds that drawing experience.
 - The box only appeared in the pane you drew it in. The 3D view and the other
   panes didn't show it until you finished.
 - You could drag past the edge of the image, creating a selection partly outside
-  the data — with edges you couldn't see.
+  the data — with edges you couldn't see.  
 - The window-level tool grabbed the left mouse button on every load, so you had
   to re-select the drawing tool each time. Drawing too early threw
   `No active segmentation detected`.
@@ -708,8 +708,67 @@ The `draftRestored` flag and the identity check against
 `VolumeReallyLoaded`, and without these guards it would immediately resurrect
 the draft it had just discarded.
 
+The identity check only works if the ref never outlives its exam: the load
+effect's cleanup sets `activeSegmentationIdRef.current = null` (after the
+draft save that reads it). A volume still streaming when the curator
+navigates fires its `VolumeReallyLoaded` *after* the next exam's listeners
+are attached; with the ref still naming the old segmentation, that stale
+event passed the gate and consumed the new load's one-shot restore before
+the new exam's own ready event arrived — so the seed/draft silently never
+applied. Timing-dependent (only when the previous volume outlived the
+navigation), which is what made the missing green box intermittent.
+
 Restoring mirrors the two commit paths — volume writes `setBounds` (re-clamped,
 in case the draft was saved at a different decimation); stack repaints pixels.
+Both run through `applyMaskSelection(segmentationId, bounds)`, the exported
+write path for putting an arbitrary IJK box into the selection.
+
+**Seeded from the submitted mask when there is no draft.** An exam that was
+already masked opens with the green selection pre-filled to the submitted
+mask's box — the curator starts from the exam's last submitted state instead
+of an empty selection, and Accept without edits resubmits the same geometry.
+The seed runs in the same `restoreDraft` handler, strictly after the draft
+check (the curator's own unfinished work always wins), and resolves the
+stored `masking_parameters` against the loaded geometry with
+`resolveSubmittedMaskBounds` — the same resolution the amber overlay draws
+from, so the green box lands exactly on the amber one.
+
+**It applies before the image loads.** For volumes,
+`loadVolumeAndSegmentation` now creates the empty labelmap right after the
+volume itself is created — as a *local* labelmap volume
+(`createLocalLabelmapVolume` from the parent volume's geometry), because the
+derived-image variant reads every source frame's `imagePlaneModule` and
+wadouri only has that metadata once each frame's file has streamed in — and
+announces it with `"MaskSegmentationReady"`, which `restoreDraft` listens to
+ahead of the full-load events. The selection is
+voxel-manager bounds, so the draft/seed lands immediately, and the box
+lifecycle effect draws it per viewport as each receives its volume actor
+(`watchViewportVolumeAttach`, the amber overlay's early-draw mechanism
+shared) — the curator sees the box while the anatomy is still streaming in.
+`"VolumeReallyLoaded"` stays the late backstop: it completes the 3D glass
+(whose fill needs the volume actor's scalar texture) and keeps its meaning
+for consumers that need pixels, like scissors enablement. Stacks are the
+exception — their labelmap is derived from the loaded images, so there is no
+earlier moment than `"StackSegmentationReady"`.
+
+Because both ready events fire from inside `initialize()` — before
+`isInitialized` flips and the viewports mount — the seed/draft's
+data-modified refresh can find no viewports to draw on. The box lifecycle
+effect therefore lists `isInitialized` in its deps: its re-run after the
+viewer mounts is the guaranteed post-mount draw. Volumes would usually get
+one anyway from `watchViewportVolumeAttach`, but a stack viewport never
+fires `VOLUME_VIEWPORT_NEW_VOLUME`, so without the dep the stack's seeded
+box only appeared when load timings happened to land the events after the
+mount — the "sometimes the mask doesn't show" bug.
+
+One rule keeps the seed honest: **an untouched seed is not a draft.** Both
+draft savers (the live `SEGMENTATION_DATA_MODIFIED` listener and the
+navigation cleanup) compare the selection against `seededBoundsRef` via
+`selectionMatchesBounds` and skip saving while they match — otherwise merely
+opening a previously-masked exam would flag its queue row as having pending
+work. The first real edit clears the ref, after which every save behaves as
+before; Clear clears it too, so a deliberately emptied selection isn't
+mistaken for an untouched seed.
 
 **Dropped** on every terminal action — Accept, Skip, Non-maskable, Clear:
 

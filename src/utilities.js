@@ -371,49 +371,71 @@ export async function loadVolumeAndSegmentation(
   volumeId,
   segmentationId,
 ) {
-  let loadedFromCache = true;
   let volume = cornerstone.cache.getVolume(volumeId);
   if (!volume) {
     console.log("Volume didn't already exist, creating it");
     volume = await volumeLoader.createAndCacheVolume(volumeId, {
       imageIds,
     });
-    loadedFromCache = false;
   } else {
-    // triggerEvent(eventTarget, 'VolumeReallyLoaded', {
-    //   volumeId,
-    //   segmentationId,
-    // });
     console.log("Volume already existed, not creating it");
   }
 
-  // Set the volume to load
-  volume.load(() => {
-    csToolsSegmentation.removeAllSegmentations();
-    csToolsSegmentation.removeAllSegmentationRepresentations();
+  // Create the segmentation as soon as the volume's geometry exists — before
+  // any pixels have streamed in. The labelmap only needs dimensions/spacing,
+  // and having it this early is what lets a saved draft or the submitted-mask
+  // seed apply (and its selection box draw) while the anatomy is still
+  // loading. "MaskSegmentationReady" announces that moment; the full-load
+  // "VolumeReallyLoaded" below keeps its meaning for the consumers that need
+  // pixels (scissors enablement, the 3D glass fill).
+  csToolsSegmentation.removeAllSegmentations();
+  csToolsSegmentation.removeAllSegmentationRepresentations();
 
-    // Create a segmentation of the same resolution as the source data for the CT volume
-    volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
-      volumeId: segmentationId,
-    });
+  // Create a segmentation of the same resolution as the source data for the
+  // CT volume. It is built as a LOCAL volume from the parent volume's
+  // geometry rather than with createAndCacheDerivedLabelmapVolume: the
+  // derived version creates one derived image per source frame, which reads
+  // each frame's imagePlaneModule — metadata that, for wadouri, exists only
+  // once that frame's file has been fetched, i.e. not until the volume has
+  // finished streaming (the loader prefetches just 3 frames up front). The
+  // local version needs only dimensions/spacing/origin/direction, all known
+  // the moment the volume object exists — which is what makes this pre-load
+  // creation possible at all.
+  const labelmap = volumeLoader.createLocalLabelmapVolume(
+    {
+      metadata: volume.metadata,
+      dimensions: volume.dimensions,
+      spacing: volume.spacing,
+      origin: volume.origin,
+      direction: volume.direction,
+    },
+    segmentationId,
+  );
+  // Parity with the derived-labelmap path, which stamps the reference back to
+  // the source volume — some segmentation code paths read it.
+  labelmap.referencedVolumeId = volumeId;
 
-    csToolsSegmentation.addSegmentations([
-      {
-        segmentationId,
-        representation: {
-          // The type of segmentation
-          type: csToolsEnums.SegmentationRepresentations.Labelmap,
-          // The actual segmentation data, in the case of labelmap this is a
-          // reference to the source volume of the segmentation.
-          data: {
-            volumeId: segmentationId,
-          },
+  csToolsSegmentation.addSegmentations([
+    {
+      segmentationId,
+      representation: {
+        // The type of segmentation
+        type: csToolsEnums.SegmentationRepresentations.Labelmap,
+        // The actual segmentation data, in the case of labelmap this is a
+        // reference to the source volume of the segmentation.
+        data: {
+          volumeId: segmentationId,
         },
       },
-    ]);
-    // if (loadedFromCache) {
-    //   await new Promise((r) => setTimeout(r, 300));
-    // }
+    },
+  ]);
+  triggerEvent(eventTarget, "MaskSegmentationReady", {
+    volumeId,
+    segmentationId,
+  });
+
+  // Set the volume to load
+  volume.load(() => {
     triggerEvent(eventTarget, "VolumeReallyLoaded", {
       volumeId,
       segmentationId,

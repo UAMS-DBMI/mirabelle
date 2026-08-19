@@ -152,21 +152,56 @@ export function hasMaskDraft(iec) {
 }
 
 /**
- * Re-apply the draft saved for this IEC to a freshly created segmentation.
- * Fires the segmentation-data-modified event on success so the selection box
- * overlays redraw. Returns whether a draft was applied.
+ * Apply an arbitrary IJK bounding box as the exam's selection — the shared
+ * write path for restoring a draft and for seeding the selection from the
+ * exam's already-submitted mask. Fires the segmentation-data-modified event
+ * on success so the selection box overlays redraw. Returns whether it was
+ * applied.
  */
-export function restoreMaskSelection(iec, segmentationId) {
-  const draft = iec != null ? drafts.get(String(iec)) : undefined;
-  if (!draft || !segmentationId || !segmentationExists(segmentationId)) {
+export function applyMaskSelection(segmentationId, bounds) {
+  if (!bounds || !segmentationId || !segmentationExists(segmentationId)) {
     return false;
   }
   const applied = cornerstone.cache.getVolume(segmentationId)
-    ? applyBoundsToVolumeLabelmap(segmentationId, draft)
-    : applyBoundsToStackLabelmap(segmentationId, draft);
+    ? applyBoundsToVolumeLabelmap(segmentationId, bounds)
+    : applyBoundsToStackLabelmap(segmentationId, bounds);
   if (!applied) return false;
   csToolsSegmentation.triggerSegmentationEvents.triggerSegmentationDataModified(
     segmentationId,
   );
   return true;
+}
+
+/**
+ * Re-apply the draft saved for this IEC to a freshly created segmentation.
+ * Returns whether a draft was applied.
+ */
+export function restoreMaskSelection(iec, segmentationId) {
+  const draft = iec != null ? drafts.get(String(iec)) : undefined;
+  return draft ? applyMaskSelection(segmentationId, draft) : false;
+}
+
+/**
+ * Whether the current selection is exactly the given bounds. This is how the
+ * draft savers tell an untouched seed (the selection MaskIEC pre-fills from
+ * the exam's submitted mask) from curator work: a selection still equal to
+ * the seed is not unfinished work and must not flag the exam as drafted.
+ */
+export function selectionMatchesBounds(segmentationId, bounds) {
+  if (!bounds || !segmentationId || !segmentationExists(segmentationId)) {
+    return false;
+  }
+  let current;
+  try {
+    current = readSelectionBounds(segmentationId);
+  } catch (error) {
+    console.warn("[maskDrafts] could not read the selection to compare", error);
+    return false;
+  }
+  if (!current) return false;
+  return ["i", "j", "k"].every(
+    (axis) =>
+      current[axis].min === bounds[axis].min &&
+      current[axis].max === bounds[axis].max,
+  );
 }
