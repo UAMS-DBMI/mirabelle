@@ -116,6 +116,9 @@ module.exports = (env, argv) => {
           // Target + token come from the active .env file.
           context: ["/papi", "/files"],
           target: apiTarget,
+          // Rewrite the Host header (and TLS SNI) to match the target. The
+          // backend is name-based virtual hosting; it won't respond correctly if the Host header is wrong.
+          changeOrigin: true,
           headers: { Authorization: `Bearer ${apiToken || ""}` },
         },
       ],
