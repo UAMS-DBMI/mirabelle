@@ -116,6 +116,9 @@ module.exports = (env, argv) => {
           // Target + token come from the active .env file.
           context: ["/papi", "/files"],
           target: apiTarget,
+          // Rewrite the Host header (and TLS SNI) to match the target. The
+          // backend is name-based virtual hosting; it won't respond correctly if the Host header is wrong.
+          changeOrigin: true,
           headers: { Authorization: `Bearer ${apiToken || ""}` },
           // The UAMS backend's cert chains to a CA that Node's bundled trust
           // store doesn't carry yet, so verification fails. This only affects
