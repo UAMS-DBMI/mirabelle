@@ -14,7 +14,12 @@ import {
   reset,
 } from "@/features/presentationSlice";
 
-import { setTitle, setLoading, setOption } from "@/features/optionSlice";
+import {
+  setTitle,
+  setTitleDetail,
+  setLoading,
+  setOption,
+} from "@/features/optionSlice";
 import { notify } from "@/lib/notify";
 import { messages } from "@/lib/messages";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -221,6 +226,10 @@ export default function DicomReviewIEC({
     let isCancelled = false;
 
     const initialize = async () => {
+      // Don't leave the previous exam's context beside the title while the new
+      // one is fetched.
+      dispatch(setTitleDetail(null));
+
       const details = await getDicomDetails(iec);
       // Auxiliary to this route (it feeds the details rows and the submitted
       // mask overlay), so a masking-endpoint failure must not take down the
@@ -277,6 +286,17 @@ export default function DicomReviewIEC({
       }
 
       setDetails(finalDetails);
+      dispatch(
+        setTitleDetail(
+          [
+            iec,
+            finalDetails.segBaseModality || details.modality,
+            details.series_description,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        ),
+      );
 
       let decimate_count = optionsDecimate;
       const requestedDecimateCount =

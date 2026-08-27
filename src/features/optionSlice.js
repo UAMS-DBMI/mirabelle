@@ -39,6 +39,9 @@ const initialState = {
   decimate: 0,
   persistent: true,
   loading: false,
+  // Compact "what am I looking at" line shown beside the header title (e.g.
+  // "1117932 · CT · AXIAL LUNG"). Set by the exam routes when details load.
+  titleDetail: null,
 };
 
 // Options navigation must NOT reset:
@@ -89,12 +92,15 @@ const optionSlice = createSlice({
     setTitle: (state, action) => {
       state.title = action.payload;
     },
+    setTitleDetail: (state, action) => {
+      state.titleDetail = action.payload;
+    },
     setLoading: (state, action) => {
       state.loading = action.payload;
     },
   },
 });
 
-export const { setOption, resetOptions, setTitle, setLoading } =
+export const { setOption, resetOptions, setTitle, setTitleDetail, setLoading } =
   optionSlice.actions;
 export default optionSlice.reducer;

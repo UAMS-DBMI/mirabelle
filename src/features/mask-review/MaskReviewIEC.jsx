@@ -14,7 +14,12 @@ import {
   reset,
 } from "@/features/presentationSlice";
 
-import { setTitle, setLoading, setOption } from "@/features/optionSlice";
+import {
+  setTitle,
+  setTitleDetail,
+  setLoading,
+  setOption,
+} from "@/features/optionSlice";
 import { useHotkeys } from "react-hotkeys-hook";
 import { notify } from "@/lib/notify";
 import { messages } from "@/lib/messages";
@@ -190,6 +195,10 @@ export default function MaskReviewIEC({
     let isCancelled = false;
 
     const initialize = async () => {
+      // Don't leave the previous exam's context beside the title while the new
+      // one is fetched.
+      dispatch(setTitleDetail(null));
+
       const details = await getDicomDetails(iec);
       const maskingDetails = await getMaskingDetails(iec);
       if (isCancelled || requestId !== loadRequestRef.current) {
@@ -202,6 +211,13 @@ export default function MaskReviewIEC({
       const { volumetric } = details;
       setDetails(details);
       setMaskingDetails(maskingDetails);
+      dispatch(
+        setTitleDetail(
+          [iec, details.modality, details.series_description]
+            .filter(Boolean)
+            .join(" · "),
+        ),
+      );
 
       let decimate_count = optionsDecimate;
       const requestedDecimateCount =
