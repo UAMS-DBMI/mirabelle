@@ -21,7 +21,10 @@
   color: rgba(226, 232, 240, 0.9);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s ease, background 0.12s ease, color 0.12s ease;
+  transition:
+    opacity 0.15s ease,
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
 /* The scrollbar strip lives on the right edge (right: 4px, up to 10px wide,
