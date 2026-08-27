@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { Enums } from "@/features/presentationSlice";
@@ -142,6 +142,18 @@ export default function ToolsPanel({
   });
   const toolsConfigs = useToolsConfigs({ manager, selectionReady });
 
+  // The AllowSegmentationDrawing listener below is registered once on mount, so
+  // it must reach the manager through a ref that every render refreshes rather
+  // than closing over the mount-time `manager`. On IEC navigation the tool group
+  // is destroyed and recreated: this panel remounts (keyed on iec) while
+  // MaskIEC's toolGroup state still points at the old group, then re-renders
+  // with the new one. A listener that captured `manager` at mount would keep
+  // arming the scissors on the destroyed tool group, so the selection tool
+  // silently fails to activate on the new image until the user clicks the
+  // Selection button (which runs through the current render's manager).
+  const managerRef = useRef(manager);
+  managerRef.current = manager;
+
   useEffect(() => {
     // The left-click drawing tool stays disabled while the image loads (see
     // toolsManager). Each viewport fires "AllowSegmentationDrawing" once its
@@ -173,7 +185,7 @@ export default function ToolsPanel({
       // The image is loaded and its segmentation is active, so the selection
       // (scissors) button is now safe to use — enable it.
       setSelectionReady(true);
-      manager.switchLeftClickMode(Enums.LeftClickOptions.SELECTION);
+      managerRef.current.switchLeftClickMode(Enums.LeftClickOptions.SELECTION);
     };
     cornerstone.eventTarget.addEventListener(
       "AllowSegmentationDrawing",

@@ -41,6 +41,7 @@ export default function DicomReviewVR({
       routeName="dicom-review-vr"
       vr={vr}
       iec={iec}
+      noIecs={noIecs}
       reviewStatus={reviewStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}

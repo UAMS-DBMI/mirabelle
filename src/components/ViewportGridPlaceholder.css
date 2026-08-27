@@ -1,0 +1,35 @@
+/* ViewportGridPlaceholder.css */
+
+.viewport-grid-placeholder {
+  @apply w-full h-full grid grid-cols-[1fr,1fr] grid-rows-[1fr,1fr] gap-2 rounded-lg;
+}
+
+.viewport-grid-placeholder.single {
+  @apply grid-cols-[1fr] grid-rows-[1fr];
+}
+
+/* Empty pane: matches the real viewport's black canvas and rounded frame, with
+   a faint border so the four regions read as viewports rather than one void.
+   A slow shimmer signals "loading" without competing with the spinner. */
+.viewport-grid-placeholder__pane {
+  @apply rounded-lg;
+  background: #000;
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  animation: viewport-placeholder-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes viewport-placeholder-pulse {
+  0%,
+  100% {
+    border-color: rgba(59, 130, 246, 0.14);
+  }
+  50% {
+    border-color: rgba(59, 130, 246, 0.34);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewport-grid-placeholder__pane {
+    animation: none;
+  }
+}
