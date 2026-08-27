@@ -22,7 +22,13 @@ import { messages } from "@/lib/messages";
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
-import { isSegFlat, loadVolumeAndSegmentation, getIECInfo } from "@/utilities";
+import {
+  isSegFlat,
+  loadVolumeAndSegmentation,
+  getIECInfo,
+  makeRoomForExam,
+  makeRoomForStackExam,
+} from "@/utilities";
 import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
 import { describeMaskingParameters } from "@/lib/maskingParameters";
@@ -221,6 +227,9 @@ export default function MaskReviewIEC({
       try {
         // for testing error handling
         if (volumetric) {
+          // Keep previously visited exams cached (instant back-navigation),
+          // but evict the least-recently-viewed ones if this one wouldn't fit.
+          makeRoomForExam(frames, [volumeId]);
           const volume = await cornerstone.volumeLoader.createAndCacheVolume(
             volumeId,
             {
@@ -238,6 +247,9 @@ export default function MaskReviewIEC({
           dispatch(setVolumeConfig());
           dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
         } else {
+          // The stack viewport loads the frames on demand as pinned wadouri
+          // images; register them so the exam-LRU eviction can free them.
+          makeRoomForStackExam(frames);
           dispatch(setTitle("Mask Stack Review"));
           dispatch(reset());
           dispatch(setMaskerReviewConfig());
@@ -256,6 +268,10 @@ export default function MaskReviewIEC({
         // throw new Error("This is a test error");
       } catch (error) {
         console.error(error);
+        // A load abandoned by navigation may fail against torn-down state, or
+        // lose a cache reservation the live exam has since taken — that's
+        // expected, and must not flag the exam now on screen as errored.
+        if (isCancelled || requestId !== loadRequestRef.current) return;
         notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
       }
