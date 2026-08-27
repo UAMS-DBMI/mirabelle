@@ -39,6 +39,75 @@
   z-index: 11;
 }
 
+/* Slice-position scrollbar down the right edge of a 2D viewport. The track
+   takes pointer events so it can be dragged to scrub slices; the thumb marks
+   the current slice within the stack (see lib/sliceScrollbar). */
+.viewport-slice-scrollbar {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  right: 4px;
+  width: 8px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, width 0.12s ease, background 0.12s ease;
+  z-index: 15;
+}
+
+/* Reveal on hover over the pane, and keep it visible while actively scrubbing. */
+.viewport:hover .viewport-slice-scrollbar,
+.viewport-slice-scrollbar:hover,
+.viewport-slice-scrollbar.dragging {
+  opacity: 1;
+}
+
+.viewport-slice-scrollbar:hover,
+.viewport-slice-scrollbar.dragging {
+  width: 10px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.viewport-slice-scrollbar-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 6px;
+  background: rgba(147, 197, 253, 0.85);
+  cursor: grab;
+}
+
+.viewport-slice-scrollbar:hover .viewport-slice-scrollbar-thumb,
+.viewport-slice-scrollbar.dragging .viewport-slice-scrollbar-thumb {
+  background: rgba(147, 197, 253, 1);
+}
+
+/* Slice counter, shown beside the thumb while hovering/scrubbing. */
+.viewport-slice-scrollbar-label {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.85);
+  color: rgba(226, 232, 240, 0.95);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.viewport-slice-scrollbar:hover .viewport-slice-scrollbar-label,
+.viewport-slice-scrollbar.dragging .viewport-slice-scrollbar-label {
+  opacity: 1;
+}
+
 /* Outline of the previously submitted mask, in amber (see lib/maskBox's
    PREVIOUS_EDGE_COLOR — the two must stay in step so the box is one colour
    whichever pane you look at). Dashed, and stacked UNDER the selection box, so
