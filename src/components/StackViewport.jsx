@@ -10,6 +10,7 @@ import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { attachDataFrame } from "@/lib/viewportFrame";
 import { setOption } from "@/features/optionSlice";
+import ViewportLabel from "@/components/ViewportLabel";
 
 import "./StackViewport.css";
 
@@ -221,7 +222,9 @@ function StackViewport({
         className={`stack-viewport viewport${
           activeViewport === viewportId ? " active" : ""
         }`}
-      ></div>
+      >
+        <ViewportLabel text="Stack" />
+      </div>
     </>
   );
 }

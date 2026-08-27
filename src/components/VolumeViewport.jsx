@@ -7,6 +7,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { attachDataFrame, removeMaskBox2D } from "@/lib/viewportFrame";
 import { acquisitionPaneOrientation } from "@/lib/viewportView";
+import ViewportLabel from "@/components/ViewportLabel";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -41,6 +42,13 @@ const { ViewportType } = Enums;
 const MARGIN_ZOOM = 0.92;
 
 window.eventTarget = eventTarget;
+
+// Badge text per pane orientation prop.
+const PANE_LABELS = {
+  AXIAL: "Axial",
+  CORONAL: "Coronal",
+  SAGITTAL: "Sagittal",
+};
 
 function VolumeViewport({
   viewportId,
@@ -385,7 +393,9 @@ function VolumeViewport({
         className={`volume-viewport viewport${
           activeViewport === viewportId ? " active" : ""
         }`}
-      ></div>
+      >
+        <ViewportLabel text={PANE_LABELS[orientation] ?? orientation} />
+      </div>
     </>
   );
 }
