@@ -12,9 +12,12 @@ import "./ViewportPlaceholder.css";
  *
  * @param {object} props
  * @param {string} [props.message]
+ * @param {{label: string, onClick: function}} [props.action] Optional action
+ *   button below the message (e.g. "Reload Image" after a failed load).
  */
 export default function ViewportPlaceholder({
   message = messages.viewport.noImage,
+  action,
 }) {
   return (
     <div className="viewport-placeholder">
@@ -25,6 +28,15 @@ export default function ViewportPlaceholder({
         image
       </span>
       <p className="viewport-placeholder__message">{message}</p>
+      {action && (
+        <button
+          type="button"
+          className="mt-4 px-4 py-2 rounded-lg text-white bg-blue-700 hover:bg-blue-800"
+          onClick={action.onClick}
+        >
+          {action.label}
+        </button>
+      )}
     </div>
   );
 }
