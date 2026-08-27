@@ -8,7 +8,7 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  z-index: 14;
+  z-index: 16;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,9 +24,10 @@
   transition: opacity 0.15s ease, background 0.12s ease, color 0.12s ease;
 }
 
-/* The scrollbar strip lives on the right edge (right: 4px, up to 10px wide);
-   nudge nothing — the button sits above it (higher z-index) at the very top,
-   clear of the thumb's travel. */
+/* The scrollbar strip lives on the right edge (right: 4px, up to 10px wide,
+   z-index 15) and overlaps the button's rightmost few pixels. The button is
+   stacked above it so the whole 26px target stays clickable; the strip is
+   still grabbable everywhere below the button. */
 .viewport:hover .viewport-expand-button,
 .viewport-expand-button:focus-visible {
   opacity: 1;
