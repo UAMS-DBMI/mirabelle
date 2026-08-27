@@ -130,10 +130,32 @@ html:not(.windows) .side-panel .wrapper {
 }
 
 .viewport {
-  @apply w-full
+  @apply relative
+        w-full
         h-full
         rounded-lg
         overflow-hidden;
+}
+
+/* Edge highlighting the active viewport, and a dimmer edge on hover of any
+   viewport. Drawn as a pseudo-element so it never intercepts pointer events
+   meant for the cornerstone tools underneath. */
+.viewport::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid transparent;
+  pointer-events: none;
+  transition: border-color 0.15s ease;
+}
+
+.viewport:hover::after {
+  border-color: rgba(147, 197, 253, 0.35);
+}
+
+.viewport.active::after {
+  border-color: rgba(96, 165, 250, 0.9);
 }
 
 /* all three panels */

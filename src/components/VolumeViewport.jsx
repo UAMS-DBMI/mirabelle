@@ -52,6 +52,7 @@ function VolumeViewport({
   segmentationId,
 }) {
   const viewMode = useSelector((state) => state.options.view);
+  const activeViewport = useSelector((state) => state.options.viewport);
   const [initialized, setInitialized] = useState(false);
   const dispatch = useDispatch();
 
@@ -387,7 +388,12 @@ function VolumeViewport({
         id={viewportId}
         ref={elementRef}
         onContextMenu={(e) => e.preventDefault()}
-        className="volume-viewport viewport"
+        onMouseDownCapture={() =>
+          dispatch(setOption({ key: "viewport", value: viewportId }))
+        }
+        className={`volume-viewport viewport${
+          activeViewport === viewportId ? " active" : ""
+        }`}
       ></div>
     </>
   );
