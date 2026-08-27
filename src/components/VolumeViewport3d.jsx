@@ -46,6 +46,7 @@ function VolumeViewport3d({
   const elementRef = useRef(null);
 
   const opacity = useSelector((state) => state.options.opacity);
+  const activeViewport = useSelector((state) => state.options.viewport);
 
   let realOrientation = Enums.OrientationAxis.ACQUISITION;
   if (orientation == "SAGITTAL") {
@@ -343,7 +344,12 @@ function VolumeViewport3d({
       id={viewportId}
       ref={elementRef}
       onContextMenu={(e) => e.preventDefault()}
-      className="volume-viewport viewport"
+      onMouseDownCapture={() =>
+        dispatch(setOption({ key: "viewport", value: viewportId }))
+      }
+      className={`volume-viewport viewport${
+        activeViewport === viewportId ? " active" : ""
+      }`}
     ></div>
   );
 }
