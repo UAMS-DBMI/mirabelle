@@ -44,7 +44,7 @@ function download(details) {
   document.body.removeChild(link);
 }
 
-export default function DetailsPanel({ details }) {
+export default function DetailsPanel({ details, onReload }) {
   const title = useSelector((state) => state.options.title);
 
   const ignoredKeys = ["download_path", "download_name"];
@@ -86,6 +86,16 @@ export default function DetailsPanel({ details }) {
             );
           })}
       </div>
+      {onReload && (
+        <button
+          id="reload"
+          className="reload-button"
+          title="Drop the cached exam and load it again, retrying any slices that failed to download"
+          onClick={onReload}
+        >
+          Reload Image
+        </button>
+      )}
       <button
         id="download"
         title="Download File"

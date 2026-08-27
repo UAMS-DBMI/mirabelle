@@ -6,6 +6,10 @@
         hover:bg-green-800;
 }
 
+#details-panel button.reload-button {
+  @apply bg-blue-700 hover:bg-blue-800;
+}
+
 #details-panel .detail-item {
   @apply break-words
         /*border-b 

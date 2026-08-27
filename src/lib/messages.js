@@ -63,6 +63,8 @@ export const messages = {
   errors: {
     generic: "Something went wrong. Please try again.",
     loadImage: "Couldn't load this image.",
+    framesFailed:
+      "Some images failed to download. Use “Reload Image” to retry.",
     saveStatus: "Couldn't save the status. Please try again.",
     submitMask: "Couldn't submit the mask. Please try again.",
     network: "Couldn't reach the server. Check your connection and try again.",
