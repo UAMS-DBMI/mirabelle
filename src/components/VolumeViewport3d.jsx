@@ -8,6 +8,7 @@ import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import { useSelector, useDispatch } from "react-redux";
 import { setPresets } from "@/features/presentationSlice";
 import { setOption } from "@/features/optionSlice";
+import ViewportLabel from "@/components/ViewportLabel";
 
 import "./VolumeViewport3d.css";
 
@@ -350,7 +351,9 @@ function VolumeViewport3d({
       className={`volume-viewport viewport${
         activeViewport === viewportId ? " active" : ""
       }`}
-    ></div>
+    >
+      <ViewportLabel text="3D" />
+    </div>
   );
 }
 
