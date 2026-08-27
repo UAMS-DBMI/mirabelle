@@ -99,6 +99,13 @@ function VolumeViewport({
   }, [renderingEngine]);
 
   useEffect(() => {
+    // Navigation can supersede this setup while it awaits. Past that point it
+    // must not keep driving the viewport: its id has been disabled or
+    // re-enabled with a new viewport object by then, and calls into the old
+    // one hit a torn-down renderer ("Cannot read properties of null (reading
+    // 'getViewUp')").
+    let cancelled = false;
+
     const setup = async () => {
       // Remove any leftover minimized/expanded classes on volume change
       const wrapper = elementRef.current;
@@ -219,8 +226,18 @@ function VolumeViewport({
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 
-      // Set the volume on the viewport and it's default properties
-      viewport.setVolumes([{ volumeId }]);
+      // Set the volume on the viewport and it's default properties.
+      // Awaited: setVolumes is async, and fire-and-forget puts its failure
+      // outside this setup's catch — rapid navigation then surfaces it as an
+      // unhandled rejection ("imageVolume ... does not exist" when the volume
+      // was evicted, or "reading 'getViewUp'" when the continuation runs
+      // against the torn-down renderer).
+      await viewport.setVolumes([{ volumeId }]);
+
+      // Superseded by a newer setup run (or unmounted) during the await.
+      if (cancelled || renderingEngine.getViewport(viewportId) !== viewport) {
+        return;
+      }
 
       // Align this pane's anatomical camera to the volume's nearest voxel
       // axes: oblique acquisitions render square-on (so the selection box
@@ -256,6 +273,11 @@ function VolumeViewport({
         })),
       });
 
+      // Superseded by a newer setup run (or unmounted) during the await.
+      if (cancelled || renderingEngine.getViewport(viewportId) !== viewport) {
+        return;
+      }
+
       // Leave a margin around the image so its edges (and the data-boundary
       // frame) are visible inside the panel.
       viewport.setZoom(MARGIN_ZOOM, false);
@@ -281,7 +303,19 @@ function VolumeViewport({
       setInitialized(true);
     };
 
-    setup();
+    setup().catch((error) => {
+      if (cancelled) {
+        // The viewport was torn down mid-setup by navigation; the library
+        // call it was awaiting failed against the dead viewport. Expected.
+        console.log("[VolumeViewport] setup aborted by navigation", error);
+        return;
+      }
+      throw error;
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [elementRef, volumeId]);
 
   // Tear down the data-boundary frame and remove this viewport from the shared
@@ -311,6 +345,9 @@ function VolumeViewport({
 
     const viewport = renderingEngine.getViewport(viewportId);
     const volume = cornerstone.cache.getVolume(volumeId);
+    // The volume can be gone (LRU-evicted) while its images were still
+    // streaming — don't throw on a view-mode toggle in that window.
+    if (!viewport || !volume) return;
     const volDimensions = volume.dimensions;
 
     if (viewMode === "projection") {

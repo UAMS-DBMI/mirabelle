@@ -366,11 +366,243 @@ export async function loadIECVolumeAndSegmentation(
   return await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
 }
 
+// ————— Exam cache management —————
+//
+// Previously visited exams stay cached so navigating back to them is instant.
+// All exam data (source slices and labelmap slices) lives in Cornerstone's
+// fixed-size image cache — and because this app loads `wadouri:` imageIds,
+// every source slice is pinned there (the loader sets a sharedCacheKey),
+// which makes it invisible to Cornerstone's own eviction: once pinned bytes
+// fill the cache, every further load throws CACHE_SIZE_EXCEEDED and nothing
+// recovers. So we do the evicting ourselves, at whole-exam granularity,
+// before each load: least-recently-viewed exams go first, and an exam is
+// always evicted completely (volume exams with their derived labelmaps,
+// stack exams with all their slices) so nothing is ever left half-cached.
+
+// Exam key -> Date.now() of the last visit; drives LRU eviction order.
+// Volume exams are keyed by volumeId, stack exams by their first imageId
+// (stable across visits, unlike the per-visit random segmentationId).
+const examLastVisited = new Map();
+
+// Stack exam key -> the source imageIds cached for it. Stack slices belong
+// to no volume, so without this registry they could never be evicted.
+const stackExamImageIds = new Map();
+
+function stackExamKey(imageIds) {
+  return `stack:${imageIds[0]}`;
+}
+
+/**
+ * Fully remove a cached volume and its backing images.
+ *
+ * Cornerstone's removeSegmentation()/removeAllSegmentations() only drop tool
+ * state — the labelmap volume and its per-slice derived images stay in the
+ * cache. cache.removeVolumeLoadObject() alone isn't enough either: it unpins
+ * the volume's images (clears their sharedCacheKey) but leaves them counted
+ * against the cache limit. So remove the volume first (releasing the pin),
+ * then force-remove each backing image.
+ */
+export function decacheVolume(volumeId) {
+  examLastVisited.delete(volumeId);
+  const volume = cornerstone.cache.getVolume(volumeId);
+  if (!volume) return;
+  const imageIds = volume.imageIds ?? [];
+  cornerstone.cache.removeVolumeLoadObject(volumeId);
+  removeCachedImages(imageIds);
+}
+
+export function removeCachedImages(imageIds) {
+  imageIds.forEach((imageId) => {
+    // Skip images that were never loaded or are already gone.
+    if (cornerstone.cache.getImage(imageId)) {
+      cornerstone.cache.removeImageLoadObject(imageId, { force: true });
+    }
+  });
+}
+
+function decacheStackExam(examKey) {
+  removeCachedImages(stackExamImageIds.get(examKey) ?? []);
+  stackExamImageIds.delete(examKey);
+  examLastVisited.delete(examKey);
+}
+
+/**
+ * Per-frame geometry for a not-yet-loaded exam, from the already-cached
+ * DICOM metadata. wadouri metadata only exists once the file is parsed, so
+ * for a fresh exam this falls back to a full CT frame — over-reserving is
+ * safe (worst case one extra old exam gets evicted).
+ */
+function getFrameGeometry(imageIds) {
+  const middleImageId = imageIds[Math.floor(imageIds.length / 2)];
+  const pixelModule = metaData.get("imagePixelModule", middleImageId) ?? {};
+  const planeModule = metaData.get("imagePlaneModule", middleImageId) ?? {};
+  const rows = planeModule.rows ?? pixelModule.rows ?? 512;
+  const columns = planeModule.columns ?? pixelModule.columns ?? 512;
+  const bytesPerPixel =
+    ((pixelModule.bitsAllocated ?? 16) / 8) *
+    (pixelModule.samplesPerPixel ?? 1);
+  return { rows, columns, bytesPerPixel };
+}
+
+/**
+ * Bytes an exam needs: its source slices (unless already cached from a
+ * previous visit) plus one Uint8 labelmap of the same dimensions. The 10%
+ * margin absorbs estimate slack (metadata gaps, per-image overhead).
+ */
+function estimateExamBytes(imageIds, sourceAlreadyCached) {
+  const { rows, columns, bytesPerPixel } = getFrameGeometry(imageIds);
+  const frameBytes = rows * columns;
+  const sourceBytes = sourceAlreadyCached
+    ? 0
+    : imageIds.length * frameBytes * bytesPerPixel;
+  const labelmapBytes = imageIds.length * frameBytes;
+  return Math.ceil((sourceBytes + labelmapBytes) * 1.1);
+}
+
+/**
+ * All evictable exams, least-recently-viewed first: cached volumes (derived
+ * labelmaps ride along with their parent; orphaned ones are evicted
+ * directly) plus registered stack exams. Exams never recorded in
+ * examLastVisited sort as oldest.
+ */
+function listEvictableExams(keepKeys) {
+  const volumeExams = cornerstone.cache
+    .getVolumes()
+    .filter((volume) => volume && !keepKeys.includes(volume.volumeId))
+    .filter(
+      (volume) =>
+        !volume.referencedVolumeId ||
+        !cornerstone.cache.getVolume(volume.referencedVolumeId),
+    )
+    .map((volume) => ({ key: volume.volumeId, kind: "volume" }));
+  const stackExams = Array.from(stackExamImageIds.keys())
+    .filter((key) => !keepKeys.includes(key))
+    .map((key) => ({ key, kind: "stack" }));
+
+  return [...volumeExams, ...stackExams].sort(
+    (a, b) =>
+      (examLastVisited.get(a.key) ?? 0) - (examLastVisited.get(b.key) ?? 0),
+  );
+}
+
+function evictExam({ key, kind }) {
+  if (kind === "volume") {
+    // Not cache.filterVolumesByReferenceId: that reads .referencedVolumeId
+    // off every cache entry unguarded, and entries whose load promise hasn't
+    // resolved yet (common during fast IEC navigation) still have an
+    // undefined volume — it throws and fails the whole exam load.
+    cornerstone.cache
+      .getVolumes()
+      .filter((volume) => volume?.referencedVolumeId === key)
+      .forEach((derived) => decacheVolume(derived.volumeId));
+    decacheVolume(key);
+  } else {
+    decacheStackExam(key);
+  }
+}
+
+function makeRoom(bytesNeeded, keepKeys) {
+  if (cornerstone.cache.getBytesAvailable() >= bytesNeeded) return;
+  for (const exam of listEvictableExams(keepKeys)) {
+    evictExam(exam);
+    if (cornerstone.cache.getBytesAvailable() >= bytesNeeded) return;
+  }
+  // Still not enough room: proceed and let Cornerstone report the failure —
+  // this exam is too large for the cache even on its own.
+}
+
+/**
+ * Record a visit to a volume exam and evict least-recently-viewed exams
+ * until it fits in the cache. Exams in keepVolumeIds are never evicted.
+ */
+export function makeRoomForExam(imageIds, keepVolumeIds) {
+  const [volumeId] = keepVolumeIds;
+  examLastVisited.set(volumeId, Date.now());
+  const sourceAlreadyCached = Boolean(cornerstone.cache.getVolume(volumeId));
+  makeRoom(estimateExamBytes(imageIds, sourceAlreadyCached), keepVolumeIds);
+}
+
+/**
+ * Stack counterpart of makeRoomForExam. Registers the exam's source
+ * imageIds so the eviction can free them later — stack slices belong to no
+ * volume, and as pinned wadouri images Cornerstone itself never evicts them.
+ */
+export function makeRoomForStackExam(imageIds) {
+  const examKey = stackExamKey(imageIds);
+  examLastVisited.set(examKey, Date.now());
+  const sourceAlreadyCached =
+    stackExamImageIds.has(examKey) &&
+    Boolean(cornerstone.cache.getImage(imageIds[0])) &&
+    Boolean(cornerstone.cache.getImage(imageIds[imageIds.length - 1]));
+  stackExamImageIds.set(examKey, imageIds);
+  makeRoom(estimateExamBytes(imageIds, sourceAlreadyCached), [examKey]);
+}
+
+// Monotonic token for the most recent exam load. Rapid navigation abandons
+// loads mid-flight, but their async completions — volume.load callbacks,
+// awaited image loads — still fire afterward, and used to stomp the current
+// exam's segmentation state (or throw, if the abandoned volume had been
+// LRU-evicted in the meantime). Each loader captures the token and bails out
+// of any completion that is no longer the latest load.
+let examLoadGeneration = 0;
+
+/**
+ * Clone per-frame metadata onto frames whose download failed (e.g. a backend
+ * 504). wadouri metadata only exists once a file is parsed, and building the
+ * derived labelmap reads rows/columns for every frame of the volume — so a
+ * single failed frame used to sink the whole exam's labelmap ("reading
+ * 'rows'") and leave it un-maskable. The nearest loaded frame's modules are
+ * close enough: the labelmap's geometry comes from the volume itself, and
+ * the failed slice simply stays black in the source.
+ */
+function backfillMissingFrameMetadata(imageIds) {
+  const MODULES = [
+    "imagePlaneModule",
+    "imagePixelModule",
+    "generalSeriesModule",
+  ];
+  const isLoaded = (imageId) =>
+    Boolean(metaData.get("imagePlaneModule", imageId));
+
+  const loadedIndices = [];
+  imageIds.forEach((imageId, index) => {
+    if (isLoaded(imageId)) loadedIndices.push(index);
+  });
+  if (loadedIndices.length === 0 || loadedIndices.length === imageIds.length) {
+    return;
+  }
+
+  imageIds.forEach((imageId, index) => {
+    if (isLoaded(imageId)) return;
+    const donorIndex = loadedIndices.reduce((best, candidate) =>
+      Math.abs(candidate - index) < Math.abs(best - index) ? candidate : best,
+    );
+    console.warn(
+      `Frame ${index} failed to load; borrowing metadata from frame ${donorIndex}`,
+    );
+    MODULES.forEach((type) => {
+      const metadata = metaData.get(type, imageIds[donorIndex]);
+      if (metadata) {
+        cornerstone.utilities.genericMetadataProvider.add(imageId, {
+          type,
+          metadata,
+        });
+      }
+    });
+  });
+}
+
 export async function loadVolumeAndSegmentation(
   imageIds,
   volumeId,
   segmentationId,
 ) {
+  const generation = ++examLoadGeneration;
+
+  // Keep previously visited exams cached (instant back-navigation), but evict
+  // the least-recently-viewed ones if this exam wouldn't fit.
+  makeRoomForExam(imageIds, [volumeId, segmentationId]);
+
   let volume = cornerstone.cache.getVolume(volumeId);
   if (!volume) {
     console.log("Volume didn't already exist, creating it");
@@ -379,6 +611,17 @@ export async function loadVolumeAndSegmentation(
     });
   } else {
     console.log("Volume already existed, not creating it");
+  }
+
+  // That await is wide, not a microtask: for wadouri the streaming loader
+  // downloads three frames before it resolves. A newer exam can be fully
+  // installed in that window — including a cached one, which reaches the
+  // segmentation setup below without awaiting anything. Everything past this
+  // point mutates GLOBAL segmentation state, so an abandoned load resuming
+  // here would wipe the exam the curator is actually looking at.
+  if (generation !== examLoadGeneration) {
+    console.log("Skipping stale volume setup for", volumeId);
+    return volume;
   }
 
   // Create the segmentation as soon as the volume's geometry exists — before
@@ -434,14 +677,42 @@ export async function loadVolumeAndSegmentation(
     segmentationId,
   });
 
-  // Set the volume to load
-  volume.load(() => {
-    triggerEvent(eventTarget, "VolumeReallyLoaded", {
-      volumeId,
-      segmentationId,
-    });
+  // Set the volume to load. startVolumeLoad (not volume.load directly) so the
+  // completion callback still fires when the volume is mid-stream from a
+  // previous visit — volume.load would silently drop it, leaving the exam with
+  // no "VolumeReallyLoaded" and the loading spinner stuck.
+  startVolumeLoad(volume, () => {
+    if (generation !== examLoadGeneration) {
+      console.log("Skipping stale volume load completion for", volumeId);
+      return;
+    }
+    if (!cornerstone.cache.getVolume(volumeId)) {
+      console.log("Volume evicted before load completed:", volumeId);
+      return;
+    }
 
-    console.log("Volume loaded:", volumeId);
+    try {
+      // Frames that failed to download have no metadata; borrow it from their
+      // nearest loaded neighbor so one bad frame can't sink the consumers that
+      // read per-frame geometry once the volume is loaded.
+      backfillMissingFrameMetadata(volume.imageIds ?? imageIds);
+
+      triggerEvent(eventTarget, "VolumeReallyLoaded", {
+        volumeId,
+        segmentationId,
+      });
+
+      console.log("Volume loaded:", volumeId);
+    } catch (error) {
+      console.error("Failed to finish loading volume", volumeId, error);
+      notify.error(error, messages.errors.loadImage);
+      // "VolumeReallyLoaded" won't fire for this exam, so anything gated on it
+      // (scissors enablement, the 3D glass fill) waits forever with no way to
+      // tell a slow load from a dead one. Nothing subscribes to this yet — the
+      // toast above is what the curator sees — but it is the only signal that
+      // distinguishes the two, so consumers that need it have one to use.
+      triggerEvent(eventTarget, "VolumeLoadFailed", { volumeId });
+    }
   });
   return volume;
 }
@@ -467,12 +738,43 @@ export function loadVolumeAsync(
 }
 
 /**
+ * Start (or join) a volume's pixel-data load and invoke onLoaded exactly once
+ * when every frame has streamed in — immediately if it already has.
+ *
+ * volume.load(cb) alone is not enough: when the volume is still mid-stream
+ * from a previous visit (common during fast back-and-forth navigation) it
+ * returns without registering the callback, which would strand anything
+ * waiting on it. Cornerstone does fire IMAGE_VOLUME_LOADING_COMPLETED in that
+ * path, so listen for it as the fallback. Returns a cancel function.
+ */
+export function startVolumeLoad(volume, onLoaded) {
+  const completedEvent =
+    cornerstone.Enums.Events.IMAGE_VOLUME_LOADING_COMPLETED;
+  let finished = false;
+  const onCompleted = (evt) => {
+    if (evt.detail?.volumeId === volume.volumeId) finish();
+  };
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    eventTarget.removeEventListener(completedEvent, onCompleted);
+    onLoaded();
+  };
+  eventTarget.addEventListener(completedEvent, onCompleted);
+  volume.load(finish);
+  return () => {
+    finished = true;
+    eventTarget.removeEventListener(completedEvent, onCompleted);
+  };
+}
+
+/**
  * Load a volume via WADO-URI
  *
  * @param {Array<string>} imageIds
  * @param {string} volumeId
  * @param {string} segmentationId
- * @param {function} callback
+ * @param {function} callback invoked once the volume has fully loaded
  * @returns
  */
 export async function loadVolume(
@@ -481,6 +783,10 @@ export async function loadVolume(
   segmentationId,
   callback = null,
 ) {
+  // Same cache policy as loadVolumeAndSegmentation: keep old exams for
+  // instant revisits, evict least-recently-viewed ones when out of room.
+  makeRoomForExam(imageIds, [volumeId, segmentationId].filter(Boolean));
+
   let volume = cornerstone.cache.getVolume(volumeId);
   if (!volume) {
     console.log("Volume didn't already exist, creating it:", volumeId);
@@ -491,7 +797,11 @@ export async function loadVolume(
     console.log("Volume already existed, not creating it");
   }
 
-  volume.load(callback);
+  if (callback) {
+    startVolumeLoad(volume, callback);
+  } else {
+    volume.load();
+  }
 
   return volume;
 }
@@ -526,6 +836,12 @@ export async function loadVolumeSegmentation(
 }
 
 export async function loadStackSegmentation(imageIds, segmentationId) {
+  const generation = ++examLoadGeneration;
+
+  // Same cache policy as loadVolumeAndSegmentation: keep old exams for
+  // instant revisits, evict least-recently-viewed ones when out of room.
+  makeRoomForStackExam(imageIds);
+
   csToolsSegmentation.removeAllSegmentations();
   csToolsSegmentation.removeAllSegmentationRepresentations();
 
@@ -533,9 +849,21 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
     cornerstone.imageLoader.loadAndCacheImages(imageIds),
   );
 
+  // A newer exam load took over while the frames were loading (rapid
+  // navigation); don't create a segmentation for this abandoned one.
+  if (generation !== examLoadGeneration) {
+    console.log("Skipping stale stack segmentation for", segmentationId);
+    return;
+  }
+
   // Create a segmentation of the same resolution as the source data for the CT volume
   const segImages =
     await imageLoader.createAndCacheDerivedLabelmapImages(imageIds);
+
+  if (generation !== examLoadGeneration) {
+    console.log("Skipping stale stack segmentation for", segmentationId);
+    return;
+  }
 
   csToolsSegmentation.addSegmentations([
     {

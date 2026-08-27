@@ -31,6 +31,8 @@ import {
   getIECInfo,
   getImageIdsFromIEC,
   loadStackSegmentation,
+  decacheVolume,
+  removeCachedImages,
 } from "@/utilities";
 import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
@@ -249,6 +251,9 @@ export default function MaskIEC({
   const [details, setDetails] = useState(true);
   const [maskingDetails, setMaskingDetails] = useState(true);
   const [coords, setCoords] = useState();
+  // Bumped by "Reload Image" to re-run the load effect after the cached exam
+  // has been dropped, re-fetching any slices that failed to download.
+  const [reloadToken, setReloadToken] = useState(0);
   const loadRequestRef = useRef(0);
   // Set by a terminal action (mask submitted, or exam skipped / non-maskable)
   // so the load effect's cleanup doesn't re-save the now-irrelevant selection
@@ -484,6 +489,10 @@ export default function MaskIEC({
         );
       } catch (error) {
         console.error(error);
+        // A load abandoned by navigation may fail against torn-down state, or
+        // lose a cache reservation the live exam has since taken — that's
+        // expected, and must not flag the exam now on screen as errored.
+        if (isCancelled || requestId !== loadRequestRef.current) return;
         notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
         return;
@@ -550,6 +559,9 @@ export default function MaskIEC({
         // as drafted.
         rememberMaskSelection(iec, activeSegmentationIdRef.current);
       }
+      // Held for the decache at the end of this cleanup, which runs after the
+      // ref has been cleared below.
+      const retiredSegmentationId = activeSegmentationIdRef.current;
       // This exam's segmentation is going away, so the ref must stop naming
       // it. A volume still streaming when the curator navigates fires its
       // VolumeReallyLoaded AFTER the next exam's listeners are attached, and
@@ -577,8 +589,25 @@ export default function MaskIEC({
       setIsInitialized(false);
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
+      // removeAllSegmentations only drops tool state — free the labelmap
+      // volume (and its slice images) too, or each visit leaks a full-size
+      // volume into the fixed Cornerstone cache.
+      decacheVolume(retiredSegmentationId);
     };
-  }, [iec, optionsDecimate]);
+  }, [iec, optionsDecimate, reloadToken]);
+
+  // Drop the cached exam and load it again. Failed downloads are never cached
+  // (Cornerstone skips errored frames and the browser doesn't cache the error
+  // response), so the re-load genuinely retries the missing slices against the
+  // server.
+  function handleReload() {
+    if (volumetric && volumeId) {
+      decacheVolume(volumeId);
+    } else if (imageIds?.length) {
+      removeCachedImages(imageIds);
+    }
+    setReloadToken((token) => token + 1);
+  }
 
   // function handleApplyDecimate(decimateValue) {
 
@@ -1196,6 +1225,9 @@ export default function MaskIEC({
       // Note: this does not prevent the error in updateSurfaceData for the
       // previous segmentation, however.
       cornerstoneTools.segmentation.removeSegmentation(segmentationId);
+      // removeSegmentation only drops tool state — free the old labelmap
+      // volume too, or every Clear leaks a full-size volume into the cache.
+      decacheVolume(segmentationId);
       let newSegmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
       volumeLoader.createAndCacheDerivedLabelmapVolume(volumeId, {
@@ -1343,7 +1375,11 @@ export default function MaskIEC({
   // Load failures are surfaced as a toast; keep the viewport itself clean
   // with a neutral placeholder rather than an error card.
   if (isErrored) {
-    return <ViewportPlaceholder />;
+    return (
+      <ViewportPlaceholder
+        action={{ label: "Reload Image", onClick: handleReload }}
+      />
+    );
   }
   if (!isInitialized) {
     // display nothing; a loading spinner will be handled elsewhere
@@ -1420,7 +1456,10 @@ export default function MaskIEC({
       }
       rightPanel={
         // showRightPanel ?
-        <DetailsPanel details={transformDetails(details, maskingDetails)} />
+        <DetailsPanel
+          details={transformDetails(details, maskingDetails)}
+          onReload={handleReload}
+        />
         // : null
       }
       showLeftPanel={showLeftPanel}
