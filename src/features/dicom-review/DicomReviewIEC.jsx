@@ -29,6 +29,7 @@ import {
   getOtherIECsForFOR,
   getImageIdsFromIEC,
   loadStackSegmentation,
+  makeRoomForStackExam,
   loadVolume,
   loadVolumeAsync,
   loadVolumeSegmentation,
@@ -295,6 +296,15 @@ export default function DicomReviewIEC({
         false,
         requestedDecimateCount,
       );
+      // A run superseded by fast navigation must stop before the load below:
+      // makeRoomForExam stamps this exam as most-recently-used and evicts to
+      // fit it, so an abandoned run resuming here can evict the volume the
+      // live run just created ("imageVolume ... does not exist").
+      if (isCancelled || requestId !== loadRequestRef.current) {
+        console.log("---------------> getIECInfo cancelled");
+        return;
+      }
+
       let imageIds = frames;
       setImageIds(imageIds);
 
@@ -347,6 +357,9 @@ export default function DicomReviewIEC({
         } else {
           // await loadVolumeAsync(imageIds, volumeId, segmentationId);
           // await loadStackSegmentation(imageIds, segmentationId);
+          // The stack viewport loads the frames on demand as pinned wadouri
+          // images; register them so the exam-LRU eviction can free them.
+          makeRoomForStackExam(imageIds);
           dispatch(setTitle("DICOM Stack Review"));
           dispatch(reset());
           dispatch(setVisualReviewConfig());
@@ -365,6 +378,10 @@ export default function DicomReviewIEC({
       } catch (error) {
         console.error(error);
         notify.dismiss(segLoadingId);
+        // A load abandoned by navigation may fail against torn-down state, or
+        // lose a cache reservation the live exam has since taken — that's
+        // expected, and must not flag the exam now on screen as errored.
+        if (isCancelled || requestId !== loadRequestRef.current) return;
         // Surface load failures as a toast and keep the viewport clean
         // (a neutral placeholder is rendered instead of an error card).
         notify.error(error, messages.errors.loadImage);
