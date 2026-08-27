@@ -67,6 +67,7 @@ import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
+import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 
 import "./DicomReviewIEC.css";
 
@@ -108,6 +109,7 @@ function transformDetails(details, maskingDetails, imageId) {
 export default function DicomReviewIEC({
   iec,
   vr,
+  noIecs,
   reviewStatus,
   dicomType,
   dicomTypeOptions,
@@ -159,7 +161,9 @@ export default function DicomReviewIEC({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
-  const [details, setDetails] = useState(true);
+  // null until fetched — the layout shell renders before the details arrive,
+  // so the details panel gates on them instead of assuming they exist.
+  const [details, setDetails] = useState(null);
   const [maskingDetails, setMaskingDetails] = useState(null);
 
   const [isSeg, setIsSeg] = useState(false);
@@ -226,9 +230,18 @@ export default function DicomReviewIEC({
     let isCancelled = false;
 
     const initialize = async () => {
-      // Don't leave the previous exam's context beside the title while the new
-      // one is fetched.
+      // Don't show the previous exam's details (or SEG panel, or its context
+      // beside the title) while the new ones are fetched — the layout shell
+      // stays mounted across navigation.
+      setDetails(null);
+      setMaskingDetails(null);
+      setIsSeg(false);
+      setSegMetadata([]);
       dispatch(setTitleDetail(null));
+      // Spinner up from the very first moment. The VR route also sets it on
+      // IEC navigation, but the single-exam route doesn't set it at all —
+      // and either way the load below is what takes it down.
+      dispatch(setLoading(true));
 
       const details = await getDicomDetails(iec);
       // Auxiliary to this route (it feeds the details rows and the submitted
@@ -332,13 +345,43 @@ export default function DicomReviewIEC({
       setVolumetric(renderAsVolume); // still update state
       setSegmentationId(segmentationId);
 
+      // Configure the UI for this exam type NOW — as soon as we know whether
+      // it's a volume or a stack, and before the (slow) image load. This
+      // fully populates the tools panel and operations bar behind the
+      // spinner instead of leaving them empty until the load finishes.
+      dispatch(reset());
+      dispatch(setVisualReviewConfig());
+      if (renderAsVolume) {
+        dispatch(setTitle("DICOM Volume Review"));
+        dispatch(setVolumeConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+      } else {
+        dispatch(setTitle("DICOM Stack Review"));
+        dispatch(setStackConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+      }
+      dispatch(
+        setOption({
+          key: "leftClick",
+          value: Enums.LeftClickOptions.WINDOW_LEVEL,
+        }),
+      );
+      dispatch(
+        setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
+      );
+
       let segLoadingId;
       try {
         if (renderAsVolume) {
           if (!isSeg) {
-            // Load the volume directly if it's not a seg. No need to
-            // pass a callback, we don't care about when it finishes
-            await loadVolume(imageIds, volumeId, segmentationId);
+            // Resolves once the volume shell exists — the viewer mounts and
+            // the pixel data streams into it. The completion callback (the
+            // images have actually arrived) takes the spinner down.
+            await loadVolume(imageIds, volumeId, segmentationId, () => {
+              if (isCancelled || requestId !== loadRequestRef.current) return;
+              dispatch(setLoading(false));
+            });
+            if (isCancelled || requestId !== loadRequestRef.current) return;
           } else {
             segLoadingId = notify.loading(messages.loading.segVolume);
             // this version of loadVolume only resolves when the volume
@@ -368,33 +411,13 @@ export default function DicomReviewIEC({
 
             notify.dismiss(segLoadingId);
           }
-
-          dispatch(setTitle("DICOM Volume Review"));
-          dispatch(reset());
-          dispatch(setVisualReviewConfig());
-          dispatch(setVolumeConfig());
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
         } else {
           // await loadVolumeAsync(imageIds, volumeId, segmentationId);
           // await loadStackSegmentation(imageIds, segmentationId);
           // The stack viewport loads the frames on demand as pinned wadouri
           // images; register them so the exam-LRU eviction can free them.
           makeRoomForStackExam(imageIds);
-          dispatch(setTitle("DICOM Stack Review"));
-          dispatch(reset());
-          dispatch(setVisualReviewConfig());
-          dispatch(setStackConfig());
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
         }
-        dispatch(
-          setOption({
-            key: "leftClick",
-            value: Enums.LeftClickOptions.WINDOW_LEVEL,
-          }),
-        );
-        dispatch(
-          setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
-        );
       } catch (error) {
         console.error(error);
         notify.dismiss(segLoadingId);
@@ -406,11 +429,20 @@ export default function DicomReviewIEC({
         // (a neutral placeholder is rendered instead of an error card).
         notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
+        // The load never completes, so nothing else will take the app-wide
+        // spinner down — clear it here or it sits over the error view forever.
+        dispatch(setLoading(false));
         return;
       }
 
       setIsInitialized(true);
-      dispatch(setLoading(false));
+      // Plain volumes take the spinner down in the load-completion callback
+      // above. SEG volumes are fully loaded by this point (loadVolumeAsync),
+      // and stack frames stream on demand into the mounted viewer — clear it
+      // here for those.
+      if (!renderAsVolume || isSeg) {
+        dispatch(setLoading(false));
+      }
     };
 
     // Catch failures from awaits that run before the inner try (e.g. the
@@ -429,6 +461,10 @@ export default function DicomReviewIEC({
     return () => {
       isCancelled = true;
       setIsInitialized(false);
+      // Leaving mid-load: the completion callback for this exam is stale and
+      // will never clear the spinner — don't leave it up. A follow-up load
+      // turns it straight back on.
+      dispatch(setLoading(false));
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };
@@ -534,9 +570,11 @@ export default function DicomReviewIEC({
                 }
               />
             )}
-            <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
-              {messages.filters.noResults}
-            </div>
+            {noIecs && (
+              <div className="flex-1 flex items-center justify-center text-gray-600 dark:text-gray-300">
+                {messages.filters.noResults}
+              </div>
+            )}
           </>
         }
         rightPanel={
@@ -550,32 +588,40 @@ export default function DicomReviewIEC({
     );
   }
 
-  if (!isInitialized) {
-    return null;
-  }
-
-  if (volumetric) {
-    viewer = (
-      <VolumeView
-        volumeId={volumeId}
-        segmentationId={segmentationId}
-        preset3d={preset3d}
-        toolGroup={toolGroup}
-        toolGroup3d={toolGroup3d}
-        modality={details.segBaseModality || details.modality}
-        onToggleLeftPanel={handleToggleLeft}
-        onToggleRightPanel={handleToggleRight}
-      />
-    );
+  // The layout shell (nav, tools panel, operations bar) renders immediately —
+  // before the detail fetches and the image load — with the app-wide spinner
+  // floating above it, exactly like MaskIEC. The viewer mounts once the
+  // volume shell / frame list exists and its panes fill in as images stream.
+  if (isInitialized) {
+    if (volumetric) {
+      viewer = (
+        <VolumeView
+          volumeId={volumeId}
+          segmentationId={segmentationId}
+          preset3d={preset3d}
+          toolGroup={toolGroup}
+          toolGroup3d={toolGroup3d}
+          modality={details?.segBaseModality || details?.modality}
+          onToggleLeftPanel={handleToggleLeft}
+          onToggleRightPanel={handleToggleRight}
+        />
+      );
+    } else {
+      viewer = (
+        <StackView
+          toolGroup={toolGroup}
+          frames={imageIds}
+          onToggleLeftPanel={handleToggleLeft}
+          onToggleRightPanel={handleToggleRight}
+        />
+      );
+    }
   } else {
-    viewer = (
-      <StackView
-        toolGroup={toolGroup}
-        frames={imageIds}
-        onToggleLeftPanel={handleToggleLeft}
-        onToggleRightPanel={handleToggleRight}
-      />
-    );
+    // Images still loading: show the empty viewport grid (a single pane for a
+    // stack, 2x2 for a volume) so the layout is there from the first frame.
+    // volumetric defaults to true before details arrive, so a volume shows
+    // four panes immediately.
+    viewer = <ViewportGridPlaceholder single={!volumetric} />;
   }
 
   return (
@@ -629,14 +675,27 @@ export default function DicomReviewIEC({
       }
       rightPanel={
         // showRightPanel ?
-        <>
-          {isSeg && (
-            <SegPanel segments={segMetadata} segmentationId={segmentationId} />
-          )}
-          <DetailsPanel
-            details={transformDetails(details, maskingDetails, currentImageId)}
-          />
-        </>
+        details ? (
+          <>
+            {isSeg && (
+              <SegPanel
+                segments={segMetadata}
+                segmentationId={segmentationId}
+              />
+            )}
+            <DetailsPanel
+              details={transformDetails(
+                details,
+                maskingDetails,
+                currentImageId,
+              )}
+            />
+          </>
+        ) : (
+          <div className="side-panel">
+            <div className="wrapper" />
+          </div>
+        )
         // : null
       }
       showLeftPanel={showLeftPanel}

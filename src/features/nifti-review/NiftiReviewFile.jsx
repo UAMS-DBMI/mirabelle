@@ -1,6 +1,6 @@
 import React from "react";
 
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import {
@@ -25,7 +25,7 @@ import {
 import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
-import { toAbsoluteURL } from "@/utilities";
+import { toAbsoluteURL, startVolumeLoad } from "@/utilities";
 import { getNiftiDetails, setNiftiStatus } from "@/visualreview";
 
 import Header from "@/components/Header";
@@ -41,6 +41,7 @@ import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
+import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 
 import "./NiftiReviewFile.css";
 
@@ -115,7 +116,10 @@ export default function NiftiReviewFile({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
-  const [details, setDetails] = useState({});
+  // null until fetched — the layout shell renders before the details arrive,
+  // so the details panel gates on them instead of assuming they exist.
+  const [details, setDetails] = useState(null);
+  const loadRequestRef = useRef(0);
 
   let viewer;
 
@@ -153,14 +157,48 @@ export default function NiftiReviewFile({
 
   useEffect(() => {
     console.log("NiftiReviewFile useEffect[file]:", file);
+    const requestId = ++loadRequestRef.current;
+    let isCancelled = false;
+    // True once a newer file load has started (rapid navigation) or the
+    // effect was cleaned up. Checked after EVERY await so a stale run can't
+    // set state or clear the spinner for the wrong file.
+    const isStale = () => isCancelled || requestId !== loadRequestRef.current;
 
     const initialize = async () => {
       setIsErrored(false);
+      // Don't show the previous file's details while the new ones are
+      // fetched — the layout shell stays mounted across navigation.
+      setDetails(null);
+      // Spinner up from the very first moment. The VR route also sets it on
+      // navigation, but the single-file route doesn't set it at all — and
+      // either way the load below is what takes it down.
+      dispatch(setLoading(true));
+
+      // Configure the UI NOW — before the (slow) image load — so the tools
+      // panel and operations bar are fully populated behind the spinner
+      // instead of appearing only when the load finishes.
+      dispatch(setTitle("Nifti File Review"));
+      dispatch(reset());
+      dispatch(setVisualReviewConfig());
+      dispatch(setVolumeConfig());
+      dispatch(setNiftiConfig());
+      dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+      dispatch(
+        setOption({
+          key: "leftClick",
+          value: Enums.LeftClickOptions.WINDOW_LEVEL,
+        }),
+      );
+      dispatch(
+        setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
+      );
+
       let volumeId = `vol-${file}`;
       let segmentationId = `vol-${file}-seg`;
 
       try {
         const details = await getNiftiDetails(file);
+        if (isStale()) return;
         setDetails(details);
 
         if (details.download_path === undefined) {
@@ -176,50 +214,44 @@ export default function NiftiReviewFile({
         }
         const url = toAbsoluteURL(rel_url);
         const imageIds = await createNiftiImageIdsAndCacheMetadata({ url });
+        if (isStale()) return;
         setImageIds(imageIds);
         let volume = cornerstone.cache.getVolume(volumeId);
         if (!volume) {
           volume = await volumeLoader.createAndCacheVolume(volumeId, {
             imageIds,
           });
+          if (isStale()) return;
         }
         try {
-          volume.load();
+          // The completion callback — not the volume-shell creation above —
+          // takes the spinner down, once the pixel data has actually
+          // streamed in.
+          startVolumeLoad(volume, () => {
+            if (isStale()) return;
+            dispatch(setLoading(false));
+          });
         } catch (error) {
           console.log("exiting initialize early");
           console.log(error);
+          dispatch(setLoading(false));
           return;
         }
       } catch (error) {
         console.error(error);
+        if (isStale()) return;
         notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
         dispatch(setLoading(false));
         return;
       }
 
+      // The viewer mounts now — images are still arriving; the spinner stays
+      // up until the load-completion callback fires. On a cached revisit the
+      // callback has already fired synchronously and the spinner is down.
       setIsInitialized(true);
       setVolumeId(volumeId);
       setSegmentationId(segmentationId);
-
-      dispatch(setTitle("Nifti File Review"));
-      dispatch(reset());
-      dispatch(setVisualReviewConfig());
-      dispatch(setVolumeConfig());
-      dispatch(setNiftiConfig());
-
-      dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-      dispatch(
-        setOption({
-          key: "leftClick",
-          value: Enums.LeftClickOptions.WINDOW_LEVEL,
-        }),
-      );
-      dispatch(
-        setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
-      );
-
-      dispatch(setLoading(false));
     };
 
     initialize();
@@ -227,7 +259,12 @@ export default function NiftiReviewFile({
     // Return initialized to false when unmounting
     // so we don't try to draw the next volume before it's loaded!
     return () => {
+      isCancelled = true;
       setIsInitialized(false);
+      // Leaving mid-load: the completion callback for this file is stale and
+      // will never clear the spinner — don't leave it up. A follow-up load
+      // turns it straight back on.
+      dispatch(setLoading(false));
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };
@@ -266,25 +303,32 @@ export default function NiftiReviewFile({
     let a = "a";
   }
 
-  // short-circuit while loading, but keep layout available for handled errors
-  if (!isInitialized && !isErrored) {
-    return;
+  // The layout shell (nav, tools panel, operations bar) renders immediately —
+  // before the detail fetch and the image load — with the app-wide spinner
+  // floating above it, exactly like the mask route. The viewer mounts once
+  // the volume shell exists and fills in as the images stream.
+  if (isErrored) {
+    // Load failures are surfaced as a toast; keep the viewport itself clean
+    // with a neutral placeholder so navigation still works.
+    viewer = <ViewportPlaceholder />;
+  } else if (isInitialized) {
+    viewer = (
+      <VolumeView
+        volumeId={volumeId}
+        segmentationId={segmentationId}
+        preset3d={preset3d}
+        toolGroup={toolGroup}
+        toolGroup3d={toolGroup3d}
+        modality={null}
+        onToggleLeftPanel={handleToggleLeft}
+        onToggleRightPanel={handleToggleRight}
+      />
+    );
+  } else {
+    // Images still loading: show the empty 2x2 viewport grid so the layout
+    // is there from the first frame.
+    viewer = <ViewportGridPlaceholder />;
   }
-
-  viewer = isErrored ? (
-    <ViewportPlaceholder />
-  ) : (
-    <VolumeView
-      volumeId={volumeId}
-      segmentationId={segmentationId}
-      preset3d={preset3d}
-      toolGroup={toolGroup}
-      toolGroup3d={toolGroup3d}
-      modality={null}
-      onToggleLeftPanel={handleToggleLeft}
-      onToggleRightPanel={handleToggleRight}
-    />
-  );
 
   return (
     <RouteLayout
@@ -300,14 +344,19 @@ export default function NiftiReviewFile({
               idLabel="File"
             />
           )}
-          <ToolsPanel
-            toolGroup={toolGroup}
-            toolGroup3d={toolGroup3d}
-            preset3d={preset3d}
-            onPresetChange={
-              (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
-            }
-          />
+          {/* The shell renders before the effect that creates the tool
+              groups has run — ToolsPanel calls toolGroup.addTool on mount,
+              so it must not mount until they exist. */}
+          {toolGroup && toolGroup3d && (
+            <ToolsPanel
+              toolGroup={toolGroup}
+              toolGroup3d={toolGroup3d}
+              preset3d={preset3d}
+              onPresetChange={
+                (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
+              }
+            />
+          )}
         </>
         // : null
       }
@@ -324,7 +373,13 @@ export default function NiftiReviewFile({
       }
       rightPanel={
         // showRightPanel ?
-        <DetailsPanel details={transformDetails(details)} />
+        details ? (
+          <DetailsPanel details={transformDetails(details)} />
+        ) : (
+          <div className="side-panel">
+            <div className="wrapper" />
+          </div>
+        )
         // : null
       }
       showLeftPanel={showLeftPanel}

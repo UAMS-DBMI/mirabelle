@@ -1,13 +1,19 @@
 /* LoadingSpinner.css */
 
+/* The overlay now floats above a live, populated UI (viewports streaming in
+   underneath), so the spinner sits on its own translucent chip — readable over
+   both bright CT slices and the dark panels, in either theme. */
 #overlay #loading-spinner {
-  @apply flex flex-col items-center justify-center p-4;
+  @apply flex flex-col items-center justify-center;
+  padding: 14px 22px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.75);
 }
 
 #overlay #loading-spinner #spinner {
-  @apply animate-spin h-8 w-8 border-4 border-b-black border-r-black border-t-transparent border-l-transparent rounded-full dark:border-b-white dark:border-r-white;
+  @apply animate-spin h-8 w-8 border-4 border-b-white border-r-white border-t-transparent border-l-transparent rounded-full;
 }
 
 #overlay #loading-spinner #description {
-  @apply mt-2 text-black dark:text-white;
+  @apply mt-2 text-white;
 }

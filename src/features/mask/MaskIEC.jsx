@@ -82,6 +82,7 @@ import { DetailsPanel } from "@/features/details";
 
 import RouteLayout from "@/components/RouteLayout";
 import ViewportPlaceholder from "@/components/ViewportPlaceholder";
+import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 
 import "./MaskIEC.css";
 
@@ -253,8 +254,10 @@ export default function MaskIEC({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
-  const [details, setDetails] = useState(true);
-  const [maskingDetails, setMaskingDetails] = useState(true);
+  // null until fetched — the layout shell renders before these arrive, so the
+  // details panel gates on them instead of assuming they exist.
+  const [details, setDetails] = useState(null);
+  const [maskingDetails, setMaskingDetails] = useState(null);
   const [coords, setCoords] = useState();
   // Bumped by "Reload Image" to re-run the load effect after the cached exam
   // has been dropped, re-fetching any slices that failed to download.
@@ -306,6 +309,25 @@ export default function MaskIEC({
       callback,
     );
 
+    // The UI mounts long before the images are in (the volume streams, the
+    // stack downloads in the background), with the app-wide spinner floating
+    // above it — take the spinner down only when the exam has actually
+    // finished loading (or failed). Detail-less VolumeReallyLoaded events are
+    // ignored: StackView fires one on mount, before anything has loaded.
+    const clearLoading = (evt) => {
+      if (!evt.detail?.volumeId && !evt.detail?.segmentationId) return;
+      dispatch(setLoading(false));
+    };
+    cornerstone.eventTarget.addEventListener(
+      "VolumeReallyLoaded",
+      clearLoading,
+    );
+    cornerstone.eventTarget.addEventListener(
+      "StackSegmentationReady",
+      clearLoading,
+    );
+    cornerstone.eventTarget.addEventListener("VolumeLoadFailed", clearLoading);
+
     // cleanup the callback
     return () => {
       cornerstone.eventTarget.removeEventListener(
@@ -315,6 +337,18 @@ export default function MaskIEC({
       cornerstone.eventTarget.removeEventListener(
         "StackSegmentationReady",
         callback,
+      );
+      cornerstone.eventTarget.removeEventListener(
+        "VolumeReallyLoaded",
+        clearLoading,
+      );
+      cornerstone.eventTarget.removeEventListener(
+        "StackSegmentationReady",
+        clearLoading,
+      );
+      cornerstone.eventTarget.removeEventListener(
+        "VolumeLoadFailed",
+        clearLoading,
       );
     };
   }, []);
@@ -412,16 +446,31 @@ export default function MaskIEC({
 
     const initialize = async () => {
       setIsInitialized(false);
-      // Don't leave the previous exam's context beside the title while the new
-      // one is fetched.
+      // Don't show the previous exam's details (or its context beside the
+      // title) while the new ones are fetched — the shell stays mounted
+      // across IEC navigation now.
+      setDetails(null);
+      setMaskingDetails(null);
       dispatch(setTitleDetail(null));
+      // Spinner up from the very first moment — the layout shell renders
+      // underneath it immediately, and it stays up (click-through) until the
+      // exam's images have actually loaded (see the clearLoading listener).
+      dispatch(setLoading(true));
 
-      const details = await getDicomDetails(iec);
-      const maskingDetails = await getMaskingDetails(iec);
+      let decimate_count = optionsDecimate;
+      const requestedDecimateCount =
+        decimate_count === 0
+          ? 2000 // Maximum number of frames to load if decimate is set to 0 (no decimation)
+          : decimate_count;
+
+      // Independent lookups — fetch them together instead of serially.
+      const [details, maskingDetails, iecInfo] = await Promise.all([
+        getDicomDetails(iec),
+        getMaskingDetails(iec),
+        getIECInfo(iec, false, requestedDecimateCount),
+      ]);
       if (isCancelled || requestId !== loadRequestRef.current) {
-        console.log(
-          "---------------> getDicomDetails & getMaskingDetails cancelled",
-        );
+        console.log("---------------> detail/info fetches cancelled");
         return;
       }
       const { volumetric } = details;
@@ -435,23 +484,12 @@ export default function MaskIEC({
         ),
       );
 
-      let decimate_count = optionsDecimate;
-      const requestedDecimateCount =
-        decimate_count === 0
-          ? 2000 // Maximum number of frames to load if decimate is set to 0 (no decimation)
-          : decimate_count;
-
       setIsErrored(false);
       let volumeId = `mask-${iec}-decimate-${decimate_count}`;
       // append a random number
       let segmentationId = `mask-${iec}-seg-${Math.floor(Math.random() * 10000)}`;
 
-      const { frames } = await getIECInfo(iec, false, requestedDecimateCount);
-      if (isCancelled || requestId !== loadRequestRef.current) {
-        console.log("---------------> getIECInfo cancelled");
-        return;
-      }
-      const imageIds = frames;
+      const imageIds = iecInfo.frames;
 
       setImageIds(imageIds);
 
@@ -461,48 +499,61 @@ export default function MaskIEC({
       activeSegmentationIdRef.current = segmentationId;
       seedContext = { volumetric, volumeId, imageIds, maskingDetails };
 
+      // Configure the UI for this exam type NOW — as soon as we know whether
+      // it's a volume or a stack, and before the (slow) image load. This is
+      // what fully populates the tools panel and operations bar behind the
+      // spinner, instead of leaving them half-built until the load finishes.
+      dispatch(reset());
+      dispatch(setMaskerConfig());
+      if (volumetric) {
+        dispatch(setTitle("Mask Volume"));
+        dispatch(setVolumeConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
+      } else {
+        dispatch(setTitle("Mask Stack"));
+        dispatch(setStackConfig());
+        dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
+        dispatch(
+          setOption({ key: "function", value: Enums.FunctionOptions.BLACKOUT }),
+        );
+        dispatch(setOption({ key: "form", value: Enums.FormOptions.CUBOID }));
+      }
+      dispatch(
+        setOption({
+          key: "leftClick",
+          value: Enums.LeftClickOptions.SELECTION,
+        }),
+      );
+      dispatch(
+        setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
+      );
+
       try {
         if (volumetric) {
+          // Resolves once the volume OBJECT exists (geometry from a 3-frame
+          // metadata prefetch) — the pixel data streams in the background and
+          // the viewports render slices as they arrive. The segmentation is
+          // created in the load-completion callback, which the viewports
+          // handle via the "VolumeReallyLoaded" event.
           await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
           if (isCancelled || requestId !== loadRequestRef.current) {
             console.log("---------------> loadVolumeAndSegmentation cancelled");
             return;
           }
-          dispatch(setTitle("Mask Volume"));
-          dispatch(reset());
-          dispatch(setMaskerConfig());
-          dispatch(setVolumeConfig());
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.VOLUME }));
-          // dispatch(setOption({ key: "function", value: Enums.FunctionOptions.MASK }));
-          // dispatch(setOption({ key: "form", value: Enums.FormOptions.CYLINDER }));
         } else {
-          await loadStackSegmentation(imageIds, segmentationId);
-          if (isCancelled || requestId !== loadRequestRef.current) {
-            console.log("---------------> loadStackSegmentation cancelled");
-            return;
-          }
-          dispatch(setTitle("Mask Stack"));
-          dispatch(reset());
-          dispatch(setMaskerConfig());
-          dispatch(setStackConfig());
-          dispatch(setOption({ key: "view", value: Enums.ViewOptions.STACK }));
-          dispatch(
-            setOption({
-              key: "function",
-              value: Enums.FunctionOptions.BLACKOUT,
-            }),
-          );
-          dispatch(setOption({ key: "form", value: Enums.FormOptions.CUBOID }));
+          // Don't hold the UI for the full stack download: the stack viewport
+          // fetches frames on demand from the moment it mounts, and it adds
+          // the labelmap representation when "StackSegmentationReady" fires —
+          // it is explicitly built for the segmentation arriving late. Kick
+          // the download + segmentation off in the background and mount now.
+          loadStackSegmentation(imageIds, segmentationId).catch((error) => {
+            if (isCancelled || requestId !== loadRequestRef.current) return;
+            console.error(error);
+            notify.error(error, messages.errors.loadImage);
+            setIsErrored(true);
+            dispatch(setLoading(false));
+          });
         }
-        dispatch(
-          setOption({
-            key: "leftClick",
-            value: Enums.LeftClickOptions.SELECTION,
-          }),
-        );
-        dispatch(
-          setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
-        );
       } catch (error) {
         console.error(error);
         // A load abandoned by navigation may fail against torn-down state, or
@@ -511,6 +562,9 @@ export default function MaskIEC({
         if (isCancelled || requestId !== loadRequestRef.current) return;
         notify.error(error, messages.errors.loadImage);
         setIsErrored(true);
+        // The load never completes, so no completion event will take the
+        // spinner down — clear it here or it sits over the error view forever.
+        dispatch(setLoading(false));
         return;
       }
 
@@ -539,8 +593,11 @@ export default function MaskIEC({
           }
         });
 
+      // The viewer mounts now — images are still arriving. The spinner stays
+      // up until the completion event (see clearLoading); on a cached revisit
+      // that event already fired synchronously inside loadVolumeAndSegmentation
+      // and the spinner is already down.
       setIsInitialized(true);
-      dispatch(setLoading(false));
     };
 
     // Catch failures from awaits that run before the inner try (e.g. the
@@ -603,6 +660,10 @@ export default function MaskIEC({
       // when we leave, so the next one doesn't attempt to draw
       // before it exists
       setIsInitialized(false);
+      // Leaving mid-load: the completion event for this exam will never be
+      // acted on (or never fire), so don't leave the app-wide spinner up. A
+      // follow-up load turns it straight back on.
+      dispatch(setLoading(false));
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
       // removeAllSegmentations only drops tool state — free the labelmap
@@ -1397,35 +1458,43 @@ export default function MaskIEC({
       />
     );
   }
-  if (!isInitialized) {
-    // display nothing; a loading spinner will be handled elsewhere
-    return <></>;
-  }
-
-  if (volumetric) {
-    console.log(">>>>> about to pass volumeId=", volumeId);
-    viewer = (
-      <VolumeView
-        volumeId={volumeId}
-        segmentationId={segmentationId}
-        preset3d={preset3d}
-        toolGroup={toolGroup}
-        toolGroup3d={toolGroup3d}
-        modality={details.modality}
-        onToggleLeftPanel={handleToggleLeft}
-        onToggleRightPanel={handleToggleRight}
-      />
-    );
+  // The layout shell (tool panels, operations bar) renders immediately —
+  // before the detail fetches and the image load — with the app-wide spinner
+  // floating above it. The viewer mounts as soon as the volume shell / frame
+  // list exists (isInitialized) and its panes fill in as the images stream;
+  // the spinner comes down on the load-completion event (see clearLoading).
+  if (isInitialized) {
+    if (volumetric) {
+      console.log(">>>>> about to pass volumeId=", volumeId);
+      viewer = (
+        <VolumeView
+          volumeId={volumeId}
+          segmentationId={segmentationId}
+          preset3d={preset3d}
+          toolGroup={toolGroup}
+          toolGroup3d={toolGroup3d}
+          modality={details?.modality}
+          onToggleLeftPanel={handleToggleLeft}
+          onToggleRightPanel={handleToggleRight}
+        />
+      );
+    } else {
+      viewer = (
+        <StackView
+          segmentationId={segmentationId}
+          toolGroup={toolGroup}
+          frames={imageIds}
+          onToggleLeftPanel={handleToggleLeft}
+          onToggleRightPanel={handleToggleRight}
+        />
+      );
+    }
   } else {
-    viewer = (
-      <StackView
-        segmentationId={segmentationId}
-        toolGroup={toolGroup}
-        frames={imageIds}
-        onToggleLeftPanel={handleToggleLeft}
-        onToggleRightPanel={handleToggleRight}
-      />
-    );
+    // Images still loading: show the empty viewport grid (a single pane for a
+    // stack, 2x2 for a volume) so the layout is there from the first frame,
+    // with the spinner above it. volumetric defaults to true before details
+    // arrive, so a volume shows four panes immediately.
+    viewer = <ViewportGridPlaceholder single={!volumetric} />;
   }
 
   return (
@@ -1442,16 +1511,24 @@ export default function MaskIEC({
               idLabel="IEC"
             />
           )}
-          <ToolsPanel
-            toolGroup={toolGroup}
-            toolGroup3d={toolGroup3d}
-            preset3d={preset3d}
-            onPresetChange={
-              (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
-            }
-            renderingEngine={renderingEngine}
-            // onApplyDecimate={handleApplyDecimate}
-          />
+          {toolGroup && toolGroup3d && (
+            // Key on iec so the panel remounts per exam. Its
+            // "AllowSegmentationDrawing" listener captures the tool manager at
+            // mount; IEC navigation destroys and recreates the tool groups, so
+            // without a remount the listener would keep enabling the scissors
+            // on the old, destroyed tool group and drawing would silently fail.
+            <ToolsPanel
+              key={iec}
+              toolGroup={toolGroup}
+              toolGroup3d={toolGroup3d}
+              preset3d={preset3d}
+              onPresetChange={
+                (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
+              }
+              renderingEngine={renderingEngine}
+              // onApplyDecimate={handleApplyDecimate}
+            />
+          )}
         </>
         // : null
       }
@@ -1472,10 +1549,16 @@ export default function MaskIEC({
       }
       rightPanel={
         // showRightPanel ?
-        <DetailsPanel
-          details={transformDetails(details, maskingDetails)}
-          onReload={handleReload}
-        />
+        details && maskingDetails ? (
+          <DetailsPanel
+            details={transformDetails(details, maskingDetails)}
+            onReload={handleReload}
+          />
+        ) : (
+          <div className="side-panel">
+            <div className="wrapper" />
+          </div>
+        )
         // : null
       }
       showLeftPanel={showLeftPanel}

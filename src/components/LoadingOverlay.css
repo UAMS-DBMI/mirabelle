@@ -4,9 +4,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0); /* dimmed background */
+  background: rgba(0, 0, 0, 0);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999; /* on top of everything */
+  /* Indicator only: the UI now mounts (and streams images) underneath while
+     this is up, so it must not swallow clicks. */
+  pointer-events: none;
 }
