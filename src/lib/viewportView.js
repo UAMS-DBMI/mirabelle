@@ -131,3 +131,28 @@ export function acquisitionPaneOrientation(volume, pane) {
     ),
   };
 }
+
+/**
+ * Expand `wrapper` to fill the viewport grid (or restore it if already
+ * expanded), minimizing its sibling panes to ~1px. Shared by the double-click
+ * handler and the on-pane expand button so both take exactly the same path.
+ *
+ * Returns the wrapper's expanded state after the toggle, so a caller tracking
+ * button state stays in sync with the DOM it just mutated.
+ */
+export function toggleViewportExpanded(wrapper, renderingEngine) {
+  if (!wrapper || !renderingEngine) {
+    return false;
+  }
+  Array.from(wrapper.parentNode.children)
+    .filter((child) => child !== wrapper)
+    .forEach((child) => child.classList.toggle("minimized"));
+  const expanded = wrapper.classList.toggle("expanded");
+  wrapper.parentElement.classList.toggle("expanded");
+
+  /* A hack to force-render the resized viewports */
+  renderingEngine.resize(true, true);
+  renderingEngine.render();
+
+  return expanded;
+}

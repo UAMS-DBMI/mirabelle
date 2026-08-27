@@ -1,0 +1,43 @@
+/* ViewportExpandButton.css */
+
+/* Top-right corner button mirroring the viewport-label badge on the left.
+   Sits above the canvas and the frame / mask-box overlays (z-index 10–13),
+   and — unlike the label — takes pointer events so it can be clicked. Fades in
+   on pane hover to stay out of the way otherwise. */
+.viewport-expand-button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.55);
+  color: rgba(226, 232, 240, 0.9);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.12s ease, color 0.12s ease;
+}
+
+/* The scrollbar strip lives on the right edge (right: 4px, up to 10px wide);
+   nudge nothing — the button sits above it (higher z-index) at the very top,
+   clear of the thumb's travel. */
+.viewport:hover .viewport-expand-button,
+.viewport-expand-button:focus-visible {
+  opacity: 1;
+}
+
+.viewport-expand-button:hover {
+  background: rgba(30, 41, 59, 0.85);
+  color: rgba(255, 255, 255, 1);
+}
+
+.viewport-expand-button .material-symbols-rounded {
+  font-size: 18px;
+  line-height: 1;
+}
