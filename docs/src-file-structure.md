@@ -42,6 +42,7 @@ Reusable React components with associated styles:
 components/
 ├── AppLayout.css
 ├── AppLayout.jsx                    # Main application layout
+├── CacheStatus.jsx                  # Header image-cache usage indicator
 ├── Context.js                       # React context definitions
 ├── Counter.css
 ├── Counter.jsx                      # Counter component
@@ -177,6 +178,7 @@ Library utilities and helpers:
 
 ```
 lib/
+├── cacheSizing.js                    # Sizes the image cache from device memory
 └── createImageIdsAndCacheMetaData.js  # Image ID creation and caching
 ```
 
