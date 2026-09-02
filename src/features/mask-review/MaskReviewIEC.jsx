@@ -90,6 +90,8 @@ export default function MaskReviewIEC({
   dicomTypeOptions,
   onNext = () => {},
   onPrevious = () => {},
+  hasNext = true,
+  hasPrevious = true,
 }) {
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -397,6 +399,8 @@ export default function MaskReviewIEC({
           <NavigationPanel
             onNext={onNext}
             onPrevious={onPrevious}
+            hasNext={hasNext}
+            hasPrevious={hasPrevious}
             currentId={iec}
             idLabel="IEC"
           />
@@ -480,6 +484,8 @@ export default function MaskReviewIEC({
             <NavigationPanel
               onNext={onNext}
               onPrevious={onPrevious}
+              hasNext={hasNext}
+              hasPrevious={hasPrevious}
               currentId={iec}
               idLabel="IEC"
             />

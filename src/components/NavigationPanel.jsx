@@ -6,12 +6,19 @@ import "./NavigationPanel.css";
 function NavigationPanel({
   onNext = () => {},
   onPrevious = () => {},
+  hasNext = true,
+  hasPrevious = true,
   currentId,
   idLabel = "IEC",
 }) {
   const navButtons = [
-    { name: "Previous", icon: "arrow_back", action: onPrevious },
-    { name: "Next", icon: "arrow_forward", action: onNext },
+    {
+      name: "Previous",
+      icon: "arrow_back",
+      action: onPrevious,
+      dimmed: !hasPrevious,
+    },
+    { name: "Next", icon: "arrow_forward", action: onNext, dimmed: !hasNext },
   ];
 
   return (

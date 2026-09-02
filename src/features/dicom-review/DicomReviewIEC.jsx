@@ -115,6 +115,8 @@ export default function DicomReviewIEC({
   dicomTypeOptions,
   onNext = () => {},
   onPrevious = () => {},
+  hasNext = true,
+  hasPrevious = true,
   routeName,
 }) {
   console.log("[DicomReviewIEC] rendering, iec:", iec);
@@ -531,6 +533,8 @@ export default function DicomReviewIEC({
               <NavigationPanel
                 onNext={onNext}
                 onPrevious={onPrevious}
+                hasNext={hasNext}
+                hasPrevious={hasPrevious}
                 currentId={iec}
                 idLabel="IEC"
               />
@@ -641,6 +645,8 @@ export default function DicomReviewIEC({
             <NavigationPanel
               onNext={onNext}
               onPrevious={onPrevious}
+              hasNext={hasNext}
+              hasPrevious={hasPrevious}
               currentId={iec}
               idLabel="IEC"
             />

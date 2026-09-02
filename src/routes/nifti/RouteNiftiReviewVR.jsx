@@ -97,6 +97,8 @@ export default function RouteNiftiReviewVR() {
       file={file}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      hasNext={Boolean(nextFile)}
+      hasPrevious={Boolean(previousFile)}
     />
   );
 }

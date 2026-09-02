@@ -169,6 +169,8 @@ export default function RouteDicomReviewVR() {
       dicomTypeOptions={dicomTypeOptions}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      hasNext={Boolean(nextIECId)}
+      hasPrevious={Boolean(previousIECId)}
     />
   );
 }

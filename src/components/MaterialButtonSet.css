@@ -18,3 +18,9 @@ li {
 .disabled {
   @apply opacity-40 cursor-not-allowed pointer-events-none;
 }
+
+/* Looks disabled, but still clickable so the action can explain why it is
+   unavailable (e.g. a "no next IEC" toast). */
+.dimmed {
+  @apply opacity-40 cursor-not-allowed;
+}

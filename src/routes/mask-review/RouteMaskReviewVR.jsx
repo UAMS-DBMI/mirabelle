@@ -124,6 +124,8 @@ export default function RouteMaskReviewVR() {
       dicomTypeOptions={dicomTypeOptions}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      hasNext={Boolean(nextIEC)}
+      hasPrevious={Boolean(previousIEC)}
     />
   );
 }

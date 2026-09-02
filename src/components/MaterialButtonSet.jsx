@@ -61,8 +61,9 @@ function MaterialButtonSet({
           <button
             title={item.name}
             onClick={() => buttonClick(item)}
-            className={`${getActiveClass(item.name)}${item.disabled ? " disabled" : ""}`}
+            className={`${getActiveClass(item.name)}${item.disabled ? " disabled" : ""}${item.dimmed ? " dimmed" : ""}`}
             disabled={item.disabled}
+            aria-disabled={item.disabled || item.dimmed || undefined}
           >
             <MaterialIcon icon={item.icon} />
           </button>

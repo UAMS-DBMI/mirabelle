@@ -15,6 +15,8 @@ export default function MaskReviewVR({
   dicomTypeOptions,
   onNext,
   onPrevious,
+  hasNext,
+  hasPrevious,
 }) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
@@ -45,6 +47,8 @@ export default function MaskReviewVR({
       dicomTypeOptions={dicomTypeOptions}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      hasNext={hasNext}
+      hasPrevious={hasPrevious}
     />
   );
 }
