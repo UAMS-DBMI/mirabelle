@@ -14,6 +14,32 @@ import { messages } from "./messages";
 
 let installed = false;
 
+// Errors from a viewport that was torn down while an async library call was
+// still in flight. Cornerstone reads the camera off a renderer that navigation
+// has already destroyed, and the message names the camera accessor it tripped
+// on ("Cannot read properties of null (reading 'getViewUp')", and the Firefox /
+// Safari phrasings of the same null access).
+//
+// These are unreachable from our code: cornerstone-tools' segmentation render
+// loop fires on a requestAnimationFrame and never awaits the per-representation
+// render promises, so a rejection there escapes as an unhandled rejection no
+// caller can catch. Rapid IEC navigation hits this routinely, and the work it
+// abandons belongs to an exam that is already off screen — so log it for
+// debugging rather than telling the curator something went wrong.
+const TORN_DOWN_VIEWPORT_ACCESSORS = [
+  "getViewUp",
+  "getViewPlaneNormal",
+  "getParallelScale",
+];
+
+function isTornDownViewportError(error) {
+  const message = typeof error === "string" ? error : error?.message;
+  if (!message) return false;
+  return TORN_DOWN_VIEWPORT_ACCESSORS.some((accessor) =>
+    message.includes(accessor),
+  );
+}
+
 // Avoid spamming identical toasts when the same error fires repeatedly
 // (e.g. once per viewport during a render).
 const recent = new Map();
@@ -21,6 +47,11 @@ const DEDUPE_MS = 4000;
 
 function report(error) {
   if (!error) return;
+
+  if (isTornDownViewportError(error)) {
+    console.warn("[errors] ignoring torn-down viewport error", error);
+    return;
+  }
 
   // Failed image downloads (e.g. backend 504s on the file server) reject
   // with {error: XMLHttpRequest} deep inside the image loader, where no
