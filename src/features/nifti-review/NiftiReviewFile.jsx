@@ -72,6 +72,8 @@ export default function NiftiReviewFile({
   vr,
   onNext = () => {},
   onPrevious = () => {},
+  hasNext = true,
+  hasPrevious = true,
   routeName,
 }) {
   console.log("[NiftiReviewFile] rendering, file:", file);
@@ -340,6 +342,8 @@ export default function NiftiReviewFile({
             <NavigationPanel
               onNext={onNext}
               onPrevious={onPrevious}
+              hasNext={hasNext}
+              hasPrevious={hasPrevious}
               currentId={file}
               idLabel="File"
             />
