@@ -53,6 +53,16 @@ function StackViewport({
   const activeViewport = useSelector((state) => state.options.viewport);
 
   useEffect(() => {
+    // Navigation can supersede this setup while it awaits setStack. Past that
+    // point the viewport it captured has been disabled, and driving it hits a
+    // torn-down renderer ("Cannot read properties of null (reading
+    // 'getViewUp')") — an escaping rejection the user sees as an error toast.
+    // Same guard as VolumeViewport.
+    let cancelled = false;
+    // True once this run no longer owns the viewport it set up.
+    const superseded = (viewport) =>
+      cancelled || renderingEngine.getViewport(viewportId) !== viewport;
+
     const setup = async () => {
       if (frames === undefined) {
         return;
@@ -168,6 +178,8 @@ function StackViewport({
 
       await viewport.setStack(frames);
 
+      if (superseded(viewport)) return;
+
       // Leave a margin around the image so its edges (and the data-boundary
       // frame) are visible inside the panel.
       viewport.setZoom(MARGIN_ZOOM, false);
@@ -188,7 +200,19 @@ function StackViewport({
       setInitialized(true);
     };
 
-    setup();
+    setup().catch((error) => {
+      if (cancelled) {
+        // Torn down mid-setup by navigation; the library call it was awaiting
+        // failed against the dead viewport. Expected — don't toast it.
+        console.log("[StackViewport] setup aborted by navigation", error);
+        return;
+      }
+      throw error;
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [elementRef, frames]);
 
   // Tear down the data-boundary frame, the segmentation-ready listener, and the
