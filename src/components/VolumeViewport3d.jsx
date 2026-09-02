@@ -198,6 +198,17 @@ function VolumeViewport3d({
   };
 
   useEffect(() => {
+    // Navigation can supersede this setup while it awaits. Past that point it
+    // must not keep driving the viewport: it has been disabled (or re-enabled
+    // as a new viewport object) by then, and calls into the old one hit a
+    // torn-down renderer ("Cannot read properties of null (reading
+    // 'getViewUp')"), which surfaces as an error toast when the rejection
+    // escapes. Same guard as VolumeViewport.
+    let cancelled = false;
+    // True once this run no longer owns the viewport it set up.
+    const superseded = (viewport) =>
+      cancelled || renderingEngine.getViewport(viewportId) !== viewport;
+
     const setup = async () => {
       const viewportInputArray = {
         viewportId,
@@ -222,6 +233,8 @@ function VolumeViewport3d({
         [{ volumeId }],
         [viewportId],
       );
+
+      if (superseded(viewport)) return;
 
       // Detect modality if not provided (for any volume type)
       let effectiveModality = modality;
@@ -257,6 +270,8 @@ function VolumeViewport3d({
         preset: defaultPreset,
       });
 
+      if (superseded(viewport)) return;
+
       // Notify parent if preset was auto-selected and differs from current
       if (defaultPreset !== preset3d) {
         dispatch(setOption({ key: "preset", value: defaultPreset }));
@@ -281,14 +296,27 @@ function VolumeViewport3d({
       viewport.render();
     };
 
-    setup();
-    // No segmentation-representation cleanup here. `loadVolumeAndSegmentation`
+    setup().catch((error) => {
+      if (cancelled) {
+        // Torn down mid-setup by navigation; the library call it was awaiting
+        // failed against the dead viewport. Expected — don't toast it.
+        console.log("[VolumeViewport3d] setup aborted by navigation", error);
+        return;
+      }
+      throw error;
+    });
+
+    // The cleanup only cancels the in-flight setup. No
+    // segmentation-representation cleanup here: `loadVolumeAndSegmentation`
     // already calls removeAllSegmentationRepresentations() inside volume.load(),
     // right before it re-creates the segmentation and fires "VolumeReallyLoaded"
     // — a non-racy cleanup in the same async flow. Doing it again here raced the
     // re-render's cleanup against that event: on a cached/fast load the event
     // fired first (rep added + activated), then this cleanup wiped the new rep,
     // leaving the scissors with "No active segmentation detected".
+    return () => {
+      cancelled = true;
+    };
   }, [elementRef, volumeId]);
 
   // On unmount (leaving this route), remove the 3D viewport from the shared
