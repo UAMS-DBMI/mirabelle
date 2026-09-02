@@ -15,6 +15,8 @@ export default function DicomReviewVR({
   dicomTypeOptions,
   onNext,
   onPrevious,
+  hasNext,
+  hasPrevious,
 }) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
@@ -47,6 +49,8 @@ export default function DicomReviewVR({
       dicomTypeOptions={dicomTypeOptions}
       onNext={handleNext}
       onPrevious={handlePrevious}
+      hasNext={hasNext}
+      hasPrevious={hasPrevious}
     />
   );
 }

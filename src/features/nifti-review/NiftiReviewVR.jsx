@@ -6,7 +6,14 @@ import NiftiReviewFile from "@/features/nifti-review/NiftiReviewFile";
 
 import "./NiftiReviewVR.css";
 
-export default function NiftiReviewVR({ vr, file, onNext, onPrevious }) {
+export default function NiftiReviewVR({
+  vr,
+  file,
+  onNext,
+  onPrevious,
+  hasNext,
+  hasPrevious,
+}) {
   const dispatch = useDispatch();
   useHotkeys("tab", handleNext);
   useHotkeys("right", handleNext);
@@ -35,6 +42,8 @@ export default function NiftiReviewVR({ vr, file, onNext, onPrevious }) {
           file={file}
           onNext={handleNext}
           onPrevious={handlePrevious}
+          hasNext={hasNext}
+          hasPrevious={hasPrevious}
         />
       )}
     </>

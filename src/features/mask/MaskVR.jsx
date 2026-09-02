@@ -14,6 +14,7 @@ export default function MaskVR({
   onNext,
   onPrevious,
   hasNext,
+  hasPrevious,
 }) {
   // Tool options are reset by the route, and only when it actually moves to
   // another exam (see RouteMaskVR).
@@ -29,9 +30,10 @@ export default function MaskVR({
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}
-      onNext={onNext}
-      onPrevious={onPrevious}
+      onNext={handleNext}
+      onPrevious={handlePrevious}
       hasNext={hasNext}
+      hasPrevious={hasPrevious}
     />
   );
 }

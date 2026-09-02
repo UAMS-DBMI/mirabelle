@@ -188,6 +188,7 @@ export default function MaskIEC({
   onNext = () => {},
   onPrevious = () => {},
   hasNext = true,
+  hasPrevious = true,
 }) {
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -1081,7 +1082,10 @@ export default function MaskIEC({
 
     return () => {
       detachVolumeAttach();
-      cornerstone.eventTarget.removeEventListener("VolumeReallyLoaded", handler);
+      cornerstone.eventTarget.removeEventListener(
+        "VolumeReallyLoaded",
+        handler,
+      );
       cornerstone.eventTarget.removeEventListener(
         "StackSegmentationReady",
         handler,
@@ -1436,6 +1440,8 @@ export default function MaskIEC({
           <NavigationPanel
             onNext={onNext}
             onPrevious={onPrevious}
+            hasNext={hasNext}
+            hasPrevious={hasPrevious}
             currentId={iec}
             idLabel="IEC"
           />
@@ -1527,6 +1533,8 @@ export default function MaskIEC({
             <NavigationPanel
               onNext={onNext}
               onPrevious={onPrevious}
+              hasNext={hasNext}
+              hasPrevious={hasPrevious}
               currentId={iec}
               idLabel="IEC"
             />
