@@ -27,6 +27,7 @@ import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
 import { toAbsoluteURL, startVolumeLoad } from "@/utilities";
 import { getNiftiDetails, setNiftiStatus } from "@/visualreview";
+import { watchNiftiTruncation, truncationError } from "./niftiTruncation";
 
 import Header from "@/components/Header";
 
@@ -165,6 +166,7 @@ export default function NiftiReviewFile({
     // effect was cleaned up. Checked after EVERY await so a stale run can't
     // set state or clear the spinner for the wrong file.
     const isStale = () => isCancelled || requestId !== loadRequestRef.current;
+    let stopWatchingTruncation = () => {};
 
     const initialize = async () => {
       setIsErrored(false);
@@ -215,6 +217,10 @@ export default function NiftiReviewFile({
           rel_url += ".gz";
         }
         const url = toAbsoluteURL(rel_url);
+        stopWatchingTruncation = watchNiftiTruncation(url, (detail) => {
+          if (isStale()) return;
+          notify.error(truncationError(detail, messages.errors.truncatedNifti));
+        });
         const imageIds = await createNiftiImageIdsAndCacheMetadata({ url });
         if (isStale()) return;
         setImageIds(imageIds);
@@ -262,6 +268,7 @@ export default function NiftiReviewFile({
     // so we don't try to draw the next volume before it's loaded!
     return () => {
       isCancelled = true;
+      stopWatchingTruncation();
       setIsInitialized(false);
       // Leaving mid-load: the completion callback for this file is stale and
       // will never clear the spinner — don't leave it up. A follow-up load
