@@ -1,48 +1,12 @@
-diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
-index 5ab1158..23a1174 100644
---- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
-+++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
-@@ -16,6 +16,8 @@ export function getArrayConstructor(datatypeCode) {
-             return Uint16Array;
-         case NIFTICONSTANTS.NIFTI_TYPE_UINT32:
-             return Uint32Array;
-+        case NIFTICONSTANTS.NIFTI_TYPE_FLOAT64:
-+            return Float64Array;
-         default:
-             throw new Error(`NIFTI datatypeCode ${datatypeCode} is not yet supported`);
-     }
-diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js
-index e91e6c6..a91c0a6 100644
---- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js
-+++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js
-@@ -70,6 +70,10 @@ export default function modalityScaleNifti(niftiHeader, niftiImageBuffer) {
-             niiBuffer = new Uint32Array(niftiImageBuffer);
-             scalarData = allocateScalarData('Float32Array', niiBuffer);
-             break;
-+        case NIFTICONSTANTS.NIFTI_TYPE_FLOAT64:
-+            niiBuffer = new Float64Array(niftiImageBuffer);
-+            scalarData = allocateScalarData('Float64Array', niiBuffer);
-+            break;
-         default:
-             throw new Error(`NIFTI datatypeCode ${datatypeCode} is not yet supported`);
-     }
-@@ -127,6 +131,11 @@ function allocateScalarData(types, niiBuffer) {
-             checkCacheAvailable(bitsAllocated, nVox);
-             scalarData = new Uint8Array(nVox);
-             break;
-+        case 'Float64Array':
-+            bitsAllocated = 64;
-+            checkCacheAvailable(bitsAllocated, nVox);
-+            scalarData = new Float64Array(nVox);
-+            break;
-         default:
-             throw new Error(`TypedArray ${types} is not yet supported`);
-     }
 diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-index a56de79..4450c83 100644
+index a56de79..9985358 100644
 --- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
 +++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-@@ -4,22 +4,22 @@ import { Events } from './enums';
+@@ -1,25 +1,26 @@
+ import { Enums, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
+ import * as NiftiReader from 'nifti-reader-js';
++import { Gunzip } from 'fflate';
+ import { Events } from './enums';
  import { modalityScaleNifti } from './helpers';
  import { getOptions } from './internal';
  const dataFetchStateMap = new Map();
@@ -80,7 +44,95 @@ index a56de79..4450c83 100644
              if (onload && typeof onload === 'function') {
                  onload();
              }
-@@ -111,9 +111,32 @@ function waitForNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlane
+@@ -77,12 +78,86 @@ export default function cornerstoneNiftiImageLoader(imageId) {
+         },
+     };
+ }
++function decompressRecoverable(url, compressed) {
++    try {
++        return NiftiReader.decompress(compressed);
++    }
++    catch (error) {
++        return recoverPartialNifti(url, compressed, error);
++    }
++}
++function inflateUntilError(bytes) {
++    const chunks = [];
++    const gunzip = new Gunzip((chunk) => chunks.push(chunk));
++    let stage = 'body';
++    try {
++        gunzip.push(bytes, false);
++        stage = 'end';
++        gunzip.push(new Uint8Array(0), true);
++        return { chunks, reason: null };
++    }
++    catch (error) {
++        // Running out of input only surfaces on the final push; a failure
++        // before that is corruption inside the stream itself.
++        return {
++            chunks,
++            reason: stage === 'end' ? 'unexpected EOF' : error.message,
++        };
++    }
++}
++function concatChunks(chunks) {
++    const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
++    const bytes = new Uint8Array(total);
++    let offset = 0;
++    for (const chunk of chunks) {
++        bytes.set(chunk, offset);
++        offset += chunk.length;
++    }
++    return bytes;
++}
++function niftiImageByteLength(header) {
++    const [, x, y, z, t, s] = header.dims;
++    return x * y * z * (t || 1) * (s || 1) * (header.numBitsPerVoxel / 8);
++}
++function readHeaderOrNull(bytes) {
++    try {
++        return NiftiReader.readHeader(bytes.buffer);
++    }
++    catch (error) {
++        console.warn('Could not read a NIfTI header from the decoded bytes:', error);
++        return null;
++    }
++}
++// Like MRIcro or Slicer, show whatever a truncated or corrupt .nii.gz still
++// decodes to instead of failing outright: the missing tail is zero-filled up
++// to the size the header declares, and NIFTI_VOLUME_TRUNCATED tells the app
++// so it can warn the user the file is damaged.
++function recoverPartialNifti(url, compressed, error) {
++    const { chunks, reason } = inflateUntilError(new Uint8Array(compressed));
++    const decoded = concatChunks(chunks);
++    const header = readHeaderOrNull(decoded);
++    if (!header) {
++        throw error;
++    }
++    const imageBytes = niftiImageByteLength(header);
++    const recoveredImageBytes = Math.min(Math.max(decoded.length - header.vox_offset, 0), imageBytes);
++    const padded = new Uint8Array(Math.max(decoded.length, header.vox_offset + imageBytes));
++    padded.set(decoded);
++    const detail = {
++        url,
++        reason: reason ?? error.message,
++        recoveredFraction: imageBytes ? recoveredImageBytes / imageBytes : 0,
++    };
++    console.warn('Loaded a damaged NIfTI file partially:', detail);
++    triggerEvent(eventTarget, Events.NIFTI_VOLUME_TRUNCATED, detail);
++    return padded.buffer;
++}
+ async function fetchAndProcessNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlaneModule) {
+     let niftiBuffer = await fetchArrayBuffer({ url });
+     let niftiHeader = null;
+     let niftiImage = null;
+     if (NiftiReader.isCompressed(niftiBuffer)) {
+-        niftiBuffer = NiftiReader.decompress(niftiBuffer);
++        niftiBuffer = decompressRecoverable(url, niftiBuffer);
+     }
+     if (NiftiReader.isNIFTI(niftiBuffer)) {
+         niftiHeader = NiftiReader.readHeader(niftiBuffer);
+@@ -111,9 +186,32 @@ function waitForNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlane
  function createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, niftiScalarData) {
      const { rows, columns } = imagePlaneModule;
      const numVoxels = rows * columns;
@@ -250,4 +302,55 @@ index cb78a63..d7c5ba1 100644
 +                sliceDimIndex,
              },
          });
+     }
+diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/enums/Events.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/enums/Events.js
+index 9f5835a..3582380 100644
+--- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/enums/Events.js
++++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/enums/Events.js
+@@ -2,5 +2,6 @@ var Events;
+ (function (Events) {
+     Events["NIFTI_VOLUME_LOADED"] = "CORNERSTONE_NIFTI_VOLUME_LOADED";
+     Events["NIFTI_VOLUME_PROGRESS"] = "CORNERSTONE_NIFTI_VOLUME_PROGRESS";
++    Events["NIFTI_VOLUME_TRUNCATED"] = "CORNERSTONE_NIFTI_VOLUME_TRUNCATED";
+ })(Events || (Events = {}));
+ export default Events;
+diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
+index 5ab1158..23a1174 100644
+--- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
++++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
+@@ -16,6 +16,8 @@ export function getArrayConstructor(datatypeCode) {
+             return Uint16Array;
+         case NIFTICONSTANTS.NIFTI_TYPE_UINT32:
+             return Uint32Array;
++        case NIFTICONSTANTS.NIFTI_TYPE_FLOAT64:
++            return Float64Array;
+         default:
+             throw new Error(`NIFTI datatypeCode ${datatypeCode} is not yet supported`);
+     }
+diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js
+index e91e6c6..a91c0a6 100644
+--- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js
++++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/modalityScaleNifti.js
+@@ -70,6 +70,10 @@ export default function modalityScaleNifti(niftiHeader, niftiImageBuffer) {
+             niiBuffer = new Uint32Array(niftiImageBuffer);
+             scalarData = allocateScalarData('Float32Array', niiBuffer);
+             break;
++        case NIFTICONSTANTS.NIFTI_TYPE_FLOAT64:
++            niiBuffer = new Float64Array(niftiImageBuffer);
++            scalarData = allocateScalarData('Float64Array', niiBuffer);
++            break;
+         default:
+             throw new Error(`NIFTI datatypeCode ${datatypeCode} is not yet supported`);
+     }
+@@ -127,6 +131,11 @@ function allocateScalarData(types, niiBuffer) {
+             checkCacheAvailable(bitsAllocated, nVox);
+             scalarData = new Uint8Array(nVox);
+             break;
++        case 'Float64Array':
++            bitsAllocated = 64;
++            checkCacheAvailable(bitsAllocated, nVox);
++            scalarData = new Float64Array(nVox);
++            break;
+         default:
+             throw new Error(`TypedArray ${types} is not yet supported`);
      }
