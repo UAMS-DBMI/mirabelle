@@ -70,6 +70,8 @@ export const messages = {
     network: "Couldn't reach the server. Check your connection and try again.",
     downloadFailed: "Couldn't download the file. Please try again.",
     missingNiftiFile: "No downloadable NIfTI file was found for this record.",
+    truncatedNifti:
+      "This NIfTI file is corrupted. Only the part that could be read is shown; missing data appears black.",
     loginFailed: "Not logged in. Please login to Posda first.",
     multipleSegImages: (iec) =>
       `More than one segmentation image was found for IEC ${iec}.`,
