@@ -33,6 +33,11 @@ const NON_ERROR_TOAST_ID = "app-non-error-toast";
 let nonErrorSeq = 0; // makes each slot toast id unique
 let activeSlotId = null; // id of the toast most recently put in the slot
 
+// Error objects already shown as a toast. Cornerstone reports some failures
+// twice: once through an event a page can act on, and again as an unhandled
+// rejection. The global handler checks this so the curator sees one toast.
+const shownErrors = new WeakSet();
+
 /**
  * Show a non-error toast in the shared slot. `show(id)` performs the actual
  * `toast.*` call with the given (unique) id. Dismissing a stale/expired id is a
@@ -140,6 +145,9 @@ export const notify = {
     if (error && typeof error !== "string") {
       console.error("[notify]", error);
     }
+    if (error && typeof error === "object") {
+      shownErrors.add(error);
+    }
     const message = toUserMessage(error, fallback || messages.errors.generic);
     const detail = toErrorDetail(error);
 
@@ -178,6 +186,18 @@ export const notify = {
       duration: DURATION.error,
       className: "app-toast app-toast--error",
     });
+  },
+
+  /**
+   * Whether `error` (the same object) was already shown by `notify.error`.
+   *
+   * @param {unknown} error
+   * @returns {boolean}
+   */
+  wasShown(error) {
+    return (
+      Boolean(error) && typeof error === "object" && shownErrors.has(error)
+    );
   },
 };
 

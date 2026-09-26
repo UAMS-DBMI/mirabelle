@@ -53,6 +53,10 @@ function report(error) {
     return;
   }
 
+  // A page already showed this exact error with its own message (e.g. a
+  // NIfTI load failure the review page caught from IMAGE_LOAD_FAILED).
+  if (notify.wasShown(error)) return;
+
   // Failed image downloads (e.g. backend 504s on the file server) reject
   // with {error: XMLHttpRequest} deep inside the image loader, where no
   // caller can catch them. Report those as image-load failures under a
