@@ -72,6 +72,8 @@ export const messages = {
     missingNiftiFile: "No downloadable NIfTI file was found for this record.",
     truncatedNifti:
       "This NIfTI file is corrupted. Only the part that could be read is shown; missing data appears black.",
+    niftiTooLarge:
+      "This NIfTI file is too large to display in the browser. Use Download to open it in a desktop viewer.",
     loginFailed: "Not logged in. Please login to Posda first.",
     multipleSegImages: (iec) =>
       `More than one segmentation image was found for IEC ${iec}.`,
