@@ -21,6 +21,7 @@ import {
   setOption,
 } from "@/features/optionSlice";
 import { notify } from "@/lib/notify";
+import { pauseExamDownloads } from "@/lib/examDownloads";
 import { messages } from "@/lib/messages";
 import { useHotkeys } from "react-hotkeys-hook";
 import { wadouri } from "@cornerstonejs/dicom-image-loader";
@@ -467,6 +468,9 @@ export default function DicomReviewIEC({
     // so we don't try to draw the next volume before it's loaded!
     return () => {
       isCancelled = true;
+      // Leaving the exam: hold the rest of its download until it is
+      // loaded again, so it doesn't compete with the next exam's.
+      pauseExamDownloads();
       setIsInitialized(false);
       // Leaving mid-load: the completion callback for this exam is stale and
       // will never clear the spinner — don't leave it up. A follow-up load

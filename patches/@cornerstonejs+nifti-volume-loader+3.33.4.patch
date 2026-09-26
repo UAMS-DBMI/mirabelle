@@ -1,8 +1,8 @@
 diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-index a56de79..511bd39 100644
+index a56de79..c27578f 100644
 --- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
 +++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-@@ -1,119 +1,447 @@
+@@ -1,119 +1,560 @@
 -import { Enums, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
 +import { Enums, cache, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
  import * as NiftiReader from 'nifti-reader-js';
@@ -117,6 +117,16 @@ index a56de79..511bd39 100644
 -        niftiImage = NiftiReader.readImage(niftiHeader, niftiBuffer);
 +    return load;
 +}
++// Pauses the download of the NIfTI file at `url` (e.g. the curator moved to
++// another file), keeping everything decoded so far. The frames still waiting
++// stay pending until resumeNiftiFileLoad(url) carries on from there.
++export function pauseNiftiFileLoad(url) {
++    fileLoadsByUrl.get(url)?.pause();
++}
++export function resumeNiftiFileLoad(url) {
++    fileLoadsByUrl.get(url)?.resume();
++}
++const PAUSED = Symbol('paused');
 +// Streams one file and hands out its first volume z-slice by z-slice, so the
 +// viewports fill in while the download runs. NIFTI_FILE_READ fires once the
 +// whole file has been read (after NIFTI_VOLUME_TRUNCATED if it is damaged),
@@ -124,6 +134,9 @@ index a56de79..511bd39 100644
 +class NiftiFileLoad {
 +    constructor(url) {
 +        this.url = url;
++        this.download = new NiftiDownload(url, (slices) => this.addSlices(slices));
++        this.state = 'running';
++        this.running = null;
 +        this.scalarData = null;
 +        this.readySlices = 0;
 +        this.sliceCount = Infinity;
@@ -146,11 +159,41 @@ index a56de79..511bd39 100644
 -            if (dataFetchState.status === 'fetched') {
 -                clearInterval(intervalId);
 -                resolve(createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, dataFetchState.scalarData));
--            }
++    start() {
++        this.running = this.run();
++    }
++    pause() {
++        if (this.state !== 'running') {
++            return;
++        }
++        this.state = 'paused';
++        this.download.pause();
++    }
++    resume() {
++        if (this.state !== 'paused') {
++            return;
++        }
++        this.state = 'running';
++        // After the paused read has unwound, so two reads never overlap.
++        this.running = this.running.then(() => this.run());
++    }
++    async run() {
++        if (this.state !== 'running') {
++            return;
++        }
++        try {
++            const reason = await this.download.read();
++            if (reason === PAUSED) {
++                return;
+             }
 -        }, 10);
 -    });
-+    start() {
-+        streamFile(this.url, (slices) => this.addSlices(slices)).then(() => this.finish(null), (error) => this.finish(error));
++            this.download.finish(reason);
++            this.finish(null);
++        }
++        catch (error) {
++            this.finish(error);
++        }
 +    }
 +    // Resolves with the volume's scalar data once its first `count` z-slices
 +    // are in; Infinity waits for all of them.
@@ -172,6 +215,7 @@ index a56de79..511bd39 100644
 +        this.settleWaiters();
 +    }
 +    finish(error) {
++        this.state = 'done';
 +        this.failure = error;
 +        if (error && fileLoadsByUrl.get(this.url) === this) {
 +            fileLoadsByUrl.delete(this.url);
@@ -202,56 +246,124 @@ index a56de79..511bd39 100644
 +// file is still reported. Only the first volume is kept because slice image
 +// ids only index into it, and holding every frame of a 4D series (a 60-frame
 +// perfusion run is 4.3 GB) fails to allocate in the browser.
-+async function streamFile(url, onSlices) {
-+    const controller = new AbortController();
-+    try {
-+        const response = await fetch(url, {
-+            signal: controller.signal,
-+            headers: await requestHeaders(url),
-+        });
++//
++// The download can pause and later carry on where it stopped: the decoder
++// keeps its state, and the next read asks for the rest of the file with an
++// HTTP Range request (or skips what was read already, from a server that
++// sends the whole file again).
++class NiftiDownload {
++    constructor(url, onSlices) {
++        this.url = url;
++        this.collector = new FirstVolumeCollector(onSlices);
++        this.decoder = new NiftiStreamDecoder(this.collector);
++        this.bytesRead = 0;
++        this.totalBytes = undefined;
++        // A server that compresses responses on the fly (Content-Encoding)
++        // ranges over the compressed bytes, not the ones read here.
++        this.rangeable = true;
++        this.controller = null;
++        this.pausing = false;
++    }
++    pause() {
++        this.pausing = true;
++        this.controller?.abort();
++    }
++    // Reads on from where the last read stopped. Returns PAUSED when pause()
++    // stopped it, otherwise why the file stopped decoding before its
++    // declared end (null if it is intact). Throws on a fatal error.
++    async read() {
++        this.pausing = false;
++        this.controller = new AbortController();
++        const { signal } = this.controller;
++        try {
++            const response = await this.fetchRest(signal);
++            return response ? await this.readBody(response) : this.decoder.end();
++        }
++        catch (error) {
++            if (this.pausing) {
++                return PAUSED;
++            }
++            throw error;
++        }
++        finally {
++            // Stops the download after a pause or a fatal error; a no-op once
++            // it has been read.
++            this.controller.abort();
++        }
++    }
++    // The file from bytesRead on; null when nothing is left to read.
++    async fetchRest(signal) {
++        const headers = await requestHeaders(this.url);
++        if (this.bytesRead > 0 && this.rangeable) {
++            headers.Range = `bytes=${this.bytesRead}-`;
++        }
++        const response = await fetch(this.url, { signal, headers });
++        if (response.status === 416) {
++            return null; // The whole file was read before the pause.
++        }
 +        if (!response.ok) {
 +            throw new Error(`Couldn't download the NIfTI file (HTTP ${response.status}).`);
 +        }
-+        const collector = new FirstVolumeCollector(onSlices);
-+        const reason = await decodeWholeFile(url, response, collector);
-+        collector.finish(url, reason);
++        const encoding = response.headers.get('Content-Encoding');
++        this.rangeable = !encoding || encoding === 'identity';
++        this.totalBytes = totalBytesOf(response, this.bytesRead) ?? this.totalBytes;
++        return response;
 +    }
-+    finally {
-+        // Stops the download after a fatal error; a no-op once it is read.
-+        controller.abort();
++    // Streams the response through the decoder. Returns why the file stopped
++    // decoding before its declared end, or null if it is intact.
++    async readBody(response) {
++        const reader = response.body.getReader();
++        // Anything but a 206 starts from the top of the file again.
++        let toSkip = response.status === 206 ? 0 : this.bytesRead;
++        while (!this.collector.failure) {
++            const { done, value } = await reader.read();
++            if (done) {
++                return this.decoder.end();
++            }
++            const skipped = Math.min(toSkip, value.length);
++            toSkip -= skipped;
++            if (skipped === value.length) {
++                continue;
++            }
++            const bytes = value.subarray(skipped);
++            this.bytesRead += bytes.length;
++            const reason = this.decoder.push(bytes);
++            // `loaded`/`total` count downloaded bytes, but many servers send
++            // no Content-Length; decoded bytes against the size the header
++            // declares are known either way once the header is in.
++            triggerEvent(eventTarget, Events.NIFTI_VOLUME_PROGRESS, {
++                data: {
++                    url: this.url,
++                    loaded: this.bytesRead,
++                    total: this.totalBytes,
++                    ...this.collector.decodedProgress(),
++                },
++            });
++            if (reason) {
++                return reason;
++            }
++        }
++        return null;
 +    }
++    // The stream is over: throws a fatal failure, or reports damage.
++    finish(reason) {
++        this.collector.finish(this.url, reason);
++    }
++}
++// The whole file's size: from Content-Range on a 206, else Content-Length.
++function totalBytesOf(response, offset) {
++    const length = Number(response.headers.get('Content-Length')) || undefined;
++    if (response.status !== 206) {
++        return length;
++    }
++    const size = Number(response.headers.get('Content-Range')?.split('/')[1]);
++    return size || (length && offset + length);
 +}
 +async function requestHeaders(url) {
 +    const defaultHeaders = {};
 +    const beforeSendHeaders = await getOptions().beforeSend?.(null, defaultHeaders, url);
 +    const headers = Object.assign({}, defaultHeaders, beforeSendHeaders);
 +    return Object.fromEntries(Object.entries(headers).filter(([, value]) => value !== null && value !== undefined));
-+}
-+// Streams the whole download through the collector. Returns why the file
-+// stopped decoding before its declared end, or null if it is intact.
-+async function decodeWholeFile(url, response, collector) {
-+    const total = Number(response.headers.get('Content-Length')) || undefined;
-+    const reader = response.body.getReader();
-+    const decoder = new NiftiStreamDecoder(collector);
-+    let loaded = 0;
-+    while (!collector.failure) {
-+        const { done, value } = await reader.read();
-+        if (done) {
-+            return decoder.end();
-+        }
-+        loaded += value.length;
-+        const reason = decoder.push(value);
-+        // `loaded`/`total` count downloaded bytes, but many servers send no
-+        // Content-Length; decoded bytes against the size the header declares
-+        // are known either way once the header is in.
-+        triggerEvent(eventTarget, Events.NIFTI_VOLUME_PROGRESS, {
-+            data: { url, loaded, total, ...collector.decodedProgress() },
-+        });
-+        if (reason) {
-+            return reason;
-+        }
-+    }
-+    return null;
 +}
 +// Feeds downloaded bytes to the collector, gunzipping them first when the
 +// file is gzipped. push() and end() return why decoding stopped short, or null.
@@ -731,3 +843,16 @@ index e91e6c6..a91c0a6 100644
          default:
              throw new Error(`TypedArray ${types} is not yet supported`);
      }
+diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/index.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/index.js
+index dc65b6c..5e7ded6 100644
+--- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/index.js
++++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/index.js
+@@ -1,6 +1,6 @@
+-import cornerstoneNiftiImageLoader from './cornerstoneNiftiImageLoader';
++import cornerstoneNiftiImageLoader, { pauseNiftiFileLoad, resumeNiftiFileLoad, } from './cornerstoneNiftiImageLoader';
+ import * as helpers from './helpers';
+ import * as Enums from './enums';
+ import { createNiftiImageIdsAndCacheMetadata } from './createNiftiImageIdsAndCacheMetadata';
+ import init from './init';
+-export { cornerstoneNiftiImageLoader, helpers, Enums, createNiftiImageIdsAndCacheMetadata, init, };
++export { cornerstoneNiftiImageLoader, helpers, Enums, createNiftiImageIdsAndCacheMetadata, init, pauseNiftiFileLoad, resumeNiftiFileLoad, };
