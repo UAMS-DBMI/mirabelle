@@ -15,7 +15,8 @@ grade it accordingly.
 |---|---|
 | [patches/@cornerstonejs+nifti-volume-loader+3.33.4.patch](../patches/@cornerstonejs+nifti-volume-loader+3.33.4.patch) | Loader side: the recovery path in `cornerstoneNiftiImageLoader.js` and the new `NIFTI_VOLUME_TRUNCATED` event in `enums/Events.js` |
 | [src/features/nifti-review/niftiTruncation.js](../src/features/nifti-review/niftiTruncation.js) | Remembers which files were damaged, notifies watchers, builds the toast's error |
-| [src/features/nifti-review/NiftiReviewFile.jsx](../src/features/nifti-review/NiftiReviewFile.jsx) | Watches the file being loaded and shows the toast |
+| [src/features/nifti-review/niftiFileRead.js](../src/features/nifti-review/niftiFileRead.js) | Records how each file's download ended (read to the end, or failed), notifies watchers |
+| [src/features/nifti-review/NiftiReviewFile.jsx](../src/features/nifti-review/NiftiReviewFile.jsx) | Watches the file being loaded, shows the toasts, holds the spinner until the file is read |
 | [src/lib/messages.js](../src/lib/messages.js) | `errors.truncatedNifti`, the curator-facing text |
 
 ---
@@ -34,9 +35,10 @@ there. The Unarchiver refused to extract it.
 ## 2. Root cause: the file itself is truncated
 
 When the details record says `is_zipped`, the viewer fetches the file's
-`/data.gz` URL ([NiftiReviewFile.jsx:216](../src/features/nifti-review/NiftiReviewFile.jsx#L216)).
-The loader then decompresses the whole buffer in one call to
-`NiftiReader.decompress`, which is fflate's `gunzipSync`.
+`/data.gz` URL ([NiftiReviewFile.jsx:230](../src/features/nifti-review/NiftiReviewFile.jsx#L230)).
+The loader then decompressed the whole buffer in one call to
+`NiftiReader.decompress`, which is fflate's `gunzipSync`. It now streams the
+file instead (§4).
 
 `unexpected EOF` is fflate saying the compressed stream ended before its final
 block. In other words, the file stops early. That is a problem with the stored
@@ -65,9 +67,9 @@ storage, so the file should be re-sent from its source.
 
 The loader fetches each file once and makes every frame's request wait on that
 single fetch (`dataFetchStateMap`). When the fetch threw, the entry stayed at
-`status: 'fetching'`, and `waitForNiftiData` polled it forever. The recovery
-path fixes this for damaged files, because the fetch now completes. See §6 for
-the failures it still doesn't cover.
+`status: 'fetching'`, and `waitForNiftiData` polled it forever. Every frame
+now awaits one shared promise instead, so any failure rejects all of them, the
+volume finishes loading, and the spinner comes down (§4.5).
 
 ## 3. What the curator sees now
 
@@ -96,39 +98,52 @@ looks.
 All of this lives in `dist/esm/cornerstoneNiftiImageLoader.js`, and is applied
 through `patch-package` on `postinstall`.
 
-### 4.1 Healthy files are unchanged
+### 4.1 One streaming pass, first volume kept
 
-`fetchAndProcessNiftiData` now calls `decompressRecoverable` instead of
-`NiftiReader.decompress`. That function still tries `NiftiReader.decompress`
-first, so intact files take the same fast path as before. Only when it throws
-does recovery run:
+Each file gets one `NiftiFileLoad`, shared by all its frames. It calls
+`streamFile`, which streams the download (`fetch` + a body reader) through
+fflate's streaming `Gunzip` when the first bytes are the gzip magic, or
+straight through for a plain `.nii`. There is no whole-buffer
+`NiftiReader.decompress` any more.
 
-```js
-function decompressRecoverable(url, compressed) {
-    try {
-        return NiftiReader.decompress(compressed);
-    }
-    catch (error) {
-        return recoverPartialNifti(url, compressed, error);
-    }
-}
-```
+A `FirstVolumeCollector` takes the decoded bytes in whatever chunks they come:
 
-### 4.2 Decoding as much as possible: `inflateUntilError`
+1. It reads the header once 540 bytes (a NIfTI-2 header) have arrived, or
+   from whatever arrived if the file ends sooner.
+2. It allocates a buffer for the **first 3D volume only**
+   (`dims[1] × dims[2] × dims[3] × bitpix / 8`) and copies the bytes from
+   `vox_offset` onward into it. The buffer starts zero-filled.
+3. Each time one or more z-slices fill up, it passes them on. `NiftiFileLoad`
+   converts them for display (`modalityScaleNifti`) into the volume's scalar
+   data and resolves every frame waiting on them. An axial frame waits for its
+   own z-slice. A sagittal or coronal frame takes a row from every z-slice, so
+   it waits for the whole volume.
+4. It only counts bytes after that volume. The whole file still streams
+   through the decoder, so damage anywhere in it, including a missing gzip
+   trailer, is still detected.
 
-Recovery uses fflate's **streaming** `Gunzip`, which emits output chunks as it
-decodes. It pushes the data in two steps:
+Slice image ids only index into the first volume, so that is all the viewer
+has ever shown. Keeping only it is what lets large 4D files load: a 60-frame
+float64 perfusion series is 4.3 GB decoded, which the browser can't allocate
+("Array buffer allocation failed"), but its first volume is 71 MB.
 
-1. `push(bytes, false)`: decode everything available. For a truncated stream
-   this doesn't throw. The decoder just waits for more input.
-2. `push(empty, true)`: tell it the input is finished. A truncated stream
-   throws here.
+So the viewports fill in slice by slice while the file downloads, as DICOM
+exams do. For a 4D file the first volume is complete after a small part of
+the download.
 
-This split is essential. A single `push(bytes, true)` behaves like
-`gunzipSync`: it throws **before** emitting anything, so nothing could be
-recovered. We checked this against fflate 0.7.3 with synthetic data. With the
-two-step push, every byte decoded before the break came back and matched the
-original data exactly.
+When the stream ends, the loader fires `NIFTI_FILE_READ` with `{ url, error }`:
+`error` is null once the whole file has been read (after
+`NIFTI_VOLUME_TRUNCATED` if it is damaged), or the error it failed with. The
+page keeps its spinner up until this fires and the volume has loaded, so a
+damage warning is on screen before loading is shown as finished.
+
+### 4.2 Telling truncation from corruption
+
+`NiftiStreamDecoder` pushes each downloaded chunk with `push(bytes, false)`,
+and `push(empty, true)` when the download ends. The split matters: a single
+`push(bytes, true)` behaves like `gunzipSync` and throws **before** emitting
+anything, so nothing could be recovered. We checked this against fflate 0.7.3
+with synthetic data.
 
 Where it throws also tells us what went wrong:
 
@@ -137,23 +152,19 @@ Where it throws also tells us what went wrong:
   missing), so we record it as `unexpected EOF`. That is what actually
   happened, and it matches the message users already know.
 - **Thrown earlier:** the data is corrupt mid-stream (e.g. `invalid block
-  type`). fflate's own message is kept.
+  type`). fflate's own message is kept, and decoding stops there.
+- **No error, but fewer bytes than the header declares:** recorded as
+  `the file ends before its image data does`.
 
-### 4.3 Making the result loadable: `recoverPartialNifti`
+### 4.3 Making the result loadable
 
-1. Join the decoded chunks and read the NIfTI header from them. If no header
-   can be read (fewer bytes decoded than the header size, or not a NIfTI),
-   **re-throw the original decompression error**. The file fails exactly as
-   it did before this change.
-2. Work out how many bytes the image should have from the header, using the
-   same formula as `NiftiReader.readImage`:
-   `dims[1] × dims[2] × dims[3] × (dims[4] || 1) × (dims[5] || 1) × bitpix / 8`.
-3. Zero-fill the buffer up to `vox_offset + imageBytes`. This matters because
-   downstream code assumes a full-length buffer: `modalityScaleNifti` builds
-   typed arrays from it (`new Float32Array(buf)` throws on a byte length that
-   isn't a multiple of 4), and `createImage` slices frames at fixed offsets.
-4. Fire the event and return the padded buffer. From here, loading carries on
-   exactly as for a healthy file.
+If no header can be read (not a NIfTI, or fewer bytes decoded than a header),
+the load fails with `The provided buffer is not a valid NIFTI file.` Otherwise
+whatever part of the first volume didn't arrive stays zero-filled, the event
+fires, and loading carries on exactly as for a healthy file. The buffer is
+always full length, which matters because `modalityScaleNifti` builds typed
+arrays from it (`new Float32Array(buf)` throws on a byte length that isn't a
+multiple of 4), and `createImage` slices frames at fixed offsets.
 
 ### 4.4 The event
 
@@ -168,10 +179,38 @@ It is triggered on Cornerstone's `eventTarget`, and `event.detail` is:
 | Field | Meaning |
 |---|---|
 | `url` | The absolute file URL, the same string the app passed to `createNiftiImageIdsAndCacheMetadata` |
-| `reason` | `unexpected EOF`, or fflate's message for corruption mid-stream |
+| `reason` | `unexpected EOF`, fflate's message for corruption mid-stream, or `the file ends before its image data does` |
 | `recoveredFraction` | Recovered voxel bytes ÷ expected voxel bytes, from 0 to 1, across **all** volumes in the file |
 
 The loader also logs `console.warn('Loaded a damaged NIfTI file partially:', detail)`.
+
+### 4.5 Failed loads and oversized files
+
+When a file fails to load, `NiftiFileLoad` fires `NIFTI_FILE_READ` with the
+error, then rejects every frame still waiting with that same error, so
+Cornerstone's volume finishes loading. The failed load is forgotten so the
+next visit retries.
+
+Before allocating the first volume, the loader checks it against the image
+cache (`cache.isCacheable`). A volume that doesn't fit, or whose allocation
+throws a `RangeError`, fails with a `NiftiTooLargeError` that names its size.
+This happens as soon as the header arrives, so the rest of the download is
+cancelled, e.g.:
+
+> This NIfTI volume (1024 × 1024 × 2000, 8-Byte Float, 16.8 GB) is larger
+> than the 4.3 GB image cache.
+
+On the app side, [niftiFileRead.js](../src/features/nifti-review/niftiFileRead.js)
+passes the outcome to `NiftiReviewFile`, which shows one toast and the neutral
+placeholder instead of a black viewer.
+The headline is `errors.niftiTooLarge` for a `NiftiTooLargeError`, and
+`errors.loadImage` otherwise. The loader's message is the detail line.
+`notify` remembers which error objects it has shown. The event fires before
+the frames reject, so the global unhandled-rejection handler skips them and
+doesn't add a second, generic toast. A revisit removes the failed volume from
+the cache and loads the file again. A network error after the first volume is
+already on screen is handled the same way, since the rest of the file can't be
+checked.
 
 ## 5. App side
 
@@ -202,33 +241,36 @@ again and simply overwrites the `Map` entry.
 
 - The load effect starts watching as soon as the file URL is known, **before**
   `createNiftiImageIdsAndCacheMetadata`
-  ([NiftiReviewFile.jsx:220](../src/features/nifti-review/NiftiReviewFile.jsx#L220)).
+  ([NiftiReviewFile.jsx:243](../src/features/nifti-review/NiftiReviewFile.jsx#L243)).
 - The callback checks `isStale()`, so a damaged file the curator has already
   navigated away from can't raise a toast on the next file.
 - The effect's cleanup calls `stopWatchingTruncation()`
-  ([NiftiReviewFile.jsx:271](../src/features/nifti-review/NiftiReviewFile.jsx#L271)).
+  ([NiftiReviewFile.jsx:309](../src/features/nifti-review/NiftiReviewFile.jsx#L309)).
 
 ## 6. Limitations and known gaps
 
-- **Unrecoverable files can still hang the spinner.** If recovery re-throws
-  (no readable header), or the fetch fails for another reason,
-  `dataFetchStateMap` is still left at `fetching`. This is the original
-  loader's behaviour and is unchanged.
 - **Only the first volume of a 4D file is displayed.** The loader has always
   done this, since `createImage` slices frames from the start of the data. So
   for a DWI file, the image can look complete while `recoveredFraction` is
   well below 100%, because the missing data sits in later volumes.
-- **Memory for damaged files.** Decoded chunks and the padded buffer briefly
-  exist side by side, about 2× the decompressed size. Healthy files aren't
-  affected.
+- **The spinner stays up for the whole download.** Slices show as they
+  arrive, but the file is only known to be intact at its end (§4.1). For a
+  700 MB 4D file the image is complete in seconds, and the spinner then stays
+  up for the rest of the download. Grading isn't blocked meanwhile. Inflating
+  runs on the main thread in small per-chunk steps.
+- **A large single 3D volume can still be too big.** Only 4D files get
+  smaller. A 3D volume beyond the image cache or the browser's allocation
+  limit fails with the size message in §4.5, and has to be opened in a
+  desktop viewer.
+- **A network error mid-download fails the load.** It is not treated as a
+  damaged file, because the stored file may be fine.
 - **Transitive dependency.** The patch imports `Gunzip` from `fflate`, which
   `nifti-volume-loader` doesn't declare itself. It resolves to the hoisted
   `node_modules/fflate` (0.7.3), which `nifti-reader-js` depends on. If an
   upgrade stops hoisting it, the import breaks at build time rather than
   silently.
-- **Not yet verified in the running app on a real damaged file.** So far it
-  has been checked with lint, a production build, and fflate's behaviour on
-  synthetic truncated data.
+- **Not yet verified in the running app on a real damaged file.** The
+  streaming loader has been checked with lint and a production build only.
 
 ## 7. Maintaining the patch
 
@@ -248,6 +290,8 @@ again and simply overwrites the `Map` entry.
 - **The patch filename says `3.33.4`, but `3.33.5` is installed.** The name
   wasn't changed, to keep the diff focused. `patch-package` warns about the
   mismatch and applies the patch anyway.
+- The pristine copy can also be rebuilt offline: copy the installed package
+  and `git apply -R` the current patch onto it.
 - If the loader is upgraded upstream, re-check that `fetchAndProcessNiftiData`
-  still calls `NiftiReader.decompress`, the single call site this change
-  replaces.
+  and `cornerstoneNiftiImageLoader` still have the shape the patch replaces:
+  one fetch per URL, decompress, `readImage`, `modalityScaleNifti`.
