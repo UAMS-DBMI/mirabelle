@@ -59,8 +59,9 @@ This project **patches `node_modules` via `patch-package`**, run automatically a
 
 - `@cornerstonejs+nifti-volume-loader+3.33.4.patch` — adds FLOAT64 NIfTI support, fixes
   skewed images, streams each file showing slices as they arrive and keeping only its first
-  volume (so large 4D files fit in memory), and shows truncated files partially. See
-  `docs/large-nifti-fix.md` and `docs/truncated-nifti-recovery.md`.
+  volume (so large 4D files fit in memory), pauses and resumes a file's download, and shows
+  truncated files partially. See `docs/large-nifti-fix.md`, `docs/image-navigation-fix.md`
+  and `docs/truncated-nifti-recovery.md`.
 - `@cornerstonejs+core+3.33.4.patch` — backports Float64 volume support.
 
 If you change a `@cornerstonejs` dependency or need to alter its behavior, update the patch
@@ -146,4 +147,8 @@ De-facto style (enforced by Prettier):
   relevant panel/tool visible for that `TASK_CONFIGS` layout.
 - Keep the COOP/COEP headers and the `asyncWebAssembly` experiment in webpack — Cornerstone
   segmentation (polyseg / itk-wasm) depends on cross-origin isolation and WASM.
+- Every image request for an exam must come after that exam's `makeRoomForExam` /
+  `makeRoomForStackExam` call (which resumes its downloads), and don't put a cap back on
+  Cornerstone's `imageLoadPoolManager`: `lib/examDownloads.js` throttles and pauses
+  downloads per exam (see `docs/image-navigation-fix.md`).
 - Don't commit or push unless explicitly asked.
