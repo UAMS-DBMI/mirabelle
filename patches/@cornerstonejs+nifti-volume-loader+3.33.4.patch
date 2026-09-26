@@ -1,8 +1,8 @@
 diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-index a56de79..0484ab8 100644
+index a56de79..511bd39 100644
 --- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
 +++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-@@ -1,119 +1,435 @@
+@@ -1,119 +1,447 @@
 -import { Enums, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
 +import { Enums, cache, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
  import * as NiftiReader from 'nifti-reader-js';
@@ -129,7 +129,26 @@ index a56de79..0484ab8 100644
 +        this.sliceCount = Infinity;
 +        this.failure = null;
 +        this.waiters = [];
-+    }
+     }
+-    else {
+-        const errorMessage = 'The provided buffer is not a valid NIFTI file.';
+-        console.warn(errorMessage);
+-        throw new Error(errorMessage);
+-    }
+-    const { scalarData } = modalityScaleNifti(niftiHeader, niftiImage);
+-    dataFetchStateMap.set(url, { status: 'fetched', scalarData });
+-    return createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, scalarData);
+-}
+-function waitForNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlaneModule) {
+-    return new Promise((resolve) => {
+-        const intervalId = setInterval(() => {
+-            const dataFetchState = dataFetchStateMap.get(url);
+-            if (dataFetchState.status === 'fetched') {
+-                clearInterval(intervalId);
+-                resolve(createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, dataFetchState.scalarData));
+-            }
+-        }, 10);
+-    });
 +    start() {
 +        streamFile(this.url, (slices) => this.addSlices(slices)).then(() => this.finish(null), (error) => this.finish(error));
 +    }
@@ -176,26 +195,7 @@ index a56de79..0484ab8 100644
 +        }
 +        resolve(this.scalarData);
 +        return true;
-     }
--    else {
--        const errorMessage = 'The provided buffer is not a valid NIFTI file.';
--        console.warn(errorMessage);
--        throw new Error(errorMessage);
--    }
--    const { scalarData } = modalityScaleNifti(niftiHeader, niftiImage);
--    dataFetchStateMap.set(url, { status: 'fetched', scalarData });
--    return createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, scalarData);
--}
--function waitForNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlaneModule) {
--    return new Promise((resolve) => {
--        const intervalId = setInterval(() => {
--            const dataFetchState = dataFetchStateMap.get(url);
--            if (dataFetchState.status === 'fetched') {
--                clearInterval(intervalId);
--                resolve(createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, dataFetchState.scalarData));
--            }
--        }, 10);
--    });
++    }
 +}
 +// Streams the whole file. Z-slices of its first volume go to `onSlices` as
 +// they fill in; the rest is decoded and discarded, so damage anywhere in the
@@ -240,10 +240,13 @@ index a56de79..0484ab8 100644
 +            return decoder.end();
 +        }
 +        loaded += value.length;
-+        triggerEvent(eventTarget, Events.NIFTI_VOLUME_PROGRESS, {
-+            data: { url, loaded, total },
-+        });
 +        const reason = decoder.push(value);
++        // `loaded`/`total` count downloaded bytes, but many servers send no
++        // Content-Length; decoded bytes against the size the header declares
++        // are known either way once the header is in.
++        triggerEvent(eventTarget, Events.NIFTI_VOLUME_PROGRESS, {
++            data: { url, loaded, total, ...collector.decodedProgress() },
++        });
 +        if (reason) {
 +            return reason;
 +        }
@@ -407,6 +410,15 @@ index a56de79..0484ab8 100644
 +        if (reason) {
 +            reportTruncated(url, reason, this.recoveredFraction());
 +        }
++    }
++    decodedProgress() {
++        if (!this.header) {
++            return { decoded: this.bytesSeen, decodedTotal: undefined };
++        }
++        return {
++            decoded: this.bytesSeen,
++            decodedTotal: this.header.vox_offset + niftiImageByteLength(this.header),
++        };
 +    }
 +    // Share of the declared image bytes, across all volumes, that decoded.
 +    recoveredFraction() {

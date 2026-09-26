@@ -10,8 +10,18 @@
   background: rgba(15, 23, 42, 0.75);
 }
 
+/* Big enough to hold "100%" inside the ring. */
+#overlay #loading-spinner #spinner-ring {
+  @apply relative h-16 w-16;
+}
+
 #overlay #loading-spinner #spinner {
-  @apply animate-spin h-8 w-8 border-4 border-b-white border-r-white border-t-transparent border-l-transparent rounded-full;
+  @apply absolute inset-0 animate-spin border-4 border-b-white border-r-white border-t-transparent border-l-transparent rounded-full;
+}
+
+#overlay #loading-spinner #progress {
+  @apply absolute inset-0 flex items-center justify-center text-sm font-semibold text-white;
+  font-variant-numeric: tabular-nums;
 }
 
 #overlay #loading-spinner #description {
