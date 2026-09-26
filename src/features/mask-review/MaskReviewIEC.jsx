@@ -22,6 +22,7 @@ import {
 } from "@/features/optionSlice";
 import { useHotkeys } from "react-hotkeys-hook";
 import { notify } from "@/lib/notify";
+import { pauseExamDownloads } from "@/lib/examDownloads";
 import { messages } from "@/lib/messages";
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
@@ -352,6 +353,9 @@ export default function MaskReviewIEC({
 
     return () => {
       isCancelled = true;
+      // Leaving the exam: hold the rest of its download until it is
+      // loaded again, so it doesn't compete with the next exam's.
+      pauseExamDownloads();
       // Leaving mid-load: the completion callback for this exam is stale and
       // will never clear the spinner — don't leave it up. A follow-up load
       // turns it straight back on.

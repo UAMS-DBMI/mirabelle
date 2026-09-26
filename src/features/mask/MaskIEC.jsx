@@ -22,6 +22,7 @@ import {
   setOption,
 } from "@/features/optionSlice";
 import { notify } from "@/lib/notify";
+import { pauseExamDownloads } from "@/lib/examDownloads";
 import { messages } from "@/lib/messages";
 
 import createImageIdsAndCacheMetaData from "@/lib/createImageIdsAndCacheMetaData";
@@ -615,6 +616,9 @@ export default function MaskIEC({
 
     return () => {
       isCancelled = true;
+      // Leaving the exam: hold the rest of its download until it is
+      // loaded again, so it doesn't compete with the next exam's.
+      pauseExamDownloads();
       // Save the drawn-but-unsubmitted selection before the segmentation is
       // torn down below, so navigating (next/previous/queue click/leaving the
       // route) doesn't lose the work — it's restored on the next visit. Skip

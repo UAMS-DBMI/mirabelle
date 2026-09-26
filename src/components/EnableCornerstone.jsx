@@ -16,6 +16,7 @@ import { cornerstoneNiftiImageLoader } from "@cornerstonejs/nifti-volume-loader"
 import * as polySeg from "@cornerstonejs/polymorphic-segmentation";
 
 import configureCacheSize from "@/lib/cacheSizing";
+import { openDicomRequest, uncapImageLoadPool } from "@/lib/examDownloads";
 
 import "./EnableCornerstone.css";
 
@@ -36,7 +37,13 @@ function EnableCornerstone({ children }) {
       dicomImageLoaderInit({
         maxWebWorkers: 5,
         startWebWorkersOnDemand: true,
+        // Sends DICOM file requests from a queue, so an exam the curator
+        // leaves mid-load can pause its download (lib/examDownloads).
+        open: openDicomRequest,
       });
+      // Paused exams' waiting frames must not use up Cornerstone's pool of
+      // image loads, or the exam on screen can't start (lib/examDownloads).
+      uncapImageLoadPool();
 
       // Size the image cache from the machine's memory (more cached exams on
       // machines that can afford it) — must run before any volume loads.

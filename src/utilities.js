@@ -10,6 +10,7 @@ import { requestJSON } from "@/lib/http";
 import { messages } from "@/lib/messages";
 import { notify } from "@/lib/notify";
 import { startLoadingProgress, toPercent } from "@/lib/loadingProgress";
+import { focusExamDownloads } from "@/lib/examDownloads";
 
 const { volumeLoader, imageLoader, metaData } = cornerstone;
 const { Enums: csToolsEnums, segmentation: csToolsSegmentation } =
@@ -517,6 +518,9 @@ function makeRoom(bytesNeeded, keepKeys) {
  * until it fits in the cache. Exams in keepVolumeIds are never evicted.
  */
 export function makeRoomForExam(imageIds, keepVolumeIds) {
+  // Every exam load starts here, before its first image request: resume this
+  // exam's downloads and hold the others'.
+  focusExamDownloads(imageIds);
   const [volumeId] = keepVolumeIds;
   examLastVisited.set(volumeId, Date.now());
   const sourceAlreadyCached = Boolean(cornerstone.cache.getVolume(volumeId));
@@ -529,6 +533,9 @@ export function makeRoomForExam(imageIds, keepVolumeIds) {
  * volume, and as pinned wadouri images Cornerstone itself never evicts them.
  */
 export function makeRoomForStackExam(imageIds) {
+  // Every stack exam load starts here, before its first image request:
+  // resume this exam's downloads and hold the others'.
+  focusExamDownloads(imageIds);
   const examKey = stackExamKey(imageIds);
   examLastVisited.set(examKey, Date.now());
   const sourceAlreadyCached =

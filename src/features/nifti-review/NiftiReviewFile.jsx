@@ -22,6 +22,8 @@ import { useHotkeys } from "react-hotkeys-hook";
 import {
   Enums as NiftiEnums,
   createNiftiImageIdsAndCacheMetadata,
+  pauseNiftiFileLoad,
+  resumeNiftiFileLoad,
 } from "@cornerstonejs/nifti-volume-loader";
 import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
@@ -176,6 +178,7 @@ export default function NiftiReviewFile({
     let stopWatchingTruncation = () => {};
     let stopWatchingFileRead = () => {};
     let stopWatchingProgress = () => {};
+    let pauseDownload = () => {};
     // Slices show as they stream in, but the spinner stays up until every
     // slice is in the volume AND the whole file has been read: only then is
     // it known whether the file is damaged.
@@ -234,6 +237,10 @@ export default function NiftiReviewFile({
           rel_url += ".gz";
         }
         const url = toAbsoluteURL(rel_url);
+        // Carry on with this file's download if it was paused when the
+        // curator last left it; leaving pauses it again (cleanup below).
+        resumeNiftiFileLoad(url);
+        pauseDownload = () => pauseNiftiFileLoad(url);
         // Revisiting a file that failed: drop its empty cached volume so it
         // downloads again instead of showing blank. Before watching the read
         // below, which would otherwise replay the old failure.
@@ -323,6 +330,7 @@ export default function NiftiReviewFile({
       stopWatchingTruncation();
       stopWatchingFileRead();
       stopWatchingProgress();
+      pauseDownload();
       setIsInitialized(false);
       // Leaving mid-load: the completion callback for this file is stale and
       // will never clear the spinner — don't leave it up. A follow-up load
