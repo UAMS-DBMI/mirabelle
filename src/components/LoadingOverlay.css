@@ -13,3 +13,20 @@
      this is up, so it must not swallow clicks. */
   pointer-events: none;
 }
+
+/* Centred over the viewer area of the page's middle panel. The panel is a
+   grid whose last row is the operations bar and whose row before it is the
+   viewer (with or without a filter bar above), so rows -3 / -2 are the viewer
+   on every page. Absolutely positioned, it takes that grid area as its box
+   without taking a cell from the viewer. */
+.viewer-loading-indicator {
+  position: absolute;
+  inset: 0;
+  grid-row: -3 / -2;
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+  pointer-events: none;
+}

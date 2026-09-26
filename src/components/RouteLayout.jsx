@@ -1,6 +1,7 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import ErrorBoundary from "./ErrorBoundary";
+import { ViewerLoadingIndicator } from "./LoadingOverlay";
 
 import "./RouteLayout.css";
 import TestError from "./TestError";
@@ -40,7 +41,10 @@ function RouteLayout({
         </div>
       )}
       <ErrorBoundary>
-        <div id="middle-panel">{middlePanel}</div>
+        <div id="middle-panel">
+          {middlePanel}
+          <ViewerLoadingIndicator />
+        </div>
       </ErrorBoundary>
       {rightPanelVisibility && (
         <div id="right-panel" className={showRightPanel ? "" : "collapsed"}>

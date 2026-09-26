@@ -1,9 +1,9 @@
 /* LoadingSpinner.css */
 
-/* The overlay now floats above a live, populated UI (viewports streaming in
-   underneath), so the spinner sits on its own translucent chip — readable over
-   both bright CT slices and the dark panels, in either theme. */
-#overlay #loading-spinner {
+/* The indicator floats above a live, populated UI (viewports streaming in
+   underneath), so it sits on its own translucent chip — readable over both
+   bright CT slices and the dark panels, in either theme. */
+.loading-spinner {
   @apply flex flex-col items-center justify-center;
   padding: 14px 22px;
   border-radius: 12px;
@@ -11,19 +11,22 @@
 }
 
 /* Big enough to hold "100%" inside the ring. */
-#overlay #loading-spinner #spinner-ring {
+.loading-spinner__ring {
   @apply relative h-16 w-16;
 }
 
-#overlay #loading-spinner #spinner {
+.loading-spinner__arc {
   @apply absolute inset-0 animate-spin border-4 border-b-white border-r-white border-t-transparent border-l-transparent rounded-full;
 }
 
-#overlay #loading-spinner #progress {
-  @apply absolute inset-0 flex items-center justify-center text-sm font-semibold text-white;
-  font-variant-numeric: tabular-nums;
+.loading-spinner__progress {
+  @apply absolute inset-0 flex items-center justify-center text-sm font-semibold text-white tabular-nums;
 }
 
-#overlay #loading-spinner #description {
+.loading-spinner__label {
   @apply mt-2 text-white;
+}
+
+.loading-page {
+  @apply flex h-full w-full items-center justify-center;
 }

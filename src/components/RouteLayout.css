@@ -87,7 +87,8 @@ html:not(.windows) .side-panel .wrapper {
 }
 
 #main #middle-panel {
-  @apply grid
+  @apply relative
+        grid
         grid-rows-[1fr,auto]
         gap-2;
 }
