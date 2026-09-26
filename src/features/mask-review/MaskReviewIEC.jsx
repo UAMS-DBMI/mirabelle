@@ -34,6 +34,7 @@ import {
   makeRoomForExam,
   makeRoomForStackExam,
   startVolumeLoad,
+  streamStackImages,
 } from "@/utilities";
 import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
@@ -302,9 +303,16 @@ export default function MaskReviewIEC({
             return;
           }
         } else {
-          // The stack viewport loads the frames on demand as pinned wadouri
-          // images; register them so the exam-LRU eviction can free them.
+          // Register the frames (pinned wadouri images) so the exam-LRU
+          // eviction can free them, then stream them all in the background:
+          // the first frame shows as soon as it lands, scrolling doesn't wait
+          // on each frame, and the indicator counts them in. It comes down
+          // once every frame is in.
           makeRoomForStackExam(frames);
+          streamStackImages(frames).then(() => {
+            if (isCancelled || requestId !== loadRequestRef.current) return;
+            dispatch(setLoading(false));
+          });
         }
         // throw new Error("This is a test error");
       } catch (error) {
@@ -325,13 +333,9 @@ export default function MaskReviewIEC({
         return;
       }
 
+      // Volume and stack exams both take the spinner down once their frames
+      // have streamed in (callbacks above).
       setIsInitialized(true);
-      // Volume exams take the spinner down in the load-completion callback;
-      // stack frames stream on demand into the mounted viewer — clear it
-      // here for those.
-      if (!volumetric) {
-        dispatch(setLoading(false));
-      }
     };
 
     setIsInitialized(false);

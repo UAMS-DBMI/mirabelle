@@ -866,6 +866,33 @@ export async function loadVolumeSegmentation(
   ]);
 }
 
+/**
+ * Download every frame of a stack exam in the background, so the stack
+ * viewport can scroll through frames that are already in instead of fetching
+ * each one as it is reached, and show the share of frames in so far in the
+ * loading indicator. Frames are requested in stack order, so the first one —
+ * the one setStack shows — arrives first. Resolves (never rejects) once every
+ * frame has loaded or failed, with Promise.allSettled's results.
+ *
+ * @param {string[]} imageIds
+ * @returns {Promise<PromiseSettledResult[]>}
+ */
+export function streamStackImages(imageIds) {
+  if (!imageIds?.length) return Promise.resolve([]);
+  const reportProgress = startLoadingProgress();
+  reportProgress(0);
+  let settledFrames = 0;
+  const loads = cornerstone.imageLoader
+    .loadAndCacheImages(imageIds)
+    .map((load) =>
+      load.finally(() => {
+        settledFrames += 1;
+        reportProgress(toPercent(settledFrames, imageIds.length));
+      }),
+    );
+  return Promise.allSettled(loads);
+}
+
 export async function loadStackSegmentation(imageIds, segmentationId) {
   const generation = ++examLoadGeneration;
 
@@ -876,9 +903,7 @@ export async function loadStackSegmentation(imageIds, segmentationId) {
   csToolsSegmentation.removeAllSegmentations();
   csToolsSegmentation.removeAllSegmentationRepresentations();
 
-  const results = await Promise.allSettled(
-    cornerstone.imageLoader.loadAndCacheImages(imageIds),
-  );
+  const results = await streamStackImages(imageIds);
 
   // A newer exam load took over while the frames were loading (rapid
   // navigation); don't create a segmentation for this abandoned one.
