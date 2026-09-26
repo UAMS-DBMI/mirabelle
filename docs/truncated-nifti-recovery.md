@@ -35,7 +35,7 @@ there. The Unarchiver refused to extract it.
 ## 2. Root cause: the file itself is truncated
 
 When the details record says `is_zipped`, the viewer fetches the file's
-`/data.gz` URL ([NiftiReviewFile.jsx:230](../src/features/nifti-review/NiftiReviewFile.jsx#L230)).
+`/data.gz` URL ([NiftiReviewFile.jsx:236](../src/features/nifti-review/NiftiReviewFile.jsx#L236)).
 The loader then decompressed the whole buffer in one call to
 `NiftiReader.decompress`, which is fflate's `gunzipSync`. It now streams the
 file instead (§4).
@@ -212,6 +212,21 @@ the cache and loads the file again. A network error after the first volume is
 already on screen is handled the same way, since the rest of the file can't be
 checked.
 
+### 4.6 Pausing and resuming
+
+The loader exports `pauseNiftiFileLoad(url)` and `resumeNiftiFileLoad(url)`.
+`NiftiReviewFile` pauses its file when the curator leaves it (next, previous,
+or another page) and resumes it on the next visit. Pausing cancels the
+download but keeps the decoder, the collected first volume and every waiting
+frame. Resuming asks for the rest of the file with `Range: bytes=<read>-`. If
+the server sends the whole file again (a 200 instead of a 206), the bytes
+already read are skipped. A server that compresses responses on the fly is
+never sent a Range header, since its ranges would count compressed bytes.
+
+DICOM exams pause the same way through
+[examDownloads.js](../src/lib/examDownloads.js), which queues the DICOM
+loader's requests.
+
 ## 5. App side
 
 ### 5.1 `niftiTruncation.js`
@@ -241,11 +256,11 @@ again and simply overwrites the `Map` entry.
 
 - The load effect starts watching as soon as the file URL is known, **before**
   `createNiftiImageIdsAndCacheMetadata`
-  ([NiftiReviewFile.jsx:243](../src/features/nifti-review/NiftiReviewFile.jsx#L243)).
+  ([NiftiReviewFile.jsx:253](../src/features/nifti-review/NiftiReviewFile.jsx#L253)).
 - The callback checks `isStale()`, so a damaged file the curator has already
   navigated away from can't raise a toast on the next file.
 - The effect's cleanup calls `stopWatchingTruncation()`
-  ([NiftiReviewFile.jsx:309](../src/features/nifti-review/NiftiReviewFile.jsx#L309)).
+  ([NiftiReviewFile.jsx:330](../src/features/nifti-review/NiftiReviewFile.jsx#L330)).
 
 ## 6. Limitations and known gaps
 
