@@ -8,6 +8,7 @@ import { getFilesForNiftiVR } from "@/utilities";
 import { resetOptions, setLoading } from "@/features/optionSlice";
 import { setVisualReviewConfig, reset } from "@/features/presentationSlice";
 import NiftiReviewVR from "@/features/nifti-review/NiftiReviewVR";
+import { rememberReviewOrder } from "@/features/nifti-review/niftiReviewOrder";
 
 import "./RouteNiftiReviewVR.css";
 
@@ -31,7 +32,7 @@ export default function RouteNiftiReviewVR() {
     if (!fileList) {
       getFilesForNiftiVR(vr).then((files) => {
         // this should trigger a re-run of this effect
-        setFileList(files);
+        setFileList(rememberReviewOrder(vr, files));
       });
     } else {
       if (file === undefined) {
