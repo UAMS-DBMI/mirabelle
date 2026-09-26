@@ -1,31 +1,18 @@
 diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-index a56de79..9985358 100644
+index a56de79..0484ab8 100644
 --- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
 +++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-@@ -1,25 +1,26 @@
- import { Enums, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
+@@ -1,119 +1,435 @@
+-import { Enums, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
++import { Enums, cache, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
  import * as NiftiReader from 'nifti-reader-js';
 +import { Gunzip } from 'fflate';
  import { Events } from './enums';
  import { modalityScaleNifti } from './helpers';
  import { getOptions } from './internal';
- const dataFetchStateMap = new Map();
+-const dataFetchStateMap = new Map();
 -function fetchArrayBuffer({ url, signal, onload, }) {
-+async function fetchArrayBuffer({ url, signal, onload, }) {
-+    const xhr = new XMLHttpRequest();
-+    xhr.open('GET', url, true);
-+    const defaultHeaders = {};
-+    const options = getOptions();
-+    const beforeSendHeaders = await options.beforeSend(xhr, defaultHeaders, url);
-+    const headers = Object.assign({}, defaultHeaders, beforeSendHeaders);
-+    xhr.responseType = 'arraybuffer';
-+    Object.keys(headers).forEach(function (key) {
-+        if (headers[key] === null) {
-+            return;
-+        }
-+        xhr.setRequestHeader(key, headers[key]);
-+    });
-     return new Promise((resolve, reject) => {
+-    return new Promise((resolve, reject) => {
 -        const xhr = new XMLHttpRequest();
 -        xhr.open('GET', url, true);
 -        const defaultHeaders = {};
@@ -40,39 +27,392 @@ index a56de79..9985358 100644
 -            xhr.setRequestHeader(key, headers[key]);
 -        });
 -        const onLoadHandler = function (e) {
-+        const onLoadHandler = function (_e) {
-             if (onload && typeof onload === 'function') {
-                 onload();
-             }
-@@ -77,12 +78,86 @@ export default function cornerstoneNiftiImageLoader(imageId) {
+-            if (onload && typeof onload === 'function') {
+-                onload();
+-            }
+-            if (signal) {
+-                signal.removeEventListener('abort', onAbortHandler);
+-            }
+-            resolve(xhr.response);
+-        };
+-        const onAbortHandler = () => {
+-            xhr.abort();
+-            xhr.removeEventListener('load', onLoadHandler);
+-            reject(new Error('Request aborted'));
+-        };
+-        xhr.addEventListener('load', onLoadHandler);
+-        const onProgress = (loaded, total) => {
+-            const data = { url, loaded, total };
+-            triggerEvent(eventTarget, Events.NIFTI_VOLUME_PROGRESS, { data });
+-        };
+-        xhr.onprogress = function (e) {
+-            onProgress(e.loaded, e.total);
+-        };
+-        if (signal && signal.aborted) {
+-            xhr.abort();
+-            reject(new Error('Request aborted'));
+-        }
+-        else if (signal) {
+-            signal.addEventListener('abort', onAbortHandler);
+-        }
+-        xhr.send();
+-    });
+-}
++const NIFTI2_HEADER_SIZE = 540;
++const fileLoadsByUrl = new Map();
+ export default function cornerstoneNiftiImageLoader(imageId) {
+     const [url, frame] = imageId.substring(6).split('?frame=');
+     const sliceIndex = parseInt(frame, 10);
+     const imagePixelModule = metaData.get(Enums.MetadataModules.IMAGE_PIXEL, imageId);
+     const imagePlaneModule = metaData.get(Enums.MetadataModules.IMAGE_PLANE, imageId);
+-    const promise = new Promise((resolve, reject) => {
+-        if (!dataFetchStateMap.get(url)) {
+-            dataFetchStateMap.set(url, { status: 'fetching' });
+-            fetchAndProcessNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlaneModule)
+-                .then(resolve)
+-                .catch(reject);
+-        }
+-        else {
+-            waitForNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlaneModule)
+-                .then(resolve)
+-                .catch(reject);
+-        }
+-    });
++    const promise = fileLoadFor(url)
++        .whenReady(zSlicesNeeded(imageId, sliceIndex))
++        .then((scalarData) => createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, scalarData));
+     return {
+         promise: promise,
+         cancelFn: undefined,
+         decache: () => {
+-            dataFetchStateMap.delete(url);
++            fileLoadsByUrl.delete(url);
          },
      };
  }
-+function decompressRecoverable(url, compressed) {
-+    try {
-+        return NiftiReader.decompress(compressed);
+-async function fetchAndProcessNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlaneModule) {
+-    let niftiBuffer = await fetchArrayBuffer({ url });
+-    let niftiHeader = null;
+-    let niftiImage = null;
+-    if (NiftiReader.isCompressed(niftiBuffer)) {
+-        niftiBuffer = NiftiReader.decompress(niftiBuffer);
++// An axial frame is one z-slice, stored contiguously, so it can show as soon
++// as that slice has arrived. Sagittal and coronal frames take a row from every
++// z-slice, so they wait for the whole volume.
++function zSlicesNeeded(imageId, sliceIndex) {
++    const sliceDimIndex = metaData.get('niftiHeader', imageId)?.sliceDimIndex ?? 2;
++    return sliceDimIndex === 2 ? sliceIndex + 1 : Infinity;
++}
++// Every frame of a file shares one streamed download. A failed download is
++// forgotten so the next visit retries it; the frames waiting on it still reject.
++function fileLoadFor(url) {
++    let load = fileLoadsByUrl.get(url);
++    if (!load) {
++        load = new NiftiFileLoad(url);
++        fileLoadsByUrl.set(url, load);
++        load.start();
+     }
+-    if (NiftiReader.isNIFTI(niftiBuffer)) {
+-        niftiHeader = NiftiReader.readHeader(niftiBuffer);
+-        niftiImage = NiftiReader.readImage(niftiHeader, niftiBuffer);
++    return load;
++}
++// Streams one file and hands out its first volume z-slice by z-slice, so the
++// viewports fill in while the download runs. NIFTI_FILE_READ fires once the
++// whole file has been read (after NIFTI_VOLUME_TRUNCATED if it is damaged),
++// or once it has failed.
++class NiftiFileLoad {
++    constructor(url) {
++        this.url = url;
++        this.scalarData = null;
++        this.readySlices = 0;
++        this.sliceCount = Infinity;
++        this.failure = null;
++        this.waiters = [];
 +    }
-+    catch (error) {
-+        return recoverPartialNifti(url, compressed, error);
++    start() {
++        streamFile(this.url, (slices) => this.addSlices(slices)).then(() => this.finish(null), (error) => this.finish(error));
++    }
++    // Resolves with the volume's scalar data once its first `count` z-slices
++    // are in; Infinity waits for all of them.
++    whenReady(count) {
++        return new Promise((resolve, reject) => {
++            this.waiters.push({ count, resolve, reject });
++            this.settleWaiters();
++        });
++    }
++    addSlices({ header, raw, fromSlice, toSlice, sliceCount }) {
++        const scaled = scaleToScalarData(header, raw);
++        const voxelsPerSlice = scaled.length / (toSlice - fromSlice);
++        if (!this.scalarData) {
++            this.scalarData = new scaled.constructor(voxelsPerSlice * sliceCount);
++        }
++        this.scalarData.set(scaled, voxelsPerSlice * fromSlice);
++        this.readySlices = toSlice;
++        this.sliceCount = sliceCount;
++        this.settleWaiters();
++    }
++    finish(error) {
++        this.failure = error;
++        if (error && fileLoadsByUrl.get(this.url) === this) {
++            fileLoadsByUrl.delete(this.url);
++        }
++        // Fired before the waiting frames reject, so the app can report the
++        // error before Cornerstone's unhandled rejections for them arrive.
++        triggerEvent(eventTarget, Events.NIFTI_FILE_READ, { url: this.url, error });
++        this.settleWaiters();
++    }
++    settleWaiters() {
++        this.waiters = this.waiters.filter((waiter) => !this.settle(waiter));
++    }
++    // Resolves or rejects the waiter if it can; returns whether it did.
++    settle({ count, resolve, reject }) {
++        if (this.failure) {
++            reject(this.failure);
++            return true;
++        }
++        if (this.readySlices < Math.min(count, this.sliceCount)) {
++            return false;
++        }
++        resolve(this.scalarData);
++        return true;
+     }
+-    else {
+-        const errorMessage = 'The provided buffer is not a valid NIFTI file.';
+-        console.warn(errorMessage);
+-        throw new Error(errorMessage);
+-    }
+-    const { scalarData } = modalityScaleNifti(niftiHeader, niftiImage);
+-    dataFetchStateMap.set(url, { status: 'fetched', scalarData });
+-    return createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, scalarData);
+-}
+-function waitForNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlaneModule) {
+-    return new Promise((resolve) => {
+-        const intervalId = setInterval(() => {
+-            const dataFetchState = dataFetchStateMap.get(url);
+-            if (dataFetchState.status === 'fetched') {
+-                clearInterval(intervalId);
+-                resolve(createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, dataFetchState.scalarData));
+-            }
+-        }, 10);
+-    });
++}
++// Streams the whole file. Z-slices of its first volume go to `onSlices` as
++// they fill in; the rest is decoded and discarded, so damage anywhere in the
++// file is still reported. Only the first volume is kept because slice image
++// ids only index into it, and holding every frame of a 4D series (a 60-frame
++// perfusion run is 4.3 GB) fails to allocate in the browser.
++async function streamFile(url, onSlices) {
++    const controller = new AbortController();
++    try {
++        const response = await fetch(url, {
++            signal: controller.signal,
++            headers: await requestHeaders(url),
++        });
++        if (!response.ok) {
++            throw new Error(`Couldn't download the NIfTI file (HTTP ${response.status}).`);
++        }
++        const collector = new FirstVolumeCollector(onSlices);
++        const reason = await decodeWholeFile(url, response, collector);
++        collector.finish(url, reason);
++    }
++    finally {
++        // Stops the download after a fatal error; a no-op once it is read.
++        controller.abort();
 +    }
 +}
-+function inflateUntilError(bytes) {
-+    const chunks = [];
-+    const gunzip = new Gunzip((chunk) => chunks.push(chunk));
-+    let stage = 'body';
-+    try {
-+        gunzip.push(bytes, false);
-+        stage = 'end';
-+        gunzip.push(new Uint8Array(0), true);
-+        return { chunks, reason: null };
++async function requestHeaders(url) {
++    const defaultHeaders = {};
++    const beforeSendHeaders = await getOptions().beforeSend?.(null, defaultHeaders, url);
++    const headers = Object.assign({}, defaultHeaders, beforeSendHeaders);
++    return Object.fromEntries(Object.entries(headers).filter(([, value]) => value !== null && value !== undefined));
++}
++// Streams the whole download through the collector. Returns why the file
++// stopped decoding before its declared end, or null if it is intact.
++async function decodeWholeFile(url, response, collector) {
++    const total = Number(response.headers.get('Content-Length')) || undefined;
++    const reader = response.body.getReader();
++    const decoder = new NiftiStreamDecoder(collector);
++    let loaded = 0;
++    while (!collector.failure) {
++        const { done, value } = await reader.read();
++        if (done) {
++            return decoder.end();
++        }
++        loaded += value.length;
++        triggerEvent(eventTarget, Events.NIFTI_VOLUME_PROGRESS, {
++            data: { url, loaded, total },
++        });
++        const reason = decoder.push(value);
++        if (reason) {
++            return reason;
++        }
 +    }
-+    catch (error) {
-+        // Running out of input only surfaces on the final push; a failure
-+        // before that is corruption inside the stream itself.
-+        return {
-+            chunks,
-+            reason: stage === 'end' ? 'unexpected EOF' : error.message,
-+        };
++    return null;
++}
++// Feeds downloaded bytes to the collector, gunzipping them first when the
++// file is gzipped. push() and end() return why decoding stopped short, or null.
++class NiftiStreamDecoder {
++    constructor(collector) {
++        this.collector = collector;
++        this.gunzip = undefined;
++    }
++    push(bytes) {
++        if (this.gunzip === undefined) {
++            this.gunzip = isGzip(bytes)
++                ? new Gunzip((chunk) => this.collector.push(chunk))
++                : null;
++        }
++        if (!this.gunzip) {
++            this.collector.push(bytes);
++            return null;
++        }
++        try {
++            this.gunzip.push(bytes, false);
++            return null;
++        }
++        catch (error) {
++            // Corruption inside the stream itself.
++            this.collector.end();
++            return error.message;
++        }
++    }
++    end() {
++        let reason = null;
++        try {
++            this.gunzip?.push(new Uint8Array(0), true);
++        }
++        catch (_error) {
++            // Running out of input only surfaces on the final push.
++            reason = 'unexpected EOF';
++        }
++        this.collector.end();
++        if (!reason && !this.collector.isComplete) {
++            reason = 'the file ends before its image data does';
++        }
++        return reason;
++    }
++}
++function isGzip(bytes) {
++    return bytes[0] === 0x1f && bytes[1] === 0x8b;
++}
++// Collects a NIfTI file's header and first 3D volume from its decoded bytes,
++// however they are chunked, passing each run of completed z-slices to
++// `onSlices`. Bytes past the first volume are only counted. Never throws: a
++// fatal error is kept in `failure` and ends the download.
++class FirstVolumeCollector {
++    constructor(onSlices) {
++        this.onSlices = onSlices;
++        this.bytesSeen = 0;
++        this.headChunks = [];
++        this.header = null;
++        this.sliceByteLength = 0;
++        this.sliceCount = 0;
++        this.image = null;
++        this.imageBytesFilled = 0;
++        this.slicesPassed = 0;
++        this.failure = null;
++    }
++    // Every image byte the header declares, across all volumes, has arrived.
++    get isComplete() {
++        return (this.header !== null &&
++            this.bytesSeen >= this.header.vox_offset + niftiImageByteLength(this.header));
++    }
++    push(chunk) {
++        if (this.failure) {
++            return;
++        }
++        const chunkStart = this.bytesSeen;
++        this.bytesSeen += chunk.length;
++        if (this.header) {
++            this.copyImageBytes(chunk, chunkStart);
++            return;
++        }
++        this.headChunks.push(chunk);
++        if (this.bytesSeen >= NIFTI2_HEADER_SIZE) {
++            this.start();
++        }
++    }
++    // No more bytes are coming: read the header from whatever arrived, even
++    // if that is less than a NIfTI-2 header's worth.
++    end() {
++        if (!this.header && !this.failure) {
++            this.start();
++        }
++    }
++    start() {
++        const head = concatChunks(this.headChunks);
++        this.headChunks = [];
++        try {
++            this.header = readNiftiHeader(head);
++            this.image = allocateFirstVolume(this.header);
++        }
++        catch (error) {
++            this.failure = error;
++            return;
++        }
++        const [, x, y, z] = this.header.dims;
++        this.sliceByteLength = (x || 1) * (y || 1) * (this.header.numBitsPerVoxel / 8);
++        this.sliceCount = z || 1;
++        this.copyImageBytes(head, 0);
++    }
++    copyImageBytes(chunk, chunkStart) {
++        if (!this.image) {
++            return; // The whole first volume has been passed on.
++        }
++        const imageStart = this.header.vox_offset;
++        const from = Math.max(imageStart - chunkStart, 0);
++        const to = Math.min(chunk.length, imageStart + this.image.length - chunkStart);
++        if (from >= to) {
++            return;
++        }
++        this.image.set(chunk.subarray(from, to), chunkStart + from - imageStart);
++        this.imageBytesFilled = chunkStart + to - imageStart;
++        this.passSlicesUpTo(Math.floor(this.imageBytesFilled / this.sliceByteLength));
++    }
++    // Passes z-slices [slicesPassed, upTo) on as raw bytes, and frees the raw
++    // copy of the first volume once all of it has been passed on.
++    passSlicesUpTo(upTo) {
++        if (upTo <= this.slicesPassed) {
++            return;
++        }
++        try {
++            this.onSlices({
++                header: this.header,
++                raw: this.image.buffer.slice(this.slicesPassed * this.sliceByteLength, upTo * this.sliceByteLength),
++                fromSlice: this.slicesPassed,
++                toSlice: upTo,
++                sliceCount: this.sliceCount,
++            });
++        }
++        catch (error) {
++            this.failure = asTooLargeError(error, this.header);
++            return;
++        }
++        this.slicesPassed = upTo;
++        if (upTo === this.sliceCount) {
++            this.image = null;
++        }
++    }
++    // The stream is over. Throws a fatal failure. Otherwise, for a damaged
++    // file, passes on the z-slices it never filled (zero-filled, so black)
++    // and reports the damage.
++    finish(url, reason) {
++        if (!this.failure && reason) {
++            this.passSlicesUpTo(this.sliceCount);
++        }
++        if (this.failure) {
++            throw this.failure;
++        }
++        if (reason) {
++            reportTruncated(url, reason, this.recoveredFraction());
++        }
++    }
++    // Share of the declared image bytes, across all volumes, that decoded.
++    recoveredFraction() {
++        const imageBytes = niftiImageByteLength(this.header);
++        const recovered = Math.min(Math.max(this.bytesSeen - this.header.vox_offset, 0), imageBytes);
++        return imageBytes ? recovered / imageBytes : 0;
 +    }
 +}
 +function concatChunks(chunks) {
@@ -85,54 +425,78 @@ index a56de79..9985358 100644
 +    }
 +    return bytes;
 +}
-+function niftiImageByteLength(header) {
-+    const [, x, y, z, t, s] = header.dims;
-+    return x * y * z * (t || 1) * (s || 1) * (header.numBitsPerVoxel / 8);
++function readNiftiHeader(bytes) {
++    if (!NiftiReader.isNIFTI(bytes.buffer)) {
++        throw new Error('The provided buffer is not a valid NIFTI file.');
++    }
++    return NiftiReader.readHeader(bytes.buffer);
 +}
-+function readHeaderOrNull(bytes) {
-+    try {
-+        return NiftiReader.readHeader(bytes.buffer);
-+    }
-+    catch (error) {
-+        console.warn('Could not read a NIfTI header from the decoded bytes:', error);
-+        return null;
-+    }
-+}
-+// Like MRIcro or Slicer, show whatever a truncated or corrupt .nii.gz still
-+// decodes to instead of failing outright: the missing tail is zero-filled up
-+// to the size the header declares, and NIFTI_VOLUME_TRUNCATED tells the app
-+// so it can warn the user the file is damaged.
-+function recoverPartialNifti(url, compressed, error) {
-+    const { chunks, reason } = inflateUntilError(new Uint8Array(compressed));
-+    const decoded = concatChunks(chunks);
-+    const header = readHeaderOrNull(decoded);
-+    if (!header) {
-+        throw error;
-+    }
-+    const imageBytes = niftiImageByteLength(header);
-+    const recoveredImageBytes = Math.min(Math.max(decoded.length - header.vox_offset, 0), imageBytes);
-+    const padded = new Uint8Array(Math.max(decoded.length, header.vox_offset + imageBytes));
-+    padded.set(decoded);
-+    const detail = {
-+        url,
-+        reason: reason ?? error.message,
-+        recoveredFraction: imageBytes ? recoveredImageBytes / imageBytes : 0,
-+    };
++// Like MRIcro or Slicer, show whatever a truncated or corrupt file still
++// decodes to instead of failing outright: the missing tail stays zero-filled,
++// and NIFTI_VOLUME_TRUNCATED tells the app so it can warn the file is damaged.
++function reportTruncated(url, reason, recoveredFraction) {
++    const detail = { url, reason, recoveredFraction };
 +    console.warn('Loaded a damaged NIfTI file partially:', detail);
 +    triggerEvent(eventTarget, Events.NIFTI_VOLUME_TRUNCATED, detail);
-+    return padded.buffer;
 +}
- async function fetchAndProcessNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlaneModule) {
-     let niftiBuffer = await fetchArrayBuffer({ url });
-     let niftiHeader = null;
-     let niftiImage = null;
-     if (NiftiReader.isCompressed(niftiBuffer)) {
--        niftiBuffer = NiftiReader.decompress(niftiBuffer);
-+        niftiBuffer = decompressRecoverable(url, niftiBuffer);
-     }
-     if (NiftiReader.isNIFTI(niftiBuffer)) {
-         niftiHeader = NiftiReader.readHeader(niftiBuffer);
-@@ -111,9 +186,32 @@ function waitForNiftiData(imageId, url, sliceIndex, imagePixelModule, imagePlane
++function allocateFirstVolume(header) {
++    if (!cache.isCacheable(firstVolumeByteLength(header))) {
++        throw tooLargeError(header, `larger than the ${formatBytes(cache.getMaxCacheSize())} image cache`);
++    }
++    try {
++        return new Uint8Array(firstVolumeByteLength(header));
++    }
++    catch (error) {
++        throw asTooLargeError(error, header);
++    }
++}
++function firstVolumeByteLength(header) {
++    const [, x, y, z] = header.dims;
++    return (x || 1) * (y || 1) * (z || 1) * (header.numBitsPerVoxel / 8);
++}
++// All volumes: dims[1] through dims[dims[0]].
++function niftiImageByteLength(header) {
++    const sizes = header.dims.slice(1, header.dims[0] + 1);
++    return (sizes.reduce((voxels, size) => voxels * (size || 1), 1) *
++        (header.numBitsPerVoxel / 8));
++}
++// modalityScaleNifti rewrites numBitsPerVoxel on the header it is given, but
++// the collector keeps sizing the file from the header while slices convert,
++// so it only gets the fields it reads.
++function scaleToScalarData(header, raw) {
++    const { datatypeCode, scl_slope, scl_inter } = header;
++    return modalityScaleNifti({ datatypeCode, scl_slope, scl_inter }, raw)
++        .scalarData;
++}
++// Out-of-memory failures only say "Array buffer allocation failed" or
++// "CACHE_SIZE_EXCEEDED". Restate them with the volume's size, so the app can
++// tell the curator why the file can't be shown.
++function asTooLargeError(error, header) {
++    if (error instanceof RangeError) {
++        console.warn('Could not allocate a NIfTI volume:', error);
++        return tooLargeError(header, 'more than the browser could allocate');
++    }
++    if (error.message === Enums.Events.CACHE_SIZE_EXCEEDED) {
++        return tooLargeError(header, `larger than the ${formatBytes(cache.getMaxCacheSize())} image cache once converted for display`);
++    }
++    return error;
++}
++function tooLargeError(header, limit) {
++    const error = new Error(`This NIfTI volume (${describeVolume(header)}) is ${limit}.`);
++    error.name = 'NiftiTooLargeError';
++    return error;
++}
++function describeVolume(header) {
++    const [, x, y, z] = header.dims;
++    const type = header.getDatatypeCodeString(header.datatypeCode);
++    return `${x} × ${y} × ${z}, ${type}, ${formatBytes(firstVolumeByteLength(header))}`;
++}
++function formatBytes(bytes) {
++    const gigabytes = bytes / 1e9;
++    return gigabytes >= 1
++        ? `${gigabytes.toFixed(1)} GB`
++        : `${Math.ceil(bytes / 1e6)} MB`;
+ }
  function createImage(imageId, sliceIndex, imagePixelModule, imagePlaneModule, niftiScalarData) {
      const { rows, columns } = imagePlaneModule;
      const numVoxels = rows * columns;
@@ -304,14 +668,15 @@ index cb78a63..d7c5ba1 100644
          });
      }
 diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/enums/Events.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/enums/Events.js
-index 9f5835a..3582380 100644
+index 9f5835a..a46308d 100644
 --- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/enums/Events.js
 +++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/enums/Events.js
-@@ -2,5 +2,6 @@ var Events;
+@@ -2,5 +2,7 @@ var Events;
  (function (Events) {
      Events["NIFTI_VOLUME_LOADED"] = "CORNERSTONE_NIFTI_VOLUME_LOADED";
      Events["NIFTI_VOLUME_PROGRESS"] = "CORNERSTONE_NIFTI_VOLUME_PROGRESS";
 +    Events["NIFTI_VOLUME_TRUNCATED"] = "CORNERSTONE_NIFTI_VOLUME_TRUNCATED";
++    Events["NIFTI_FILE_READ"] = "CORNERSTONE_NIFTI_FILE_READ";
  })(Events || (Events = {}));
  export default Events;
 diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/helpers/dataTypeCodeHelper.js
