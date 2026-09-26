@@ -35,6 +35,7 @@ import {
   getImageIdsFromIEC,
   loadStackSegmentation,
   makeRoomForStackExam,
+  streamStackImages,
   loadVolume,
   loadVolumeAsync,
   loadVolumeSegmentation,
@@ -414,11 +415,16 @@ export default function DicomReviewIEC({
             notify.dismiss(segLoadingId);
           }
         } else {
-          // await loadVolumeAsync(imageIds, volumeId, segmentationId);
-          // await loadStackSegmentation(imageIds, segmentationId);
-          // The stack viewport loads the frames on demand as pinned wadouri
-          // images; register them so the exam-LRU eviction can free them.
+          // Register the frames (pinned wadouri images) so the exam-LRU
+          // eviction can free them, then stream them all in the background:
+          // the first frame shows as soon as it lands, scrolling doesn't wait
+          // on each frame, and the indicator counts them in. It comes down
+          // once every frame is in.
           makeRoomForStackExam(imageIds);
+          streamStackImages(imageIds).then(() => {
+            if (isCancelled || requestId !== loadRequestRef.current) return;
+            dispatch(setLoading(false));
+          });
         }
       } catch (error) {
         console.error(error);
@@ -438,11 +444,10 @@ export default function DicomReviewIEC({
       }
 
       setIsInitialized(true);
-      // Plain volumes take the spinner down in the load-completion callback
-      // above. SEG volumes are fully loaded by this point (loadVolumeAsync),
-      // and stack frames stream on demand into the mounted viewer — clear it
-      // here for those.
-      if (!renderAsVolume || isSeg) {
+      // Plain volumes and stacks take the spinner down once their frames
+      // have streamed in (callbacks above). SEG volumes are fully loaded by
+      // this point (loadVolumeAsync) — clear it here for those.
+      if (renderAsVolume && isSeg) {
         dispatch(setLoading(false));
       }
     };
