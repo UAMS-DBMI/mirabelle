@@ -15,6 +15,7 @@ import {
 
 import { setTitle, setLoading, setOption } from "@/features/optionSlice";
 import { notify } from "@/lib/notify";
+import { startLoadingProgress } from "@/lib/loadingProgress";
 import { messages } from "@/lib/messages";
 import { useHotkeys } from "react-hotkeys-hook";
 
@@ -30,6 +31,7 @@ import { getNiftiDetails, setNiftiStatus } from "@/visualreview";
 import { watchNiftiTruncation, truncationError } from "./niftiTruncation";
 import {
   watchNiftiFileRead,
+  watchNiftiDownloadProgress,
   takeNiftiLoadFailure,
   niftiLoadFailureMessage,
 } from "./niftiFileRead";
@@ -173,6 +175,7 @@ export default function NiftiReviewFile({
     const isStale = () => isCancelled || requestId !== loadRequestRef.current;
     let stopWatchingTruncation = () => {};
     let stopWatchingFileRead = () => {};
+    let stopWatchingProgress = () => {};
     // Slices show as they stream in, but the spinner stays up until every
     // slice is in the volume AND the whole file has been read: only then is
     // it known whether the file is damaged.
@@ -258,6 +261,13 @@ export default function NiftiReviewFile({
           fileRead = true;
           finishLoadingWhenDone();
         });
+        // The indicator shows the download, not frames: for a 4D file every
+        // frame is in long before the file has been read to its end.
+        const reportProgress = startLoadingProgress();
+        stopWatchingProgress = watchNiftiDownloadProgress(url, (percent) => {
+          if (isStale()) return;
+          reportProgress(percent);
+        });
         const imageIds = await createNiftiImageIdsAndCacheMetadata({ url });
         if (isStale()) return;
         setImageIds(imageIds);
@@ -272,11 +282,15 @@ export default function NiftiReviewFile({
           // The completion callback — not the volume-shell creation above —
           // counts toward taking the spinner down, once the pixel data has
           // actually streamed in.
-          startVolumeLoad(volume, () => {
-            if (isStale()) return;
-            volumeLoaded = true;
-            finishLoadingWhenDone();
-          });
+          startVolumeLoad(
+            volume,
+            () => {
+              if (isStale()) return;
+              volumeLoaded = true;
+              finishLoadingWhenDone();
+            },
+            { reportProgress: false },
+          );
         } catch (error) {
           console.log("exiting initialize early");
           console.log(error);
@@ -308,6 +322,7 @@ export default function NiftiReviewFile({
       isCancelled = true;
       stopWatchingTruncation();
       stopWatchingFileRead();
+      stopWatchingProgress();
       setIsInitialized(false);
       // Leaving mid-load: the completion callback for this file is stale and
       // will never clear the spinner — don't leave it up. A follow-up load

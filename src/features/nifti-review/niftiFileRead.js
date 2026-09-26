@@ -17,6 +17,7 @@ import { eventTarget } from "@cornerstonejs/core";
 import { Enums as NiftiEnums } from "@cornerstonejs/nifti-volume-loader";
 
 import { messages } from "@/lib/messages";
+import { toPercent } from "@/lib/loadingProgress";
 
 const outcomeByUrl = new Map();
 const watchers = new Set();
@@ -45,6 +46,40 @@ export function watchNiftiFileRead(url, onRead) {
   if (known) onRead(known);
 
   return () => watchers.delete(watcher);
+}
+
+/**
+ * Call `onPercent(percent)` as the file at `url` downloads, each time the
+ * whole-number percentage changes. Measured on decoded bytes against the size
+ * the NIfTI header declares, since the file server may send no
+ * Content-Length; the download byte count is only a fallback until the header
+ * is in. Returns a function that stops watching.
+ *
+ * @param {string} url Absolute NIfTI URL, as passed to the loader.
+ * @param {(percent: number) => void} onPercent
+ * @returns {() => void}
+ */
+export function watchNiftiDownloadProgress(url, onPercent) {
+  let lastPercent = null;
+  const listener = (event) => {
+    const { data } = event.detail;
+    // The header fetch fires this event too, keyed by volumeId, not url.
+    if (data?.url !== url) return;
+    const percent = downloadPercent(data);
+    if (percent === null || percent === lastPercent) return;
+    lastPercent = percent;
+    onPercent(percent);
+  };
+  const { NIFTI_VOLUME_PROGRESS } = NiftiEnums.Events;
+  eventTarget.addEventListener(NIFTI_VOLUME_PROGRESS, listener);
+  return () => eventTarget.removeEventListener(NIFTI_VOLUME_PROGRESS, listener);
+}
+
+// Clamped by toPercent: a file with bytes past its image data runs over 100%.
+function downloadPercent({ decoded, decodedTotal, loaded, total }) {
+  if (decodedTotal) return toPercent(decoded, decodedTotal);
+  if (total) return toPercent(loaded, total);
+  return null;
 }
 
 /**
