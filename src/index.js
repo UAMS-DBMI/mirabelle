@@ -21,7 +21,7 @@ import AppLayout from "@/components/AppLayout";
 import ErrorPage from "./error-page";
 import "./index.css";
 
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { LoadingPage } from "@/components/LoadingSpinner";
 
 import Home from "./routes/home";
 
@@ -73,7 +73,7 @@ const router = createBrowserRouter(
           path: "/",
           // element: <Home />,
           Component: Home,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
           errorElement: <ErrorPage />,
         },
         // Mask Routes
@@ -81,125 +81,125 @@ const router = createBrowserRouter(
         {
           path: "mask/iec/:iec",
           element: <RouteMaskIEC />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
           loader: routeMaskIECLoader,
         },
         {
           path: "mask/vr/:vr",
           element: <RouteMaskVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "mask/vr/:vr/:iec",
           element: <RouteMaskVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "mask/vr/:vr/:iec/:maskingStatus",
           element: <RouteMaskVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "mask/vr/:vr/:iec/:maskingStatus/:dicomType",
           element: <RouteMaskVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         // Mask Review Routes
         // ----------------------------------
         {
           path: "mask/review/iec/:iec",
           element: <RouteMaskReviewIEC />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
           loader: routeMaskReviewIECLoader,
         },
         {
           path: "mask/review/vr/:vr",
           element: <RouteMaskReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "mask/review/vr/:vr/:iec",
           element: <RouteMaskReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "mask/review/vr/:vr/:iec/:maskingStatus",
           element: <RouteMaskReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "mask/review/vr/:vr/:iec/:maskingStatus/:dicomType",
           element: <RouteMaskReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         // Nifti Review Routes
         // ----------------------------------
         {
           path: "review/nifti/file/:file",
           element: <RouteNiftiReviewFile />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
           loader: routeNiftiReviewFileLoader,
         },
         {
           path: "review/nifti/vr/:vr",
           element: <RouteNiftiReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "review/nifti/vr/:vr/:file",
           element: <RouteNiftiReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "review/nifti/vr/:vr/:file/:reviewStatus",
           element: <RouteNiftiReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         // Dicom Review Routes
         // ----------------------------------
         {
           path: "review/dicom/iec/:iec",
           element: <RouteDicomReviewIEC />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
           loader: routeDicomReviewIECLoader,
         },
         {
           path: "review/dicom/vr/:vr",
           element: <RouteDicomReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "review/dicom/vr/:vr/:iec",
           element: <RouteDicomReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "review/dicom/vr/:vr/:iec/:reviewStatus/:dicomType",
           element: <RouteDicomReviewVR />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         // Other Routes
         // ----------------------------------
         {
           path: "dump/:file_id",
           element: <RouteDump />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
           loader: routeDumpLoader,
         },
         {
           path: "test/:vr/:file_id",
           element: <RouteTests />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "test/:vr",
           element: <RouteTests />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "dev/messages",
           element: <RouteMessagesPlayground />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
       ],
     },
