@@ -10,12 +10,13 @@ import "./LoadingOverlay.css";
  */
 export default function LoadingOverlay({ children }) {
   const loading = useSelector((state) => state.options.loading);
+  const progress = useSelector((state) => state.options.loadingProgress);
 
   return (
     <>
       {loading && (
         <div id="overlay">
-          <LoadingSpinner />
+          <LoadingSpinner progress={progress} />
         </div>
       )}
       {children}

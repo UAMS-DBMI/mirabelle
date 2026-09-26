@@ -39,6 +39,10 @@ const initialState = {
   decimate: 0,
   persistent: true,
   loading: false,
+  // Download progress shown in the loading indicator, 0–100, or null when
+  // unknown. Cleared whenever `loading` changes, so a stale percentage never
+  // shows on the next load.
+  loadingProgress: null,
   // Compact "what am I looking at" line shown beside the header title (e.g.
   // "1117932 · CT · AXIAL LUNG"). Set by the exam routes when details load.
   titleDetail: null,
@@ -97,10 +101,20 @@ const optionSlice = createSlice({
     },
     setLoading: (state, action) => {
       state.loading = action.payload;
+      state.loadingProgress = null;
+    },
+    setLoadingProgress: (state, action) => {
+      state.loadingProgress = action.payload;
     },
   },
 });
 
-export const { setOption, resetOptions, setTitle, setTitleDetail, setLoading } =
-  optionSlice.actions;
+export const {
+  setOption,
+  resetOptions,
+  setTitle,
+  setTitleDetail,
+  setLoading,
+  setLoadingProgress,
+} = optionSlice.actions;
 export default optionSlice.reducer;

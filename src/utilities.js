@@ -9,6 +9,7 @@ import { useSearchParams } from "react-router-dom";
 import { requestJSON } from "@/lib/http";
 import { messages } from "@/lib/messages";
 import { notify } from "@/lib/notify";
+import { startLoadingProgress, toPercent } from "@/lib/loadingProgress";
 
 const { volumeLoader, imageLoader, metaData } = cornerstone;
 const { Enums: csToolsEnums, segmentation: csToolsSegmentation } =
@@ -746,11 +747,21 @@ export function loadVolumeAsync(
  * returns without registering the callback, which would strand anything
  * waiting on it. Cornerstone does fire IMAGE_VOLUME_LOADING_COMPLETED in that
  * path, so listen for it as the fallback. Returns a cancel function.
+ *
+ * Also shows the share of frames loaded in the loading indicator, unless
+ * `reportProgress` is false (NIfTI reports its download instead).
  */
-export function startVolumeLoad(volume, onLoaded) {
+export function startVolumeLoad(
+  volume,
+  onLoaded,
+  { reportProgress = true } = {},
+) {
   const completedEvent =
     cornerstone.Enums.Events.IMAGE_VOLUME_LOADING_COMPLETED;
   let finished = false;
+  const stopProgress = reportProgress
+    ? watchVolumeLoadProgress(volume)
+    : () => {};
   const onCompleted = (evt) => {
     if (evt.detail?.volumeId === volume.volumeId) finish();
   };
@@ -758,6 +769,7 @@ export function startVolumeLoad(volume, onLoaded) {
     if (finished) return;
     finished = true;
     eventTarget.removeEventListener(completedEvent, onCompleted);
+    stopProgress();
     onLoaded();
   };
   eventTarget.addEventListener(completedEvent, onCompleted);
@@ -765,7 +777,26 @@ export function startVolumeLoad(volume, onLoaded) {
   return () => {
     finished = true;
     eventTarget.removeEventListener(completedEvent, onCompleted);
+    stopProgress();
   };
+}
+
+// Reports frames loaded out of the volume's total to the loading indicator.
+// Returns a function that stops.
+function watchVolumeLoadProgress(volume) {
+  const totalFrames = volume.imageIds?.length;
+  if (!totalFrames) return () => {};
+  const report = startLoadingProgress();
+  report(toPercent(volume.framesProcessed ?? 0, totalFrames));
+
+  const modifiedEvent = cornerstone.Enums.Events.IMAGE_VOLUME_MODIFIED;
+  const onModified = (evt) => {
+    const { volumeId, framesProcessed } = evt.detail ?? {};
+    if (volumeId !== volume.volumeId || framesProcessed === undefined) return;
+    report(toPercent(framesProcessed, totalFrames));
+  };
+  eventTarget.addEventListener(modifiedEvent, onModified);
+  return () => eventTarget.removeEventListener(modifiedEvent, onModified);
 }
 
 /**
