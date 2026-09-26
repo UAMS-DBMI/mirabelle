@@ -57,8 +57,10 @@ bun run format  # prettier . --write   (format:check for a non-mutating check)
 This project **patches `node_modules` via `patch-package`**, run automatically as a
 `postinstall` hook. See `patches/`:
 
-- `@cornerstonejs+nifti-volume-loader+3.33.4.patch` — adds FLOAT64 NIfTI support and fixes
-  skewed images.
+- `@cornerstonejs+nifti-volume-loader+3.33.4.patch` — adds FLOAT64 NIfTI support, fixes
+  skewed images, streams each file showing slices as they arrive and keeping only its first
+  volume (so large 4D files fit in memory), and shows truncated files partially. See
+  `docs/large-nifti-fix.md` and `docs/truncated-nifti-recovery.md`.
 - `@cornerstonejs+core+3.33.4.patch` — backports Float64 volume support.
 
 If you change a `@cornerstonejs` dependency or need to alter its behavior, update the patch

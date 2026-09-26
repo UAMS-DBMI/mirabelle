@@ -139,7 +139,9 @@ features/
 │   ├── NiftiReviewFile.css
 │   ├── NiftiReviewFile.jsx          # NIfTI file review
 │   ├── NiftiReviewVR.css
-│   └── NiftiReviewVR.jsx            # NIfTI review (Volume Rendering)
+│   ├── NiftiReviewVR.jsx            # NIfTI review (Volume Rendering)
+│   ├── niftiFileRead.js             # How each NIfTI file's download ended
+│   └── niftiTruncation.js           # NIfTI files that only partly decoded
 │
 ├── seg/
 │   ├── SegPanel.css
