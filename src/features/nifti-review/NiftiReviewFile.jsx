@@ -28,6 +28,11 @@ import * as cornerstoneTools from "@cornerstonejs/tools";
 import { toAbsoluteURL, startVolumeLoad } from "@/utilities";
 import { getNiftiDetails, setNiftiStatus } from "@/visualreview";
 import { watchNiftiTruncation, truncationError } from "./niftiTruncation";
+import {
+  watchNiftiFileRead,
+  takeNiftiLoadFailure,
+  niftiLoadFailureMessage,
+} from "./niftiFileRead";
 
 import Header from "@/components/Header";
 
@@ -167,6 +172,15 @@ export default function NiftiReviewFile({
     // set state or clear the spinner for the wrong file.
     const isStale = () => isCancelled || requestId !== loadRequestRef.current;
     let stopWatchingTruncation = () => {};
+    let stopWatchingFileRead = () => {};
+    // Slices show as they stream in, but the spinner stays up until every
+    // slice is in the volume AND the whole file has been read: only then is
+    // it known whether the file is damaged.
+    let volumeLoaded = false;
+    let fileRead = false;
+    const finishLoadingWhenDone = () => {
+      if (volumeLoaded && fileRead) dispatch(setLoading(false));
+    };
 
     const initialize = async () => {
       setIsErrored(false);
@@ -217,9 +231,32 @@ export default function NiftiReviewFile({
           rel_url += ".gz";
         }
         const url = toAbsoluteURL(rel_url);
+        // Revisiting a file that failed: drop its empty cached volume so it
+        // downloads again instead of showing blank. Before watching the read
+        // below, which would otherwise replay the old failure.
+        if (
+          takeNiftiLoadFailure(url) &&
+          cornerstone.cache.getVolume(volumeId)
+        ) {
+          cornerstone.cache.removeVolumeLoadObject(volumeId);
+        }
         stopWatchingTruncation = watchNiftiTruncation(url, (detail) => {
           if (isStale()) return;
           notify.error(truncationError(detail, messages.errors.truncatedNifti));
+        });
+        // The pixel-data load below fails outside this try/catch, so a
+        // failure is reported here: say why, and swap the viewer for the
+        // placeholder.
+        stopWatchingFileRead = watchNiftiFileRead(url, ({ error }) => {
+          if (isStale()) return;
+          if (error) {
+            notify.error(error, niftiLoadFailureMessage(error));
+            setIsErrored(true);
+            dispatch(setLoading(false));
+            return;
+          }
+          fileRead = true;
+          finishLoadingWhenDone();
         });
         const imageIds = await createNiftiImageIdsAndCacheMetadata({ url });
         if (isStale()) return;
@@ -233,11 +270,12 @@ export default function NiftiReviewFile({
         }
         try {
           // The completion callback — not the volume-shell creation above —
-          // takes the spinner down, once the pixel data has actually
-          // streamed in.
+          // counts toward taking the spinner down, once the pixel data has
+          // actually streamed in.
           startVolumeLoad(volume, () => {
             if (isStale()) return;
-            dispatch(setLoading(false));
+            volumeLoaded = true;
+            finishLoadingWhenDone();
           });
         } catch (error) {
           console.log("exiting initialize early");
@@ -254,9 +292,9 @@ export default function NiftiReviewFile({
         return;
       }
 
-      // The viewer mounts now — images are still arriving; the spinner stays
-      // up until the load-completion callback fires. On a cached revisit the
-      // callback has already fired synchronously and the spinner is down.
+      // The viewer mounts now — slices fill in as they stream; the spinner
+      // stays up until the whole file has been read. On a cached revisit both
+      // have already happened and the spinner is down.
       setIsInitialized(true);
       setVolumeId(volumeId);
       setSegmentationId(segmentationId);
@@ -269,6 +307,7 @@ export default function NiftiReviewFile({
     return () => {
       isCancelled = true;
       stopWatchingTruncation();
+      stopWatchingFileRead();
       setIsInitialized(false);
       // Leaving mid-load: the completion callback for this file is stale and
       // will never clear the spinner — don't leave it up. A follow-up load
