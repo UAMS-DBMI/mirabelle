@@ -877,27 +877,41 @@ export async function loadVolumeSegmentation(
  * Download every frame of a stack exam in the background, so the stack
  * viewport can scroll through frames that are already in instead of fetching
  * each one as it is reached, and show the share of frames in so far in the
- * loading indicator. Frames are requested in stack order, so the first one —
- * the one setStack shows — arrives first. Resolves (never rejects) once every
- * frame has loaded or failed, with Promise.allSettled's results.
+ * loading indicator. Resolves (never rejects) once every frame has loaded or
+ * failed, with Promise.allSettled's results.
+ *
+ * The first frame (the one setStack shows) downloads on its own, and the rest
+ * are requested, in stack order, once it is in. Requested together, the
+ * downloads in flight split the bandwidth evenly, so on a slow link the first
+ * frame arrived no sooner than the seven after it, and a small stack showed
+ * nothing until all of it was in.
  *
  * @param {string[]} imageIds
  * @returns {Promise<PromiseSettledResult[]>}
  */
-export function streamStackImages(imageIds) {
-  if (!imageIds?.length) return Promise.resolve([]);
+export async function streamStackImages(imageIds) {
+  if (!imageIds?.length) return [];
   const reportProgress = startLoadingProgress();
   reportProgress(0);
   let settledFrames = 0;
-  const loads = cornerstone.imageLoader
-    .loadAndCacheImages(imageIds)
-    .map((load) =>
-      load.finally(() => {
-        settledFrames += 1;
-        reportProgress(toPercent(settledFrames, imageIds.length));
-      }),
-    );
-  return Promise.allSettled(loads);
+  const countWhenSettled = (load) =>
+    load.finally(() => {
+      settledFrames += 1;
+      reportProgress(toPercent(settledFrames, imageIds.length));
+    });
+
+  const [firstImageId, ...otherImageIds] = imageIds;
+  const [firstResult] = await Promise.allSettled([
+    countWhenSettled(cornerstone.imageLoader.loadAndCacheImage(firstImageId)),
+  ]);
+  if (otherImageIds.length === 0) return [firstResult];
+
+  const otherResults = await Promise.allSettled(
+    cornerstone.imageLoader
+      .loadAndCacheImages(otherImageIds)
+      .map(countWhenSettled),
+  );
+  return [firstResult, ...otherResults];
 }
 
 export async function loadStackSegmentation(imageIds, segmentationId) {

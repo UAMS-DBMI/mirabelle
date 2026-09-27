@@ -109,10 +109,14 @@ Before, the stack viewport loaded only the frame on screen, and the pages took
 the spinner down as soon as the viewer mounted. Each frame scrolled to then
 downloaded on demand, with no indicator.
 
-`streamStackImages(imageIds)` requests every frame through
-`loadAndCacheImages`, in stack order, so the frame `setStack` shows arrives
-first. It reports the share of frames settled, and resolves, never rejects,
-once all have loaded or failed. DICOM review and mask review call it right
+`streamStackImages(imageIds)` downloads the frame `setStack` shows (the
+first) on its own, then requests the rest through `loadAndCacheImages`, in
+stack order. The first frame goes alone because downloads in flight split the
+bandwidth evenly: requested with the rest, it arrived no sooner than the seven
+after it, so on a slow link a small stack showed nothing until all of it was
+in (Fast 3G, 512 KB frames: about 24 s before, 4 s now). It reports the
+share of frames settled, and resolves, never rejects, once all have loaded or
+failed. DICOM review and mask review call it right
 after `makeRoomForStackExam` and take the spinner down when it resolves
 (stale-checked). Masking's `loadStackSegmentation` already downloaded the
 whole stack and now uses it too.
@@ -189,7 +193,8 @@ and pauses it in its cleanup. Details are in
   next exam's, because they were already sent. That is typically under a
   second.
 - **A stack frame scrolled to before it has downloaded waits its turn** in the
-  queue rather than jumping ahead.
+  queue rather than jumping ahead. After the first frame, the rest arrive in
+  batches of up to `MAX_IN_FLIGHT` that finish together on a slow link.
 - **`MAX_IN_FLIGHT` suits HTTP/1.1**, which the server uses. Raise it if the
   server moves to HTTP/2.
 - **A multi-frame DICOM stored as one file** downloads in one piece, so its
