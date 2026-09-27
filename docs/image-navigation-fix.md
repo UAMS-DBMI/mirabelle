@@ -58,6 +58,11 @@ next/previous navigation on any review route.
 unknown. `setLoading` clears it, so a new load never shows the last one's
 number.
 
+`resetOptions` leaves `loading` and `loadingProgress` alone: they belong to
+the load in progress. The single-exam routes reset options in their own
+effect, which runs after the viewer's load effect has raised the indicator,
+so resetting them there hid the indicator for the whole load.
+
 A load gets a reporter from `startLoadingProgress()` and calls it with
 percentages. Only the newest reporter reaches the store, and
 `lib/loadingProgress.js` subscribes to the store to silence every reporter

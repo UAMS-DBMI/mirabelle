@@ -74,6 +74,13 @@ const PRESERVED_ON_RESET = new Set([
   // killed the control for an exam that stayed on screen, with nothing left to
   // recompute it.
   "prevMaskAvailable",
+  // Owned by the exam loads, which raise the indicator when they start and
+  // take it down when they finish or are abandoned. The single-exam routes
+  // reset options in their own effect, which runs AFTER the viewer's load
+  // effect has raised the indicator (parent effects run after children's),
+  // so resetting here took it straight back down and hid the whole load.
+  "loading",
+  "loadingProgress",
 ]);
 
 const optionSlice = createSlice({
