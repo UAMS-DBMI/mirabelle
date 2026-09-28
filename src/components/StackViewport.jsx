@@ -9,6 +9,7 @@ import * as cornerstoneTools from "@cornerstonejs/tools";
 import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { attachDataFrame } from "@/lib/viewportFrame";
+import { attachFramePreview } from "@/lib/stackFramePreview";
 import { setOption } from "@/features/optionSlice";
 import ViewportLabel from "@/components/ViewportLabel";
 
@@ -46,6 +47,7 @@ function StackViewport({
   console.log("[StackViewport] rendering");
   const elementRef = useRef(null);
   const frameDetachRef = useRef(null);
+  const previewDetachRef = useRef(null);
   const segReadyListenerRef = useRef(null);
 
   const [initialized, setInitialized] = useState(false);
@@ -176,6 +178,15 @@ function StackViewport({
       );
       segReadyListenerRef.current = onSegmentationReady;
 
+      // Draw each frame as its file arrives, from the first one setStack
+      // asks for, where it will appear once the margin zoom below is set.
+      previewDetachRef.current?.();
+      previewDetachRef.current = attachFramePreview(
+        viewport,
+        elementRef.current,
+        { initialZoom: MARGIN_ZOOM },
+      );
+
       await viewport.setStack(frames);
 
       if (superseded(viewport)) return;
@@ -222,6 +233,8 @@ function StackViewport({
     return () => {
       frameDetachRef.current?.();
       frameDetachRef.current = null;
+      previewDetachRef.current?.();
+      previewDetachRef.current = null;
       cornerstone.eventTarget.removeEventListener(
         "StackSegmentationReady",
         segReadyListenerRef.current,
