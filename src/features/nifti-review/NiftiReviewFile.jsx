@@ -275,7 +275,13 @@ export default function NiftiReviewFile({
           if (isStale()) return;
           reportProgress(percent);
         });
-        const imageIds = await createNiftiImageIdsAndCacheMetadata({ url });
+        // A file visited before still has its volume, and its image ids still
+        // have their metadata: reuse them rather than downloading the start
+        // of the file again only to read its header, which waited on the
+        // server at every visit.
+        const imageIds =
+          cornerstone.cache.getVolume(volumeId)?.imageIds ??
+          (await createNiftiImageIdsAndCacheMetadata({ url }));
         if (isStale()) return;
         setImageIds(imageIds);
         let volume = cornerstone.cache.getVolume(volumeId);
