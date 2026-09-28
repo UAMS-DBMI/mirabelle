@@ -10,7 +10,8 @@
  * MAX_IN_FLIGHT at a time, oldest first, and requests for an exam the curator
  * has left wait here unsent until that exam is loaded again. The frames
  * waiting on them simply stay pending, so Cornerstone carries on where it
- * left off.
+ * left off. Stack files streamed by lib/dicomFileStreams (fetches rather than
+ * the loader's XHRs) wait in the same queue, through `queueDownload`.
  *
  * NIfTI files are streamed by the patched NIfTI loader and pause separately
  * (pauseNiftiFileLoad / resumeNiftiFileLoad).
@@ -30,8 +31,9 @@ const examUrls = new Map();
 let foregroundExam = null;
 let heldUrls = new Set();
 
-// Opened requests not yet sent, oldest first: `ready` may go as soon as a
-// slot frees, `held` belong to exams the curator has left.
+// Downloads not yet started, oldest first: `ready` may go as soon as a slot
+// frees, `held` belong to exams the curator has left. Each has a `start`
+// that begins it and calls the `onEnd` it is given once it has finished.
 let ready = [];
 let held = [];
 let inFlight = 0;
@@ -48,10 +50,41 @@ export function openDicomRequest(xhr, url) {
   xhr.open("get", url, true);
   const send = xhr.send.bind(xhr);
   xhr.send = (body) => {
-    const request = { url, xhr, send: () => send(body), order: requestCount++ };
-    (heldUrls.has(url) ? held : ready).push(request);
-    sendReadyRequests();
+    enqueue(url, (onEnd) => {
+      xhr.addEventListener("loadend", onEnd, { once: true });
+      send(body);
+    });
   };
+}
+
+/**
+ * Run a download of `url` from the queue, like the DICOM loader's requests:
+ * `download` starts once a slot is free and the exam `url` belongs to is on
+ * screen.
+ *
+ * @template T
+ * @param {string} url
+ * @param {() => Promise<T>} download
+ * @returns {Promise<T>} settles as the download does
+ */
+export function queueDownload(url, download) {
+  return new Promise((resolve, reject) => {
+    enqueue(url, async (onEnd) => {
+      try {
+        resolve(await download());
+      } catch (error) {
+        reject(error);
+      } finally {
+        onEnd();
+      }
+    });
+  });
+}
+
+function enqueue(url, start) {
+  const request = { url, start, order: requestCount++ };
+  (heldUrls.has(url) ? held : ready).push(request);
+  sendReadyRequests();
 }
 
 /**
@@ -134,19 +167,19 @@ function sendReadyRequests() {
 
 function sendRequest(request) {
   inFlight += 1;
-  request.xhr.addEventListener("loadend", onRequestEnd, { once: true });
-  try {
-    request.send();
-  } catch (error) {
-    // Only an unopened or already-sent request throws here; neither can
-    // happen, but a leaked slot would stall every later download.
-    console.error("[examDownloads] could not send", request.url, error);
-    request.xhr.removeEventListener("loadend", onRequestEnd);
+  let ended = false;
+  const onEnd = () => {
+    if (ended) return;
+    ended = true;
     inFlight -= 1;
+    sendReadyRequests();
+  };
+  try {
+    request.start(onEnd);
+  } catch (error) {
+    // Only an unopened or already-sent XHR throws here; neither can happen,
+    // but a leaked slot would stall every later download.
+    console.error("[examDownloads] could not send", request.url, error);
+    onEnd();
   }
-}
-
-function onRequestEnd() {
-  inFlight -= 1;
-  sendReadyRequests();
 }
