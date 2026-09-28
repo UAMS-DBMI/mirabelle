@@ -141,6 +141,7 @@ features/
 │   ├── NiftiReviewVR.css
 │   ├── NiftiReviewVR.jsx            # NIfTI review (Volume Rendering)
 │   ├── niftiFileRead.js             # How each NIfTI file's download ended
+│   ├── niftiLoadingWindow.js        # Windows a volume as its slices arrive
 │   ├── niftiReviewOrder.js          # Review order kept across page refreshes
 │   └── niftiTruncation.js           # NIfTI files that only partly decoded
 │
@@ -185,8 +186,10 @@ Library utilities and helpers:
 lib/
 ├── cacheSizing.js                    # Sizes the image cache from device memory
 ├── createImageIdsAndCacheMetaData.js  # Image ID creation and caching
+├── dicomFileStreams.js               # Streams stack files, bytes readable as they arrive
 ├── examDownloads.js                  # Queues, pauses and resumes exam downloads
-└── loadingProgress.js                # The loading indicator's percentage
+├── loadingProgress.js                # The loading indicator's percentage
+└── stackFramePreview.js              # Draws a stack frame while its file arrives
 ```
 
 ## routes/
