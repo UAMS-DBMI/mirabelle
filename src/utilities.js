@@ -11,6 +11,7 @@ import { messages } from "@/lib/messages";
 import { notify } from "@/lib/notify";
 import { startLoadingProgress, toPercent } from "@/lib/loadingProgress";
 import { focusExamDownloads } from "@/lib/examDownloads";
+import { streamDicomFile, trackFramesArrived } from "@/lib/dicomFileStreams";
 
 const { volumeLoader, imageLoader, metaData } = cornerstone;
 const { Enums: csToolsEnums, segmentation: csToolsSegmentation } =
@@ -886,6 +887,11 @@ export async function loadVolumeSegmentation(
  * frame arrived no sooner than the seven after it, and a small stack showed
  * nothing until all of it was in.
  *
+ * Each file is streamed (lib/dicomFileStreams), so the stack viewport can
+ * draw a frame while its file is still arriving (lib/stackFramePreview), and
+ * the percentage counts the share of each file in so far, so it moves while
+ * a large file arrives.
+ *
  * @param {string[]} imageIds
  * @returns {Promise<PromiseSettledResult[]>}
  */
@@ -893,25 +899,26 @@ export async function streamStackImages(imageIds) {
   if (!imageIds?.length) return [];
   const reportProgress = startLoadingProgress();
   reportProgress(0);
-  let settledFrames = 0;
-  const countWhenSettled = (load) =>
-    load.finally(() => {
-      settledFrames += 1;
-      reportProgress(toPercent(settledFrames, imageIds.length));
-    });
+  const arrived = trackFramesArrived(imageIds, (framesArrived) =>
+    reportProgress(toPercent(framesArrived, imageIds.length)),
+  );
+  const loadFrame = (imageId) =>
+    loadStreamedStackImage(imageId).finally(() =>
+      arrived.frameSettled(imageId),
+    );
 
   const [firstImageId, ...otherImageIds] = imageIds;
-  const [firstResult] = await Promise.allSettled([
-    countWhenSettled(cornerstone.imageLoader.loadAndCacheImage(firstImageId)),
-  ]);
-  if (otherImageIds.length === 0) return [firstResult];
-
-  const otherResults = await Promise.allSettled(
-    cornerstone.imageLoader
-      .loadAndCacheImages(otherImageIds)
-      .map(countWhenSettled),
-  );
+  const [firstResult] = await Promise.allSettled([loadFrame(firstImageId)]);
+  const otherResults = await Promise.allSettled(otherImageIds.map(loadFrame));
+  arrived.stop();
   return [firstResult, ...otherResults];
+}
+
+// Load a stack frame, its file streamed so the frame can be drawn as it
+// arrives.
+function loadStreamedStackImage(imageId) {
+  streamDicomFile(imageId);
+  return cornerstone.imageLoader.loadAndCacheImage(imageId);
 }
 
 export async function loadStackSegmentation(imageIds, segmentationId) {
