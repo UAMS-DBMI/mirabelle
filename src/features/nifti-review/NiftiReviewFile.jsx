@@ -37,6 +37,7 @@ import {
   takeNiftiLoadFailure,
   niftiLoadFailureMessage,
 } from "./niftiFileRead";
+import { windowNiftiWhileLoading } from "./niftiLoadingWindow";
 
 import Header from "@/components/Header";
 
@@ -178,6 +179,7 @@ export default function NiftiReviewFile({
     let stopWatchingTruncation = () => {};
     let stopWatchingFileRead = () => {};
     let stopWatchingProgress = () => {};
+    let stopLoadingWindow = () => {};
     let pauseDownload = () => {};
     // Slices show as they stream in, but the spinner stays up until every
     // slice is in the volume AND the whole file has been read: only then is
@@ -284,6 +286,9 @@ export default function NiftiReviewFile({
           (await createNiftiImageIdsAndCacheMetadata({ url }));
         if (isStale()) return;
         setImageIds(imageIds);
+        // Before the viewer mounts: otherwise Cornerstone draws nothing until
+        // the middle slice is in, half of the first volume.
+        stopLoadingWindow = windowNiftiWhileLoading(imageIds, volumeId);
         let volume = cornerstone.cache.getVolume(volumeId);
         if (!volume) {
           volume = await volumeLoader.createAndCacheVolume(volumeId, {
@@ -336,6 +341,7 @@ export default function NiftiReviewFile({
       stopWatchingTruncation();
       stopWatchingFileRead();
       stopWatchingProgress();
+      stopLoadingWindow();
       pauseDownload();
       setIsInitialized(false);
       // Leaving mid-load: the completion callback for this file is stale and
