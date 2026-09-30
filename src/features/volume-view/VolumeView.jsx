@@ -10,6 +10,7 @@ import MaybeVolumeViewport3d from "@/components/MaybeVolumeViewport3d";
 import { ToolsPanel } from "@/features/tools";
 import useRendererResize from "@/hooks/useRendererResize";
 import { get3dViewports } from "@/utilities";
+import { SingleSelectionRectangleScissorsTool } from "@/lib/singleSelectionRectangleScissors";
 
 import OperationsPanel from "@/components/OperationsPanel";
 
@@ -20,7 +21,6 @@ const {
   ToolGroupManager,
   TrackballRotateTool,
   BrushTool,
-  RectangleScissorsTool,
   StackScrollTool,
   Enums: csToolsEnums,
 } = cornerstoneTools;
@@ -48,7 +48,7 @@ export default function VolumeView({
   useEffect(() => {
     cornerstoneTools.addTool(TrackballRotateTool);
     cornerstoneTools.addTool(BrushTool);
-    cornerstoneTools.addTool(RectangleScissorsTool);
+    cornerstoneTools.addTool(SingleSelectionRectangleScissorsTool);
     cornerstoneTools.addTool(StackScrollTool);
 
     if (!voiSynchronizer) {
