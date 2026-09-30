@@ -220,6 +220,12 @@ export default function MaskIEC({
     const requestId = ++loadRequestRef.current;
     let isCancelled = false;
 
+    // MaskIEC stays mounted while the curator moves between exams, so drop the
+    // previous exam's selection. Otherwise its coords would be submitted for
+    // this exam, and its Expand would satisfy this exam's accept check.
+    setCoords(undefined);
+    setExpanded(false);
+
     const initialize = async () => {
       setIsInitialized(false);
       const details = await getDicomDetails(iec);
@@ -479,6 +485,7 @@ export default function MaskIEC({
     }
 
     setExpanded(false);
+    setCoords(undefined);
   }
 
   async function handleAccept() {
@@ -500,10 +507,10 @@ export default function MaskIEC({
       spacing = volume.spacing;
     } else {
       const imageIds = segmentation.getLabelmapImageIds(segmentationId);
-      if (!coords) {
-        finalCoords = getCoordsForStackSeg(imageIds);
-        setCoords(finalCoords);
-      }
+      // A stack has no Expand step, so always read the selection from what is
+      // currently drawn rather than reusing coords from an earlier accept.
+      finalCoords = getCoordsForStackSeg(imageIds);
+      setCoords(finalCoords);
       const image = cornerstone.cache.getImage(imageIds[0]);
       spacing = [image.columnPixelSpacing ?? 1, image.rowPixelSpacing ?? 1, 1];
     }
