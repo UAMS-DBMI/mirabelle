@@ -26,8 +26,8 @@ its accept / skip / navigation flow.
 | [src/components/VolumeViewport.jsx](../src/components/VolumeViewport.jsx) | Removes its event listener on unmount; attaches an already-existing mask segmentation on mount |
 | [src/routes/mask/RouteMaskVR.jsx](../src/routes/mask/RouteMaskVR.jsx) | Resets tool options only when actually navigating; passes `hasNext` |
 | [src/features/mask/MaskVR.jsx](../src/features/mask/MaskVR.jsx) | Now a thin pass-through (option reset moved to the route) |
-| [src/lib/messages.js](../src/lib/messages.js) | `navigation.lastOne` |
-| [src/routes/dev/RouteMessagesPlayground.jsx](../src/routes/dev/RouteMessagesPlayground.jsx) | Preview of the "last IEC" confirmation |
+| [src/lib/notify.js](../src/lib/notify.js) | `keepPrevious` option: show a toast without dismissing the current one |
+| [src/routes/dev/RouteMessagesPlayground.jsx](../src/routes/dev/RouteMessagesPlayground.jsx) | Preview of the last-IEC toast pair |
 
 ---
 
@@ -167,8 +167,14 @@ decisions now go through `finishExam`
 ([MaskIEC.jsx:424](../src/features/mask/MaskIEC.jsx#L424)):
 
 - with a next exam: show the confirmation and call `onNext`, as before;
-- on the last exam: don't call `onNext`; show one toast, e.g. "Submitted for
-  masking. That was the last IEC." (`messages.navigation.lastOne`).
+- on the last exam: don't call `onNext`. Show the confirmation (e.g.
+  "Submitted for masking") and then the "No next IEC available." warning as
+  **two separate toasts**, both visible for their full duration.
+
+The warning is shown with `notify.info(..., { keepPrevious: true })`. That
+option makes `showInSlot` leave the current toast in place instead of
+dismissing it, so the two stack rather than one replacing the other. Every
+other toast keeps the one-at-a-time slot behaviour.
 
 `handleAccept` no longer shows the toast itself; `finishExam` does.
 `hasNext` defaults to `true`, so the single-exam route (`RouteMaskIEC`, whose
@@ -221,10 +227,10 @@ between steps.
 **Last exam**
 
 1. Set Decimate above 0 on the last exam of the queue, draw, Expand and Accept.
-2. The mask stays on screen, the toast reads "Submitted for masking. That was
-   the last IEC." for its full duration, and the details panel shows the new
-   masking status.
-3. On another last exam, Skip and Non-Maskable show "… That was the last IEC."
-   in the same way.
+2. The mask stays on screen, and two toasts show together for their full
+   duration: "Submitted for masking" and "No next IEC available.". The details
+   panel shows the new masking status.
+3. On another last exam, Skip and Non-Maskable show their confirmation and the
+   same warning, as two toasts.
 4. On any other exam, Accept still advances to the next one with the usual
    confirmation.
