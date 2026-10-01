@@ -152,6 +152,7 @@ export default function MaskIEC({
   const [maskingDetails, setMaskingDetails] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [coords, setCoords] = useState();
+  const [segmentationReady, setSegmentationReady] = useState(false);
   const loadRequestRef = useRef(0);
 
   let viewer;
@@ -161,18 +162,9 @@ export default function MaskIEC({
     window.dispatchEvent(new Event("resize"));
   }, [showLeftPanel, showRightPanel]);
 
+  // Record when this exam's segmentation is ready to draw on.
   useEffect(() => {
-    const callback = (evt) => {
-      // trigger a new event, to enable segmentation drawing
-      console.log("[callback] AllowSegmentationDrawing firing...");
-      cornerstone.triggerEvent(
-        cornerstone.eventTarget,
-        "AllowSegmentationDrawing",
-        {
-          volumeId,
-        },
-      );
-    };
+    const callback = () => setSegmentationReady(true);
 
     // TODO: these string based event names need to be collected into
     // a library and accessed as enums
@@ -186,6 +178,24 @@ export default function MaskIEC({
       );
     };
   }, []);
+
+  // ToolsPanel switches on the selection tool when it hears
+  // AllowSegmentationDrawing, but it only mounts once the exam is initialized.
+  // A cached volume's segmentation is ready before that, so relaying
+  // VolumeReallyLoaded straight away would go unheard and leave the curator
+  // unable to draw. Announce it only once both are true; this effect runs after
+  // ToolsPanel's own effects, so its listener is in place. segmentationId is a
+  // dependency so a volume Clear (which swaps in a new segmentation) re-arms
+  // the selection tool as before.
+  useEffect(() => {
+    if (!isInitialized || !segmentationReady) return;
+    console.log("[MaskIEC] AllowSegmentationDrawing firing...");
+    cornerstone.triggerEvent(
+      cornerstone.eventTarget,
+      "AllowSegmentationDrawing",
+      { volumeId },
+    );
+  }, [isInitialized, segmentationReady, segmentationId]);
 
   useEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
@@ -225,6 +235,10 @@ export default function MaskIEC({
     // this exam, and its Expand would satisfy this exam's accept check.
     setCoords(undefined);
     setExpanded(false);
+    setSegmentationReady(false);
+
+    const isCurrentRequest = () =>
+      !isCancelled && requestId === loadRequestRef.current;
 
     const initialize = async () => {
       setIsInitialized(false);
@@ -266,7 +280,9 @@ export default function MaskIEC({
 
       try {
         if (volumetric) {
-          await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
+          await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId, {
+            isCurrent: isCurrentRequest,
+          });
           if (isCancelled || requestId !== loadRequestRef.current) {
             console.log("---------------> loadVolumeAndSegmentation cancelled");
             return;
