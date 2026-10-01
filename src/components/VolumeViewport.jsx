@@ -90,6 +90,18 @@ function VolumeViewport({
   }, [renderingEngine]);
 
   useEffect(() => {
+    // Attach a mask segmentation to this pane once it exists: when the volume
+    // finishes loading, or when Clear swaps in a new one.
+    const handleSegmentationLoaded = (evt) => {
+      console.log("[VolumeViewport] VolumeReallyLoaded event caught");
+      const loadedSegmentationId = evt.detail.segmentationId;
+      if (loadedSegmentationId !== undefined) {
+        segmentation.addLabelmapRepresentationToViewport(viewportId, [
+          { segmentationId: loadedSegmentationId },
+        ]);
+      }
+    };
+
     const setup = async () => {
       // Remove any leftover minimized/expanded classes on volume change
       const wrapper = elementRef.current;
@@ -130,15 +142,10 @@ function VolumeViewport({
       // Get the volume viewport that was created
       const viewport = renderingEngine.getViewport(viewportId);
 
-      eventTarget.addEventListener("VolumeReallyLoaded", (evt) => {
-        console.log("[VolumeViewport] VolumeReallyLoaded event caught");
-        const segmentationId = evt.detail.segmentationId;
-        if (segmentationId !== undefined) {
-          segmentation.addLabelmapRepresentationToViewport(viewportId, [
-            { segmentationId },
-          ]);
-        }
-      });
+      eventTarget.addEventListener(
+        "VolumeReallyLoaded",
+        handleSegmentationLoaded,
+      );
 
       toolGroup.addViewport(viewportId, renderingEngine.id);
 
@@ -146,10 +153,14 @@ function VolumeViewport({
       viewport.setVolumes([{ volumeId }]);
 
       // // Apply all active segmentations to the viewport
+      // Mask segmentations are normally attached by handleSegmentationLoaded.
+      // The exception is this exam's own mask segmentation when it already
+      // exists: a cached volume's segmentation is created before this pane
+      // mounts, so its VolumeReallyLoaded event has already fired.
       const segmentationIds = segmentation.state
         .getSegmentations()
         .map((seg) => seg.segmentationId)
-        .filter((segmentationId) => !segmentationId.startsWith("mask-"));
+        .filter((id) => !id.startsWith("mask-") || id === segmentationId);
 
       await segmentation.addLabelmapRepresentationToViewportMap({
         [viewportId]: segmentationIds.map((segmentationId) => ({
@@ -166,6 +177,15 @@ function VolumeViewport({
     };
 
     setup();
+
+    // Without this, every pane ever mounted keeps a listener and attaches
+    // later exams' segmentations to whichever viewport now has its id.
+    return () => {
+      eventTarget.removeEventListener(
+        "VolumeReallyLoaded",
+        handleSegmentationLoaded,
+      );
+    };
   }, [elementRef, volumeId]);
 
   useEffect(() => {

@@ -98,6 +98,7 @@ export default function MaskIEC({
   dicomTypeOptions,
   onNext = () => {},
   onPrevious = () => {},
+  hasNext = true,
 }) {
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -152,6 +153,7 @@ export default function MaskIEC({
   const [maskingDetails, setMaskingDetails] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [coords, setCoords] = useState();
+  const [segmentationReady, setSegmentationReady] = useState(false);
   const loadRequestRef = useRef(0);
 
   let viewer;
@@ -161,18 +163,9 @@ export default function MaskIEC({
     window.dispatchEvent(new Event("resize"));
   }, [showLeftPanel, showRightPanel]);
 
+  // Record when this exam's segmentation is ready to draw on.
   useEffect(() => {
-    const callback = (evt) => {
-      // trigger a new event, to enable segmentation drawing
-      console.log("[callback] AllowSegmentationDrawing firing...");
-      cornerstone.triggerEvent(
-        cornerstone.eventTarget,
-        "AllowSegmentationDrawing",
-        {
-          volumeId,
-        },
-      );
-    };
+    const callback = () => setSegmentationReady(true);
 
     // TODO: these string based event names need to be collected into
     // a library and accessed as enums
@@ -186,6 +179,24 @@ export default function MaskIEC({
       );
     };
   }, []);
+
+  // ToolsPanel switches on the selection tool when it hears
+  // AllowSegmentationDrawing, but it only mounts once the exam is initialized.
+  // A cached volume's segmentation is ready before that, so relaying
+  // VolumeReallyLoaded straight away would go unheard and leave the curator
+  // unable to draw. Announce it only once both are true; this effect runs after
+  // ToolsPanel's own effects, so its listener is in place. segmentationId is a
+  // dependency so a volume Clear (which swaps in a new segmentation) re-arms
+  // the selection tool as before.
+  useEffect(() => {
+    if (!isInitialized || !segmentationReady) return;
+    console.log("[MaskIEC] AllowSegmentationDrawing firing...");
+    cornerstone.triggerEvent(
+      cornerstone.eventTarget,
+      "AllowSegmentationDrawing",
+      { volumeId },
+    );
+  }, [isInitialized, segmentationReady, segmentationId]);
 
   useEffect(() => {
     // Only create a new rendering engine if one doesn't already exist
@@ -225,6 +236,10 @@ export default function MaskIEC({
     // this exam, and its Expand would satisfy this exam's accept check.
     setCoords(undefined);
     setExpanded(false);
+    setSegmentationReady(false);
+
+    const isCurrentRequest = () =>
+      !isCancelled && requestId === loadRequestRef.current;
 
     const initialize = async () => {
       setIsInitialized(false);
@@ -266,7 +281,9 @@ export default function MaskIEC({
 
       try {
         if (volumetric) {
-          await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
+          await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId, {
+            isCurrent: isCurrentRequest,
+          });
           if (isCancelled || requestId !== loadRequestRef.current) {
             console.log("---------------> loadVolumeAndSegmentation cancelled");
             return;
@@ -378,24 +395,55 @@ export default function MaskIEC({
         break;
       case "accept":
         // Only advance when the mask was actually submitted.
-        if (await handleAccept()) onNext();
+        if (await handleAccept()) {
+          finishExam(messages.mask.submitted);
+        }
         break;
       case "skip mask":
       case "nonmaskable mask":
         try {
           await setMaskingStatus(iec, action);
-          notify.success(
+          finishExam(
             action === "skip mask"
               ? messages.mask.skipped
               : messages.mask.notMaskable,
           );
-          onNext();
         } catch (error) {
           notify.error(error, messages.errors.saveStatus);
         }
         break;
       default:
         console.warn("Unknown action:", action);
+    }
+  }
+
+  // Confirm a decision on this exam and move on to the next one. On the last
+  // exam there is nowhere to go, so don't call onNext: its "no next IEC" toast
+  // would instantly replace this confirmation (success and info toasts share
+  // one slot, see notify.js). Show the warning ourselves, alongside it.
+  function finishExam(confirmation) {
+    refreshMaskingDetails();
+    notify.success(confirmation);
+    if (hasNext) {
+      onNext();
+      return;
+    }
+    notify.info(messages.navigation.noNext("IEC"), { keepPrevious: true });
+  }
+
+  // Show this exam's new masking status in the details panel. It's only seen
+  // when the curator stays on the exam (the last one in the queue, or the
+  // single-exam route); if they have moved on, the next exam's load has
+  // started a new request and the stale result is dropped.
+  async function refreshMaskingDetails() {
+    const requestId = loadRequestRef.current;
+    try {
+      const updated = await getMaskingDetails(iec);
+      if (requestId === loadRequestRef.current) {
+        setMaskingDetails(updated);
+      }
+    } catch (error) {
+      console.error("Failed to refresh masking details:", error);
     }
   }
 
@@ -531,7 +579,7 @@ export default function MaskIEC({
       return false;
     }
 
-    notify.success(messages.mask.submitted);
+    // The caller confirms the submission (see finishExam).
     return true;
   }
 

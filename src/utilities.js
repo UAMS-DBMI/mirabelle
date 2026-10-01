@@ -376,10 +376,42 @@ export async function loadIECVolumeAndSegmentation(
   return await loadVolumeAndSegmentation(imageIds, volumeId, segmentationId);
 }
 
+/**
+ * Run `callback` once `volume` has fully loaded.
+ *
+ * volume.load(callback) silently drops the callback when the volume is already
+ * part-way through loading (e.g. the curator left this exam and came back to
+ * it), so in that case wait for the load-completed event instead.
+ */
+function whenVolumeLoaded(volume, callback) {
+  if (!volume.loadStatus?.loading) {
+    volume.load(callback);
+    return;
+  }
+
+  const eventName = cornerstone.Enums.Events.IMAGE_VOLUME_LOADING_COMPLETED;
+  const handleLoaded = (evt) => {
+    if (evt.detail?.volumeId !== volume.volumeId) return;
+    eventTarget.removeEventListener(eventName, handleLoaded);
+    callback();
+  };
+  eventTarget.addEventListener(eventName, handleLoaded);
+}
+
+/**
+ * Load a volume and, once it has fully loaded, create its mask segmentation
+ * and announce it with a "VolumeReallyLoaded" event.
+ *
+ * `isCurrent` should return false once the caller no longer wants this
+ * segmentation (the curator moved to another exam). Loading continues in the
+ * background, so without it a slow volume would replace the segmentation of
+ * whatever exam is on screen when it finishes.
+ */
 export async function loadVolumeAndSegmentation(
   imageIds,
   volumeId,
   segmentationId,
+  { isCurrent = () => true } = {},
 ) {
   let loadedFromCache = true;
   let volume = cornerstone.cache.getVolume(volumeId);
@@ -398,7 +430,12 @@ export async function loadVolumeAndSegmentation(
   }
 
   // Set the volume to load
-  volume.load(() => {
+  whenVolumeLoaded(volume, () => {
+    if (!isCurrent()) {
+      console.log("Volume loaded after its exam was left:", volumeId);
+      return;
+    }
+
     csToolsSegmentation.removeAllSegmentations();
     csToolsSegmentation.removeAllSegmentationRepresentations();
 
