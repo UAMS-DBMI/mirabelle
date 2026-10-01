@@ -1259,29 +1259,59 @@ export default function MaskIEC({
           // row stops being flagged as an active selection.
           forgetMaskDraft(iec);
           skipDraftSaveRef.current = true;
-          onNext();
+          finishExam(messages.mask.submitted);
         }
         break;
       case "skip mask":
       case "nonmaskable mask":
         try {
           await setMaskingStatus(iec, action);
-          notify.success(
-            action === "skip mask"
-              ? messages.mask.skipped
-              : messages.mask.notMaskable,
-          );
           // Terminal decision on this exam — discard any draft so it isn't
           // left flagged as having a pending selection.
           forgetMaskDraft(iec);
           skipDraftSaveRef.current = true;
-          onNext();
+          finishExam(
+            action === "skip mask"
+              ? messages.mask.skipped
+              : messages.mask.notMaskable,
+          );
         } catch (error) {
           notify.error(error, messages.errors.saveStatus);
         }
         break;
       default:
         console.warn("Unknown action:", action);
+    }
+  }
+
+  // Confirm a decision on this exam and move on to the next one. On the last
+  // exam there is nowhere to go, so don't call onNext: its "no next IEC" toast
+  // would instantly replace this confirmation (success and info toasts share
+  // one slot, see notify.js). Show the warning ourselves, alongside it.
+  function finishExam(confirmation) {
+    refreshMaskingDetails();
+    notify.success(confirmation);
+    if (hasNext) {
+      onNext();
+      return;
+    }
+    notify.info(messages.navigation.noNext("IEC"), { keepPrevious: true });
+  }
+
+  // Re-read this exam's masking details after a decision, so the details panel
+  // shows the new status and the submitted-mask overlay shows what was just
+  // submitted. Only seen when the curator stays on the exam (the last one in
+  // the queue); if they have moved on, the next exam's load has started a new
+  // request and the stale result is dropped.
+  async function refreshMaskingDetails() {
+    const requestId = loadRequestRef.current;
+    try {
+      const updated = await getMaskingDetails(iec);
+      if (requestId === loadRequestRef.current) {
+        setMaskingDetails(updated);
+      }
+    } catch (error) {
+      console.error("Failed to refresh masking details:", error);
     }
   }
 
@@ -1412,7 +1442,7 @@ export default function MaskIEC({
       return false;
     }
 
-    notify.success(messages.mask.submitted);
+    // The caller confirms the submission (see finishExam).
     return true;
   }
 

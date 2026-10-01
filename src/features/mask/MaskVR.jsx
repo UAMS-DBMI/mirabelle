@@ -1,7 +1,5 @@
 import React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useDispatch } from "react-redux";
-import { resetOptions, setOption } from "@/features/optionSlice";
 import MaskIEC from "@/features/mask/MaskIEC";
 
 import "./MaskVR.css";
@@ -18,22 +16,11 @@ export default function MaskVR({
   hasNext,
   hasPrevious,
 }) {
-  const dispatch = useDispatch();
-  useHotkeys("tab", handleNext);
-  useHotkeys("right", handleNext);
-  useHotkeys("left", handlePrevious);
-
-  function handleNext() {
-    dispatch(resetOptions());
-    dispatch(setOption({ key: "preset", value: null }));
-    onNext();
-  }
-
-  function handlePrevious() {
-    dispatch(resetOptions());
-    dispatch(setOption({ key: "preset", value: null }));
-    onPrevious();
-  }
+  // Tool options are reset by the route, and only when it actually moves to
+  // another exam (see RouteMaskVR).
+  useHotkeys("tab", onNext);
+  useHotkeys("right", onNext);
+  useHotkeys("left", onPrevious);
 
   return (
     <MaskIEC
@@ -43,8 +30,8 @@ export default function MaskVR({
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}
-      onNext={handleNext}
-      onPrevious={handlePrevious}
+      onNext={onNext}
+      onPrevious={onPrevious}
       hasNext={hasNext}
       hasPrevious={hasPrevious}
     />

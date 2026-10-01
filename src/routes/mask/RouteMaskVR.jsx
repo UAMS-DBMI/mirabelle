@@ -5,7 +5,7 @@ import { notify } from "@/lib/notify";
 import { messages } from "@/lib/messages";
 
 import MaskVR from "@/features/mask/MaskVR";
-import { resetOptions, setLoading } from "@/features/optionSlice";
+import { resetOptions, setLoading, setOption } from "@/features/optionSlice";
 import { setMaskerConfig, reset } from "@/features/presentationSlice";
 import { getFilteredIECsForMaskVR, getValuesForMaskVR } from "@/utilities";
 
@@ -105,8 +105,17 @@ export default function RouteMaskVR() {
     if (offset - 1 >= 0) previousIEC = iecList[offset - 1];
   }
 
+  // Reset the per-exam tool options only when actually moving to another exam.
+  // On the last exam there is nowhere to go, and resetting there (e.g. Decimate
+  // back to 0) would reload the exam and wipe the mask just submitted.
+  const resetExamOptions = () => {
+    dispatch(resetOptions());
+    dispatch(setOption({ key: "preset", value: null }));
+  };
+
   const handleNext = () => {
     if (nextIEC) {
+      resetExamOptions();
       navigate(`/mask/vr/${vr}/${nextIEC}/${maskingStatus}/${dicomType}`);
     } else {
       notify.info(messages.navigation.noNext("IEC"));
@@ -115,6 +124,7 @@ export default function RouteMaskVR() {
 
   const handlePrevious = () => {
     if (previousIEC) {
+      resetExamOptions();
       navigate(`/mask/vr/${vr}/${previousIEC}/${maskingStatus}/${dicomType}`);
     } else {
       notify.info(messages.navigation.noPrevious("IEC"));
