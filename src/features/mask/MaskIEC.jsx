@@ -98,6 +98,7 @@ export default function MaskIEC({
   dicomTypeOptions,
   onNext = () => {},
   onPrevious = () => {},
+  hasNext = true,
 }) {
   // const [showLeftPanel, setShowLeftPanel] = useState(true);
   // const [showRightPanel, setShowRightPanel] = useState(true);
@@ -394,24 +395,55 @@ export default function MaskIEC({
         break;
       case "accept":
         // Only advance when the mask was actually submitted.
-        if (await handleAccept()) onNext();
+        if (await handleAccept()) {
+          finishExam(messages.mask.submitted);
+        }
         break;
       case "skip mask":
       case "nonmaskable mask":
         try {
           await setMaskingStatus(iec, action);
-          notify.success(
+          finishExam(
             action === "skip mask"
               ? messages.mask.skipped
               : messages.mask.notMaskable,
           );
-          onNext();
         } catch (error) {
           notify.error(error, messages.errors.saveStatus);
         }
         break;
       default:
         console.warn("Unknown action:", action);
+    }
+  }
+
+  // Confirm a decision on this exam and move on to the next one. On the last
+  // exam there is nowhere to go, so don't call onNext: its "no next IEC" toast
+  // would instantly replace this confirmation (success and info toasts share
+  // one slot, see notify.js). Say it was the last one instead.
+  function finishExam(confirmation) {
+    refreshMaskingDetails();
+    if (hasNext) {
+      notify.success(confirmation);
+      onNext();
+      return;
+    }
+    notify.success(`${confirmation}. ${messages.navigation.lastOne("IEC")}`);
+  }
+
+  // Show this exam's new masking status in the details panel. It's only seen
+  // when the curator stays on the exam (the last one in the queue, or the
+  // single-exam route); if they have moved on, the next exam's load has
+  // started a new request and the stale result is dropped.
+  async function refreshMaskingDetails() {
+    const requestId = loadRequestRef.current;
+    try {
+      const updated = await getMaskingDetails(iec);
+      if (requestId === loadRequestRef.current) {
+        setMaskingDetails(updated);
+      }
+    } catch (error) {
+      console.error("Failed to refresh masking details:", error);
     }
   }
 
@@ -547,7 +579,7 @@ export default function MaskIEC({
       return false;
     }
 
-    notify.success(messages.mask.submitted);
+    // The caller confirms the submission (see finishExam).
     return true;
   }
 

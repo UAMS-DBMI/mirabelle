@@ -34,6 +34,8 @@ export const messages = {
   navigation: {
     noNext: (noun = "item") => `No next ${noun} available.`,
     noPrevious: (noun = "item") => `No previous ${noun} available.`,
+    // Appended to a confirmation when the curator decides on the last item.
+    lastOne: (noun = "item") => `That was the last ${noun}.`,
   },
 
   // Filtering / list loading.
