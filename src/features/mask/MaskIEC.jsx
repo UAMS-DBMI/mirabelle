@@ -420,15 +420,15 @@ export default function MaskIEC({
   // Confirm a decision on this exam and move on to the next one. On the last
   // exam there is nowhere to go, so don't call onNext: its "no next IEC" toast
   // would instantly replace this confirmation (success and info toasts share
-  // one slot, see notify.js). Say it was the last one instead.
+  // one slot, see notify.js). Show the warning ourselves, alongside it.
   function finishExam(confirmation) {
     refreshMaskingDetails();
+    notify.success(confirmation);
     if (hasNext) {
-      notify.success(confirmation);
       onNext();
       return;
     }
-    notify.success(`${confirmation}. ${messages.navigation.lastOne("IEC")}`);
+    notify.info(messages.navigation.noNext("IEC"), { keepPrevious: true });
   }
 
   // Show this exam's new masking status in the details panel. It's only seen

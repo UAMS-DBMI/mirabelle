@@ -43,10 +43,10 @@ const SUCCESS = [
   ["Submitted for masking", () => notify.success(messages.mask.submitted)],
   [
     "Submitted (last IEC)",
-    () =>
-      notify.success(
-        `${messages.mask.submitted}. ${messages.navigation.lastOne("IEC")}`,
-      ),
+    () => {
+      notify.success(messages.mask.submitted);
+      notify.info(messages.navigation.noNext("IEC"), { keepPrevious: true });
+    },
   ],
 ];
 

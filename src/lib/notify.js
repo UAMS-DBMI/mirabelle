@@ -37,9 +37,13 @@ let activeSlotId = null; // id of the toast most recently put in the slot
  * Show a non-error toast in the shared slot. `show(id)` performs the actual
  * `toast.*` call with the given (unique) id. Dismissing a stale/expired id is a
  * harmless no-op, so the slot needs no expiry bookkeeping. Returns the id.
+ *
+ * With `keepPrevious`, the current toast is left to finish its own duration
+ * and the two show together — for a follow-up that must not hide what came
+ * just before it.
  */
-function showInSlot(show) {
-  if (activeSlotId != null) {
+function showInSlot(show, { keepPrevious = false } = {}) {
+  if (activeSlotId != null && !keepPrevious) {
     toast.dismiss(activeSlotId); // animate the current box out
   }
   const id = `${NON_ERROR_TOAST_ID}-${++nonErrorSeq}`;
@@ -95,26 +99,30 @@ function toErrorDetail(error) {
 }
 
 export const notify = {
-  success(message, options) {
-    return showInSlot((id) =>
-      toast.success(message, {
-        duration: DURATION.success,
-        className: "app-toast app-toast--success",
-        ...options,
-        id,
-      }),
+  success(message, { keepPrevious, ...options } = {}) {
+    return showInSlot(
+      (id) =>
+        toast.success(message, {
+          duration: DURATION.success,
+          className: "app-toast app-toast--success",
+          ...options,
+          id,
+        }),
+      { keepPrevious },
     );
   },
 
-  info(message, options) {
-    return showInSlot((id) =>
-      toast(message, {
-        duration: DURATION.info,
-        className: "app-toast app-toast--info",
-        icon: INFO_ICON,
-        ...options,
-        id,
-      }),
+  info(message, { keepPrevious, ...options } = {}) {
+    return showInSlot(
+      (id) =>
+        toast(message, {
+          duration: DURATION.info,
+          className: "app-toast app-toast--info",
+          icon: INFO_ICON,
+          ...options,
+          id,
+        }),
+      { keepPrevious },
     );
   },
 
