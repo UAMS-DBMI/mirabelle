@@ -41,6 +41,13 @@ const SUCCESS = [
   ["Not maskable", () => notify.success(messages.mask.notMaskable)],
   ["Selection expanded", () => notify.success(messages.mask.expanded)],
   ["Submitted for masking", () => notify.success(messages.mask.submitted)],
+  [
+    "Submitted (last IEC)",
+    () =>
+      notify.success(
+        `${messages.mask.submitted}. ${messages.navigation.lastOne("IEC")}`,
+      ),
+  ],
 ];
 
 const ERRORS = [
