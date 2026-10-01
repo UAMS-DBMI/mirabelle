@@ -261,7 +261,6 @@ export default function MaskIEC({
   // details panel gates on them instead of assuming they exist.
   const [details, setDetails] = useState(null);
   const [maskingDetails, setMaskingDetails] = useState(null);
-  const [coords, setCoords] = useState();
   // Bumped by "Reload Image" to re-run the load effect after the cached exam
   // has been dropped, re-fetching any slices that failed to download.
   const [reloadToken, setReloadToken] = useState(0);
@@ -1360,7 +1359,7 @@ export default function MaskIEC({
   }
 
   async function handleAccept() {
-    let finalCoords = coords;
+    let finalCoords;
     let selectedForm = optionsForm;
     let selectedFunction = optionsFunction;
     let selectedNoise = optionsNoise;
@@ -1389,10 +1388,10 @@ export default function MaskIEC({
       spacing = volume.spacing;
     } else {
       const imageIds = segmentation.getLabelmapImageIds(segmentationId);
-      if (!coords) {
-        finalCoords = getCoordsForStackSeg(imageIds);
-        setCoords(finalCoords);
-      }
+      // Always read the selection from what is currently drawn. MaskIEC stays
+      // mounted across exams, so coords cached by an earlier accept would be
+      // submitted again for every later stack.
+      finalCoords = getCoordsForStackSeg(imageIds);
       const image = cornerstone.cache.getImage(imageIds[0]);
       spacing = [image.columnPixelSpacing ?? 1, image.rowPixelSpacing ?? 1, 1];
     }
