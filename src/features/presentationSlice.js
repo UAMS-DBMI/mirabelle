@@ -5,6 +5,7 @@ export const Enums = {
   ViewOptions: Object.freeze({
     VOLUME: "volume",
     PROJECTION: "projection",
+    MIN_PROJECTION: "min_projection",
     STACK: "stack",
   }),
   FunctionOptions: Object.freeze({
@@ -56,6 +57,7 @@ const presentationSlice = createSlice({
         visibility: {
           volume: false,
           projection: false,
+          minProjection: false,
           stack: false,
         },
       },
@@ -357,6 +359,7 @@ const presentationSlice = createSlice({
       state.toolsConfig.viewToolGroup.defaultValue = Enums.ViewOptions.VOLUME;
       state.toolsConfig.viewToolGroup.visibility.volume = true;
       state.toolsConfig.viewToolGroup.visibility.projection = true;
+      state.toolsConfig.viewToolGroup.visibility.minProjection = true;
       state.toolsConfig.viewToolGroup.visibility.stack = false;
 
       state.toolsConfig.functionToolGroup.defaultValue =
