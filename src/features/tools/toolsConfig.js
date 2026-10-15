@@ -33,6 +33,17 @@ export default function useToolsConfigs({ manager }) {
           }),
         ),
     }),
+    ...maybe(globalToolsConfig.viewToolGroup.visibility.minProjection, {
+      name: "Minimum Intensity Projection",
+      icon: "dark_mode",
+      action: () =>
+        dispatch(
+          setOption({
+            key: "view",
+            value: Enums.ViewOptions.MIN_PROJECTION,
+          }),
+        ),
+    }),
     ...maybe(globalToolsConfig.viewToolGroup.visibility.stack, {
       name: "Stack",
       icon: "stacks",

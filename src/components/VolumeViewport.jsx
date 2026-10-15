@@ -197,16 +197,21 @@ function VolumeViewport({
     const volume = cornerstone.cache.getVolume(volumeId);
     const volDimensions = volume.dimensions;
 
-    if (viewMode === "projection") {
+    // MIP and MinIP differ only in which sample along each ray wins; both
+    // project through the whole volume.
+    const projectionBlendMode = {
+      projection: cornerstone.Enums.BlendModes.MAXIMUM_INTENSITY_BLEND,
+      min_projection: cornerstone.Enums.BlendModes.MINIMUM_INTENSITY_BLEND,
+    }[viewMode];
+
+    if (projectionBlendMode !== undefined) {
       const volSlab = Math.sqrt(
         volDimensions[0] * volDimensions[0] +
           volDimensions[1] * volDimensions[1] +
           volDimensions[2] * volDimensions[2],
       );
 
-      viewport.setBlendMode(
-        cornerstone.Enums.BlendModes.MAXIMUM_INTENSITY_BLEND,
-      );
+      viewport.setBlendMode(projectionBlendMode);
       viewport.setSlabThickness(volSlab);
     } else if (viewMode === "volume") {
       console.log("Resetting viewport to default properties:", viewportId);
