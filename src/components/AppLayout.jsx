@@ -7,8 +7,11 @@ import "./AppLayout.css";
 import "./notifications.css";
 import ErrorBoundary from "./ErrorBoundary";
 import TestError from "./TestError";
+import useDecimateInUrl from "@/hooks/useDecimateInUrl";
 
 export default function AppLayout() {
+  useDecimateInUrl();
+
   return (
     <div id="app">
       <Toaster

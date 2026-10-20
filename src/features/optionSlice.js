@@ -19,9 +19,23 @@ const initialState = {
   loading: false,
 };
 
+// `?decimate=N` in the URL. Read here, when the store is created, so the very
+// first exam load already uses it — applying it later from an effect would
+// start a full-resolution load only to throw it away. From then on Redux is
+// the source of truth and hooks/useDecimateInUrl mirrors it back to the URL.
+export const DECIMATE_URL_PARAM = "decimate";
+
+function readDecimateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const value = Number.parseInt(params.get(DECIMATE_URL_PARAM), 10);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 const optionSlice = createSlice({
   name: "options",
-  initialState,
+  // Only the store's starting value comes from the URL. `initialState` itself
+  // keeps 0, so a non-persistent reset still means "no decimation".
+  initialState: { ...initialState, decimate: readDecimateFromUrl() },
   reducers: {
     setOption: (state, action) => {
       const { key, value } = action.payload;
