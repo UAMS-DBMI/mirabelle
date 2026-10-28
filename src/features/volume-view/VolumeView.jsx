@@ -10,7 +10,6 @@ import MaybeVolumeViewport3d from "@/components/MaybeVolumeViewport3d";
 import { ToolsPanel } from "@/features/tools";
 import useRendererResize from "@/hooks/useRendererResize";
 import { get3dViewports } from "@/utilities";
-import { SingleSelectionRectangleScissorsTool } from "@/lib/singleSelectionRectangleScissors";
 
 import OperationsPanel from "@/components/OperationsPanel";
 

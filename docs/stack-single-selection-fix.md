@@ -1,5 +1,13 @@
 # Stack Single Selection — Implementation Notes
 
+> **Status after the merge with `image-navigation-fix-develop`: not carried
+> over.** That branch's selection is one visible box — the bounding box of
+> everything drawn — that the curator moves and resizes by its handles, so a new
+> rectangle extends it in plain view rather than silently growing a hidden
+> mask. Its own scissors subclass (`lib/clampedRectangleScissors.js`, registered
+> under the stock name) clamps drawing to the image.
+> `SingleSelectionRectangleScissorsTool` was removed in the merge.
+
 On a stack in the mask route, each rectangle you draw now **replaces** the
 previous selection instead of adding to it. Stray rectangles no longer silently
 grow the submitted mask.
