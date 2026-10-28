@@ -175,6 +175,7 @@ Custom React hooks:
 ```
 hooks/
 ├── useConfigState.js                # Configuration state hook
+├── useDecimateInUrl.js              # Mirrors the decimate option to ?decimate=N
 └── useRendererResize.js             # Renderer resize handling hook
 ```
 

@@ -69,10 +69,8 @@ const PRESERVED_ON_RESET = new Set([
   "prevMaskVisible",
   // Owned by the mask route, which recomputes it on every exam load (false
   // while loading, then whatever the new exam has). resetOptions must leave it
-  // alone: MaskVR resets options BEFORE asking the route to navigate, and at
-  // the end of the queue that navigation never happens — resetting here then
-  // killed the control for an exam that stayed on screen, with nothing left to
-  // recompute it.
+  // alone: a reset that no exam load follows would kill the control for an
+  // exam that stays on screen, with nothing left to recompute it.
   "prevMaskAvailable",
   // Owned by the exam loads, which raise the indicator when they start and
   // take it down when they finish or are abandoned. The single-exam routes
@@ -82,6 +80,17 @@ const PRESERVED_ON_RESET = new Set([
   "loading",
   "loadingProgress",
 ]);
+// `?decimate=N` in the URL. Read here, when the store is created, so the very
+// first exam load already uses it — applying it later from an effect would
+// start a full-resolution load only to throw it away. From then on Redux is
+// the source of truth and hooks/useDecimateInUrl mirrors it back to the URL.
+export const DECIMATE_URL_PARAM = "decimate";
+
+function readDecimateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const value = Number.parseInt(params.get(DECIMATE_URL_PARAM), 10);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
 
 const optionSlice = createSlice({
   name: "options",
