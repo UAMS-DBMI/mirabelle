@@ -89,6 +89,19 @@ export default function ToolsPanel({
     handleDecimateApply();
   };
 
+  // Escape hides the hover notice until the pointer comes back to the input
+  const [isNoticeDismissed, setNoticeDismissed] = useState(false);
+
+  useEffect(() => {
+    const dismissOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setNoticeDismissed(true);
+      }
+    };
+    window.addEventListener("keydown", dismissOnEscape);
+    return () => window.removeEventListener("keydown", dismissOnEscape);
+  }, []);
+
   const handlePersistentToggle = () => {
     dispatch(setOption({ key: "persistent", value: !persistent }));
   };
@@ -164,16 +177,21 @@ export default function ToolsPanel({
         {decimateToolGroup.visible && (
           <div className="decimate-control">
             <p>Decimate:</p>
-            <div className="decimate-control-row">
+            <div
+              className={`decimate-control-row ${isNoticeDismissed ? "is-notice-dismissed" : ""}`}
+            >
               <input
                 type="text"
                 id="decimate-input"
                 value={appliedDecimate}
                 onChange={handleDecimateChange}
                 onKeyDown={handleDecimateInputKeyDown}
+                onMouseEnter={() => setNoticeDismissed(false)}
                 className={`decimate-input ${decimate > 0 ? "is-decimating" : ""}`}
                 placeholder="300"
               />
+              {/* Shown under the row only while the input is hovered */}
+              <DecimationNotice frameCounts={frameCounts} />
               <button
                 type="button"
                 title="Persistent"
@@ -196,7 +214,6 @@ export default function ToolsPanel({
                 <span className="decimate-tooltip">Refresh</span>
               </button>
             </div>
-            <DecimationNotice frameCounts={frameCounts} />
           </div>
         )}
         {globalToolsConfig.presetToolGroup.visible && (

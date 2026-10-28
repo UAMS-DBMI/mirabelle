@@ -57,9 +57,21 @@
 }
 
 .decimate-control-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* The decimation notice floats under the row, only while the input is hovered */
+.decimate-control-row .decimation-notice {
+  @apply hidden absolute left-0 right-0 top-full z-20 shadow-lg;
+}
+
+.decimate-control-row:not(.is-notice-dismissed)
+  .decimate-input:hover
+  ~ .decimation-notice {
+  @apply flex;
 }
 
 .decimate-control-row .decimate-input {

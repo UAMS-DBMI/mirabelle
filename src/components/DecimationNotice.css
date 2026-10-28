@@ -1,15 +1,16 @@
 /* DecimationNotice.css */
 .decimation-notice {
-  @apply mt-2 flex items-start gap-2 px-3 py-2 rounded-lg whitespace-normal cursor-help;
+  @apply mt-2 flex items-start gap-2 px-3 py-2 rounded-lg whitespace-normal;
 }
 
 .decimation-notice.is-skipping {
   @apply bg-amber-400 text-amber-950;
 }
 
-/* Calm on purpose: nothing is hidden, so it shouldn't compete with the warning */
+/* Calm on purpose: nothing is hidden, so it shouldn't compete with the warning.
+   Opaque and light in both themes because it floats over the tools below. */
 .decimation-notice.is-off {
-  @apply bg-white/60 text-slate-700 dark:bg-slate-900/60 dark:text-slate-200;
+  @apply bg-white text-slate-700 border border-slate-300;
 }
 
 .decimation-notice .material-symbols-rounded {

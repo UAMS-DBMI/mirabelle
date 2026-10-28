@@ -8,13 +8,16 @@ import "./DecimationNotice.css";
 
 const DETAILS_GAP_PX = 12;
 
+// The "How Decimate works" panel is hidden for now; flip to bring it back
+const SHOW_HOW_IT_WORKS = false;
+
 function wasDecimated(frameCounts) {
   return Boolean(frameCounts) && frameCounts.shown < frameCounts.total;
 }
 
 /**
- * The status line under the Decimate control. Hovering it explains how
- * Decimate works.
+ * The status line shown under the Decimate control while its input is
+ * hovered (see ToolsPanel.css).
  *
  * - Slices skipped on this exam: an amber PHI warning with the counts. An
  *   exam with fewer frames than the decimate count is untouched, and the load
@@ -86,13 +89,15 @@ function NoticeCallout({
         <p className="decimation-notice-title">{title}</p>
         <p className="decimation-notice-detail">{detail}</p>
       </div>
-      <span
-        className="material-symbols-rounded decimation-notice-info"
-        aria-hidden="true"
-      >
-        info
-      </span>
-      {anchor && (
+      {SHOW_HOW_IT_WORKS && (
+        <span
+          className="material-symbols-rounded decimation-notice-info"
+          aria-hidden="true"
+        >
+          info
+        </span>
+      )}
+      {SHOW_HOW_IT_WORKS && anchor && (
         <DecimationDetails
           frameCounts={frameCounts}
           isUserChosen={isUserChosen}
