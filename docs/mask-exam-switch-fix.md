@@ -1,5 +1,14 @@
 # Mask Exam Switch Fix — Implementation Notes
 
+> **Status after the merge with `image-navigation-fix-develop`.** That branch
+> already guards late volume loads with a load-generation token
+> (`examLoadGeneration` / `startVolumeLoad` in `utilities.js`) and lets each
+> viewport arm drawing once it has activated the segmentation, so
+> `whenVolumeLoaded`, `segmentationReady` and the `VolumeViewport` listener
+> changes below (§2–§4) were not carried over. The `isCurrent` option and all of
+> §5 (`finishExam`, `refreshMaskingDetails`, `hasNext`, `keepPrevious`, the
+> route-level option reset) were kept.
+
 Curators masking a queue that mixes volumes and stacks hit three symptoms that
 only a page refresh cured:
 

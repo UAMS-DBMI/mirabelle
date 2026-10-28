@@ -1,5 +1,11 @@
 # Stack Mask Carry-over Fix — Implementation Notes
 
+> **Status after the merge with `image-navigation-fix-develop`.** That branch
+> has no Expand step (`expanded` is gone) and keeps each exam's selection as a
+> per-exam draft (`lib/maskDrafts.js`), so the per-exam reset of `coords` /
+> `expanded` (changes 1 and 2) was not carried over. Change 3 — a stack Accept
+> always reads the current labelmap — was kept.
+
 When curators masked several stacks in a row, every stack after the first was
 submitted with the **first stack's selection box**. The same stale state also
 let a volume be accepted with the previous volume's box, skipping the Expand

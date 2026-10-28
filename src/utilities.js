@@ -601,6 +601,16 @@ function backfillMissingFrameMetadata(imageIds) {
   });
 }
 
+/**
+ * Load a volume, create its mask segmentation as soon as the volume's geometry
+ * exists ("MaskSegmentationReady"), and announce the finished load with
+ * "VolumeReallyLoaded".
+ *
+ * `isCurrent` should return false once the caller no longer wants this
+ * segmentation (the curator moved to another exam). Loading continues in the
+ * background, so without it a slow volume could finish into whatever exam is
+ * on screen by then.
+ */
 export async function loadVolumeAndSegmentation(
   imageIds,
   volumeId,
@@ -628,8 +638,10 @@ export async function loadVolumeAndSegmentation(
   // installed in that window — including a cached one, which reaches the
   // segmentation setup below without awaiting anything. Everything past this
   // point mutates GLOBAL segmentation state, so an abandoned load resuming
-  // here would wipe the exam the curator is actually looking at.
-  if (generation !== examLoadGeneration) {
+  // here would wipe the exam the curator is actually looking at. The caller's
+  // isCurrent is the same check from its side: its load request can be
+  // superseded or cancelled without a newer load ever starting here.
+  if (generation !== examLoadGeneration || !isCurrent()) {
     console.log("Skipping stale volume setup for", volumeId);
     return volume;
   }
@@ -692,7 +704,7 @@ export async function loadVolumeAndSegmentation(
   // previous visit — volume.load would silently drop it, leaving the exam with
   // no "VolumeReallyLoaded" and the loading spinner stuck.
   startVolumeLoad(volume, () => {
-    if (generation !== examLoadGeneration) {
+    if (generation !== examLoadGeneration || !isCurrent()) {
       console.log("Skipping stale volume load completion for", volumeId);
       return;
     }
