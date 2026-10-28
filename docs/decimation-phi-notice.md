@@ -19,9 +19,10 @@ path in the review and mask routes.
 | File | Responsibility |
 |---|---|
 | [src/utilities.js](../src/utilities.js#L210) | `getIECInfo` returns `frameCounts`; step helpers next to `decimateFrames` |
-| [src/components/DecimationNotice.jsx](../src/components/DecimationNotice.jsx) | The message under the Decimate input and its hover details |
-| [src/components/DecimationNotice.css](../src/components/DecimationNotice.css) | Amber / calm callouts and the hover panel |
-| [src/features/tools/ToolsPanel.jsx](../src/features/tools/ToolsPanel.jsx#L199) | Renders the notice; amber input border while Decimate > 0 |
+| [src/components/DecimationNotice.jsx](../src/components/DecimationNotice.jsx) | The message shown under the Decimate input (details panel switched off) |
+| [src/components/DecimationNotice.css](../src/components/DecimationNotice.css) | Amber / light callouts and the (unused) details panel |
+| [src/features/tools/ToolsPanel.jsx](../src/features/tools/ToolsPanel.jsx#L194) | Renders the notice; Escape dismisses it; amber input border while Decimate > 0 |
+| [src/features/tools/ToolsPanel.css](../src/features/tools/ToolsPanel.css#L66) | Shows the notice only while the input is hovered |
 | [src/lib/messages.js](../src/lib/messages.js#L61) | All copy, under `decimation` |
 | `DicomReviewIEC`, `MaskReviewIEC`, `MaskIEC` | Keep `frameCounts` per exam and pass it to `ToolsPanel` |
 
@@ -29,32 +30,44 @@ path in the review and mask routes.
 
 ## 1. What curators see
 
-Under the Decimate input, one of three states:
+The message appears **only while the pointer is over the Decimate input**,
+floating just below the input row on top of the tools underneath. It shows one
+of three states:
 
-| State | Shown |
+| State | Shown on hover |
 |---|---|
 | Slices were skipped on this exam | Amber callout: "75 of 148 slices shown / 73 hidden. PHI on them won't be seen." |
-| Decimate is 0 and nothing was skipped | Calm callout: "Decimate is off / All 148 slices shown." |
+| Decimate is 0 and nothing was skipped | Light callout (white, grey border, in both themes): "Decimate is off / All 148 slices shown." |
 | Decimate is set but this exam has fewer slices than the value | Nothing |
 
 The amber callout only appears when frames were **actually dropped**. An exam
 with fewer frames than the decimate count is loaded in full, so warning there
-would be noise. Keeping the warning rare is what keeps curators reading it;
-that is also why it is not a toast.
+would be noise. Keeping the warning rare and on demand is what keeps curators
+reading it; that is also why it is not a toast.
 
-Hovering either callout opens a "How Decimate works" panel:
+The always-visible signal is the amber border on the Decimate input while a
+value above 0 is applied, because that value carries over to every following
+exam. A curator who never hovers the input sees only that border, not the
+hidden-slice count.
 
-- **Amber:** walks through this exam's numbers — total slices, the Decimate
-  value, the step chosen, the count kept, which other values give the same
-  count, and the nearest values that don't.
-- **Calm:** a general explanation with a worked example.
+**Hover and dismiss.** Showing and hiding is plain CSS, like the Persistent and
+Refresh tooltips: the notice is rendered inside `.decimate-control-row` right
+after the input, positioned `absolute` / `top-full`, and shown by
+`.decimate-input:hover ~ .decimation-notice`
+([ToolsPanel.css:66](../src/features/tools/ToolsPanel.css#L66)). Pressing
+**Escape** anywhere hides it: a window `keydown` listener in `ToolsPanel` sets
+`is-notice-dismissed` on the row, and moving the pointer back onto the input
+clears it ([ToolsPanel.jsx:92](../src/features/tools/ToolsPanel.jsx#L92)).
 
-The Decimate input also gets an amber border while a value above 0 is applied,
-because that value carries over to every following exam.
-
-The panel is portalled to `document.body` with `position: fixed`, beside the
-callout. The side panel has `overflow: hidden`, which would clip a tooltip
-rendered inside it.
+**Details panel (switched off).** A "How Decimate works" panel that walked
+through the exam's numbers is still in `DecimationNotice.jsx` but hidden behind
+`SHOW_HOW_IT_WORKS = false`
+([DecimationNotice.jsx:12](../src/components/DecimationNotice.jsx#L12)), along
+with the ⓘ icon. Setting it to `true` brings it back on hover of the callout.
+It is portalled to `document.body` with `position: fixed`, because the side
+panel has `overflow: hidden`. Note that the callout now hides as soon as the
+pointer leaves the input, so it would also need to stay open while hovered
+before the panel is usable again.
 
 ## 2. The load limit
 
@@ -97,8 +110,9 @@ For 148 frames:
 | 50–73 | 3 | 50 |
 | 37–49 | 4 | 38 |
 
-The hover lists these ranges for the current series. The maths is in three
-small exported helpers, so the hover can't disagree with what loads:
+The (currently switched-off) details panel lists these ranges for the current
+series. The maths is in three small exported helpers, so the panel can't
+disagree with what loads:
 
 - `decimationStep(total, maxFrames)`: the step `decimateFrames` uses.
 - `framesKeptAtStep(total, step)`: frames kept, including the added last frame.
@@ -131,23 +145,23 @@ values, with no mismatches.
 
 1. Open a volume with more slices than you'll set (e.g. 148), set Decimate to
    100 and press Refresh.
-2. The amber callout shows "75 of 148 slices shown" and the input has an amber
-   border.
-3. Hover the callout: the panel says 74–147 gives 75, and lists 148 or more
-   (all) and 50–73 (50) as other choices.
-4. Try 120 and 140: same count, same range.
+2. The input has an amber border and no message is shown.
+3. Hover the input: the amber callout "75 of 148 slices shown" appears under
+   the row, over the tools below. Move away: it disappears.
+4. Hover again and press Escape: it disappears. Leave and re-enter the input:
+   it comes back.
+5. Try 120 and 140: same count.
 
 **Nothing skipped**
 
-1. Set Decimate higher than the exam's slice count: no message.
-2. Set Decimate to 0: the calm "Decimate is off / All N slices shown" line;
-   hovering shows the general explanation.
+1. Set Decimate higher than the exam's slice count: hovering shows nothing.
+2. Set Decimate to 0: hovering shows the light "Decimate is off / All N slices
+   shown" callout, white in both light and dark mode.
 
 **Load limit**
 
 1. With Decimate at 0, open a series of more than 2000 slices.
-2. The amber callout appears; its hover says the series is over the viewer's
-   slice limit and does not suggest setting Decimate to 0.
+2. Hovering the input shows the amber callout even though Decimate is 0.
 
 **Views**
 
