@@ -274,14 +274,10 @@ function VolumeViewport({
       }
 
       // // Apply all active segmentations to the viewport
-      // Mask segmentations are normally attached by handleSegmentationLoaded.
-      // The exception is this exam's own mask segmentation when it already
-      // exists: a cached volume's segmentation is created before this pane
-      // mounts, so its VolumeReallyLoaded event has already fired.
       const segmentationIds = segmentation.state
         .getSegmentations()
         .map((seg) => seg.segmentationId)
-        .filter((id) => !id.startsWith("mask-") || id === segmentationId);
+        .filter((segmentationId) => !segmentationId.startsWith("mask-"));
 
       await segmentation.addLabelmapRepresentationToViewportMap({
         [viewportId]: segmentationIds.map((segmentationId) => ({

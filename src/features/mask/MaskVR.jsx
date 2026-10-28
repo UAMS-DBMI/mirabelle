@@ -30,8 +30,8 @@ export default function MaskVR({
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}
-      onNext={handleNext}
-      onPrevious={handlePrevious}
+      onNext={onNext}
+      onPrevious={onPrevious}
       hasNext={hasNext}
       hasPrevious={hasPrevious}
     />
