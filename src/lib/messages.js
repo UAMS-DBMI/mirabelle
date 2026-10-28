@@ -6,6 +6,9 @@
  * a string here over hardcoding one at a call site.
  */
 
+// 1184 -> "1,184"
+const count = (n) => n.toLocaleString();
+
 export const messages = {
   // Review status confirmations (DICOM / NIfTI).
   status: {
@@ -52,6 +55,62 @@ export const messages = {
     segNoBaseImage: (iec) =>
       `No matching image series was found for segmentation IEC ${iec}; ` +
       `showing the segmentation on its own.`,
+  },
+
+  // Decimation skips slices, and PHI on a skipped slice is never shown.
+  decimation: {
+    slicesShown: (shown, total) =>
+      `${count(shown)} of ${count(total)} slices shown`,
+    slicesHidden: (hidden) =>
+      `${count(hidden)} hidden. PHI on them won't be seen.`,
+    offTitle: "Decimate is off",
+    offAllShown: (total) => `All ${count(total)} slices shown.`,
+    offNoExam: "Every slice will be loaded.",
+
+    // Hover details, explaining where the shown count comes from.
+    details: {
+      title: "How Decimate works",
+      chosen: (total, max) =>
+        `This series has ${count(total)} slices, and Decimate is set to ` +
+        `${count(max)}: the most slices to load.`,
+      overLimit: (total, max) =>
+        `This series has ${count(total)} slices, more than the viewer's ` +
+        `limit of ${count(max)}.`,
+      evenSpacing: (step, max, shown) =>
+        "Slices are kept at an even step (1 in 2, 1 in 3, and so on) so " +
+        `masks line up exactly. 1 in ${step} is the smallest step that ` +
+        `fits within ${count(max)}, which keeps ${count(shown)} slices ` +
+        "(the last slice is always kept).",
+      sameResult: (from, to, shown) =>
+        `So any value from ${count(from)} to ${count(to)} gives ` +
+        `${count(shown)} slices for this series.`,
+      otherChoices: (choices) => `Other choices here: ${choices.join("; ")}.`,
+      choiceAll: (from, total) =>
+        `${count(from)} or more loads all ${count(total)}`,
+      choiceRange: (from, to, shown) =>
+        `${count(from)}–${count(to)} gives ${count(shown)}`,
+      hidden: (hidden) =>
+        `The other ${count(hidden)} are never loaded, so PHI on them ` +
+        "(burned-in text, faces) won't be seen.",
+      turnOff: "Set Decimate to 0 to turn it off.",
+
+      // Shown on the "Decimate is off" callout, when nothing was skipped.
+      general: {
+        intro:
+          "Decimate sets the most slices to load for each series. 0 turns " +
+          "it off.",
+        evenSpacing:
+          "Slices are kept at an even step (1 in 2, 1 in 3, and so on) so " +
+          "masks line up exactly: the smallest step that fits within that " +
+          "number. The last slice is always kept.",
+        example:
+          "So several values give the same result. Example: for 148 " +
+          "slices, anything from 74 to 147 keeps 1 in 2, which is 75 slices.",
+        hidden:
+          "Skipped slices are never loaded, so PHI on them (burned-in text, " +
+          "faces) won't be seen.",
+      },
+    },
   },
 
   // Neutral viewport empty states (never styled as errors).

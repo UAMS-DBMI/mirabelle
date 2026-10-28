@@ -134,6 +134,7 @@ export default function DicomReviewIEC({
   const [volumeId, setVolumeId] = useState();
   const [segmentationId, setSegmentationId] = useState();
   const [imageIds, setImageIds] = useState();
+  const [frameCounts, setFrameCounts] = useState();
 
   const [toolGroup, setToolGroup] = useState();
   const [toolGroup3d, setToolGroup3d] = useState();
@@ -264,13 +265,14 @@ export default function DicomReviewIEC({
       // Load the base image series' frames for a SEG with a base; otherwise
       // (plain series, or a SEG without a base) load the IEC's own frames.
       const framesIEC = segBaseIEC ?? iec;
-      const { frames } = await getIECInfo(
+      const { frames, frameCounts } = await getIECInfo(
         framesIEC,
         false,
         requestedDecimateCount,
       );
       let imageIds = frames;
       setImageIds(imageIds);
+      setFrameCounts(frameCounts);
 
       setVolumeId(volumeId);
       setVolumetric(renderAsVolume); // still update state
@@ -541,6 +543,7 @@ export default function DicomReviewIEC({
               toolGroup={toolGroup}
               toolGroup3d={toolGroup3d}
               preset3d={preset3d}
+              frameCounts={frameCounts}
               onPresetChange={
                 (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
               }

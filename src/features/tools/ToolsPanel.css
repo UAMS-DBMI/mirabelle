@@ -51,6 +51,11 @@
   @apply h-14 px-4 py-0 rounded-lg w-full border border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-400;
 }
 
+/* Decimation stays on across exams (persistent + URL), so keep it visible */
+.decimate-input.is-decimating {
+  @apply border-2 border-amber-400;
+}
+
 .decimate-control-row {
   display: flex;
   align-items: center;

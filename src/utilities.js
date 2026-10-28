@@ -206,16 +206,50 @@ export async function getIECInfo(
     }
   }
 
-  frames = decimateFrames(frames, decimate_count);
+  // Kept so the tools panel can tell the curator when slices were skipped
+  const total = frames.length;
+  const decimated = decimateFrames(frames, decimate_count);
+  frames = decimated.imageIds;
+  const frameCounts = {
+    shown: frames.length,
+    total,
+    step: decimated.step,
+    max: decimate_count,
+  };
 
-  return { volumetric, frames };
+  return { volumetric, frames, frameCounts };
 }
 
+// The smallest whole step that keeps at most `maxFrames` of `total` frames
+export function decimationStep(total, maxFrames) {
+  return Math.max(1, Math.ceil(total / maxFrames));
+}
+
+// How many frames a step keeps, counting the last frame that is always added
+export function framesKeptAtStep(total, step) {
+  const everyStep = Math.ceil(total / step);
+  const lastAlreadyKept = (total - 1) % step === 0;
+  return lastAlreadyKept ? everyStep : everyStep + 1;
+}
+
+// The Decimate values that give this step, e.g. 148 frames: step 2 is
+// 74–147. `to` is Infinity for step 1 (no decimation); null if none do.
+export function decimateRangeForStep(total, step) {
+  const from = Math.ceil(total / step);
+  const to = step === 1 ? Infinity : Math.ceil(total / (step - 1)) - 1;
+  return from <= to ? { from, to } : null;
+}
+
+// Keeps every `step`-th frame, so slices stay evenly spaced; `maxFrames` is
+// therefore a ceiling, e.g. 218 frames at 100 keeps 1 in 3 (74 frames).
+// The even step matters for masking: a mask is submitted as slice index ×
+// volume spacing (masking.js), which is only exact when the gaps are equal.
 function decimateFrames(imageIds, maxFrames = 2000) {
   // Decimate Z if too many frames
   let usedImageIds = imageIds;
+  let step = 1;
   if (Array.isArray(imageIds) && imageIds.length > maxFrames) {
-    const step = Math.ceil(imageIds.length / maxFrames);
+    step = decimationStep(imageIds.length, maxFrames);
     const decimated = [];
     for (let i = 0; i < imageIds.length; i += step) {
       decimated.push(imageIds[i]);
@@ -230,7 +264,7 @@ function decimateFrames(imageIds, maxFrames = 2000) {
     );
   }
 
-  return usedImageIds;
+  return { imageIds: usedImageIds, step };
 }
 
 export async function getIECsForDicomVR(visual_review_id) {

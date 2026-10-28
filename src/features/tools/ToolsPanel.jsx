@@ -6,6 +6,7 @@ import { Enums } from "@/features/presentationSlice";
 import * as cornerstoneTools from "@cornerstonejs/tools";
 
 import MaterialButtonSet from "@/components/MaterialButtonSet";
+import DecimationNotice from "@/components/DecimationNotice";
 
 import useToolsManager from "./toolsManager";
 import useToolsConfigs from "./toolsConfig";
@@ -25,6 +26,7 @@ export default function ToolsPanel({
   preset3d,
   renderingEngine,
   onApplyDecimate,
+  frameCounts,
 }) {
   const dispatch = useDispatch();
 
@@ -169,7 +171,7 @@ export default function ToolsPanel({
                 value={appliedDecimate}
                 onChange={handleDecimateChange}
                 onKeyDown={handleDecimateInputKeyDown}
-                className="decimate-input"
+                className={`decimate-input ${decimate > 0 ? "is-decimating" : ""}`}
                 placeholder="300"
               />
               <button
@@ -194,6 +196,7 @@ export default function ToolsPanel({
                 <span className="decimate-tooltip">Refresh</span>
               </button>
             </div>
+            <DecimationNotice frameCounts={frameCounts} />
           </div>
         )}
         {globalToolsConfig.presetToolGroup.visible && (

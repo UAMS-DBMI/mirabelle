@@ -1,0 +1,46 @@
+/* DecimationNotice.css */
+.decimation-notice {
+  @apply mt-2 flex items-start gap-2 px-3 py-2 rounded-lg whitespace-normal cursor-help;
+}
+
+.decimation-notice.is-skipping {
+  @apply bg-amber-400 text-amber-950;
+}
+
+/* Calm on purpose: nothing is hidden, so it shouldn't compete with the warning */
+.decimation-notice.is-off {
+  @apply bg-white/60 text-slate-700 dark:bg-slate-900/60 dark:text-slate-200;
+}
+
+.decimation-notice .material-symbols-rounded {
+  @apply text-xl leading-5;
+}
+
+.decimation-notice .decimation-notice-info {
+  @apply text-base leading-5 opacity-70;
+}
+
+.decimation-notice-body {
+  @apply flex-1 min-w-0;
+}
+
+.decimation-notice-title {
+  @apply text-sm font-semibold leading-5 truncate;
+}
+
+.decimation-notice-detail {
+  @apply text-xs leading-snug;
+}
+
+/* Same look as the tools panel tooltips (.decimate-tooltip) */
+.decimation-details {
+  @apply fixed z-[1000] w-80 px-4 py-3 rounded-xl text-sm leading-snug whitespace-normal bg-black text-white border border-white/30 shadow-lg pointer-events-none;
+}
+
+.decimation-details p + p {
+  @apply mt-2;
+}
+
+.decimation-details-title {
+  @apply font-semibold;
+}
