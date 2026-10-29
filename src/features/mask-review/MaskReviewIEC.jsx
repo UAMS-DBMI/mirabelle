@@ -129,6 +129,7 @@ export default function MaskReviewIEC({
 
   const [volumeId, setVolumeId] = useState();
   const [imageIds, setImageIds] = useState();
+  const [frameCounts, setFrameCounts] = useState();
 
   const [toolGroup, setToolGroup] = useState();
   const [toolGroup3d, setToolGroup3d] = useState();
@@ -246,12 +247,17 @@ export default function MaskReviewIEC({
       let volumeId = `mask-review-${iec}-decimate-${decimate_count}`;
       //let segmentationId = `mask-review-${iec}-seg`;
 
-      const { frames } = await getIECInfo(iec, true, requestedDecimateCount);
+      const { frames, frameCounts } = await getIECInfo(
+        iec,
+        true,
+        requestedDecimateCount,
+      );
       if (isCancelled || requestId !== loadRequestRef.current) {
         console.log("---------------> getIECInfo cancelled");
         return;
       }
       setImageIds(frames);
+      setFrameCounts(frameCounts);
 
       setVolumeId(volumeId);
       setVolumetric(volumetric); // still update state
@@ -521,6 +527,7 @@ export default function MaskReviewIEC({
               toolGroup={toolGroup}
               toolGroup3d={toolGroup3d}
               preset3d={preset3d}
+              frameCounts={frameCounts}
               onPresetChange={
                 (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
               }

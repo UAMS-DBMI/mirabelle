@@ -6,6 +6,9 @@
  * a string here over hardcoding one at a call site.
  */
 
+// 1184 -> "1,184"
+const count = (n) => n.toLocaleString();
+
 export const messages = {
   // Review status confirmations (DICOM / NIfTI).
   status: {
@@ -52,6 +55,17 @@ export const messages = {
     segNoBaseImage: (iec) =>
       `No matching image series was found for segmentation IEC ${iec}; ` +
       `showing the segmentation on its own.`,
+  },
+
+  // Decimation skips slices, and PHI on a skipped slice is never shown.
+  decimation: {
+    slicesShown: (shown, total) =>
+      `${count(shown)} of ${count(total)} slices shown`,
+    slicesHidden: (hidden) =>
+      `${count(hidden)} hidden. PHI on them won't be seen.`,
+    offTitle: "Decimate is off",
+    offAllShown: (total) => `All ${count(total)} slices shown.`,
+    offNoExam: "Every slice will be loaded.",
   },
 
   // Neutral viewport empty states (never styled as errors).

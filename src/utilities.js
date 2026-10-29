@@ -199,9 +199,12 @@ export async function getIECInfo(
     }
   }
 
+  // Kept so the tools panel can tell the curator when slices were skipped
+  const total = frames.length;
   frames = decimateFrames(frames, decimate_count);
+  const frameCounts = { shown: frames.length, total };
 
-  return { volumetric, frames };
+  return { volumetric, frames, frameCounts };
 }
 
 function decimateFrames(imageIds, maxFrames = 2000) {
