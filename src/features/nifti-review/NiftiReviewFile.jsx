@@ -28,13 +28,14 @@ import {
 import { volumeLoader } from "@cornerstonejs/core";
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
-import { toAbsoluteURL, startVolumeLoad } from "@/utilities";
+import { toAbsoluteURL, startVolumeLoad, decacheVolume } from "@/utilities";
 import { getNiftiDetails, setNiftiStatus } from "@/visualreview";
 import { watchNiftiTruncation, truncationError } from "./niftiTruncation";
 import {
   watchNiftiFileRead,
   watchNiftiDownloadProgress,
   takeNiftiLoadFailure,
+  forgetNiftiFileRead,
   niftiLoadFailureMessage,
 } from "./niftiFileRead";
 import { windowNiftiWhileLoading } from "./niftiLoadingWindow";
@@ -132,6 +133,11 @@ export default function NiftiReviewFile({
   // null until fetched — the layout shell renders before the details arrive,
   // so the details panel gates on them instead of assuming they exist.
   const [details, setDetails] = useState(null);
+  // Bumped by "Reload Image" to re-run the load effect after the cached file
+  // has been dropped. The ref tells that run to also forget how the file last
+  // loaded, so it waits for the new download.
+  const [reloadToken, setReloadToken] = useState(0);
+  const isReloadingRef = useRef(false);
   const loadRequestRef = useRef(0);
 
   let viewer;
@@ -243,6 +249,10 @@ export default function NiftiReviewFile({
         // curator last left it; leaving pauses it again (cleanup below).
         resumeNiftiFileLoad(url);
         pauseDownload = () => pauseNiftiFileLoad(url);
+        if (isReloadingRef.current) {
+          isReloadingRef.current = false;
+          forgetNiftiFileRead(url);
+        }
         // Revisiting a file that failed: drop its empty cached volume so it
         // downloads again instead of showing blank. Before watching the read
         // below, which would otherwise replay the old failure.
@@ -351,7 +361,16 @@ export default function NiftiReviewFile({
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };
-  }, [file]);
+  }, [file, reloadToken]);
+
+  // Drop the cached file and load it again from the server.
+  function handleReload() {
+    if (volumeId) {
+      decacheVolume(volumeId);
+    }
+    isReloadingRef.current = true;
+    setReloadToken((token) => token + 1);
+  }
 
   useHotkeys("g", () => handleOperationsAction("good"));
   useHotkeys("b", () => handleOperationsAction("bad"));
@@ -459,7 +478,10 @@ export default function NiftiReviewFile({
       rightPanel={
         // showRightPanel ?
         details ? (
-          <DetailsPanel details={transformDetails(details)} />
+          <DetailsPanel
+            details={transformDetails(details)}
+            onReload={handleReload}
+          />
         ) : (
           <div className="side-panel">
             <div className="wrapper" />

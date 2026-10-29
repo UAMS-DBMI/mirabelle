@@ -44,6 +44,8 @@ import {
   getFiles,
   fetchFileAsArrayBuffer,
   getIECInfo,
+  decacheVolume,
+  removeCachedImages,
 } from "@/utilities";
 import {
   getDicomDetails,
@@ -173,6 +175,9 @@ export default function DicomReviewIEC({
   const [isSeg, setIsSeg] = useState(false);
   const [segBaseIEC, setSegBaseIEC] = useState(false);
   const [segMetadata, setSegMetadata] = useState([]);
+  // Bumped by "Reload Image" to re-run the load effect after the cached exam
+  // has been dropped, re-fetching any slices that failed to download.
+  const [reloadToken, setReloadToken] = useState(0);
   const loadRequestRef = useRef(0);
 
   // Factor out the idea of "force stack view" from options
@@ -470,7 +475,18 @@ export default function DicomReviewIEC({
       cornerstoneTools.segmentation.removeAllSegmentations();
       cornerstoneTools.segmentation.removeAllSegmentationRepresentations();
     };
-  }, [iec, optionsDecimate]);
+  }, [iec, optionsDecimate, reloadToken]);
+
+  // Drop the cached exam and load it again, retrying any slices that failed
+  // to download (failed frames are never cached). Same as MaskIEC.
+  function handleReload() {
+    if (volumetric && volumeId) {
+      decacheVolume(volumeId);
+    } else if (imageIds?.length) {
+      removeCachedImages(imageIds);
+    }
+    setReloadToken((token) => token + 1);
+  }
 
   useHotkeys("g", () => handleOperationsAction("good"));
   useHotkeys("b", () => handleOperationsAction("bad"));
@@ -520,7 +536,11 @@ export default function DicomReviewIEC({
   // Load failures are surfaced as a toast; keep the viewport itself clean
   // with a neutral placeholder rather than an error card.
   if (isErrored) {
-    return <ViewportPlaceholder />;
+    return (
+      <ViewportPlaceholder
+        action={{ label: "Reload Image", onClick: handleReload }}
+      />
+    );
   }
   // When IEC is not selected yet, render full app with controls and message
   if (!iec) {
@@ -696,6 +716,7 @@ export default function DicomReviewIEC({
                 maskingDetails,
                 currentImageId,
               )}
+              onReload={handleReload}
             />
           </>
         ) : (

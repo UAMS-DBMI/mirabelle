@@ -36,6 +36,8 @@ import {
   makeRoomForStackExam,
   startVolumeLoad,
   streamStackImages,
+  decacheVolume,
+  removeCachedImages,
 } from "@/utilities";
 import { getDicomDetails } from "@/visualreview";
 import { getMaskingDetails, setMaskingStatus } from "@/masking.js";
@@ -146,6 +148,9 @@ export default function MaskReviewIEC({
   // details panel gates on them instead of assuming they exist.
   const [details, setDetails] = useState(null);
   const [maskingDetails, setMaskingDetails] = useState(null);
+  // Bumped by "Reload Image" to re-run the load effect after the cached exam
+  // has been dropped, re-fetching any slices that failed to download.
+  const [reloadToken, setReloadToken] = useState(0);
   const loadRequestRef = useRef(0);
 
   // The submitted mask's amber overlay — the box these already-masked images
@@ -380,7 +385,18 @@ export default function MaskReviewIEC({
       // turns it straight back on.
       dispatch(setLoading(false));
     };
-  }, [iec, optionsDecimate]);
+  }, [iec, optionsDecimate, reloadToken]);
+
+  // Drop the cached exam and load it again, retrying any slices that failed
+  // to download (failed frames are never cached). Same as MaskIEC.
+  function handleReload() {
+    if (volumetric && volumeId) {
+      decacheVolume(volumeId);
+    } else if (imageIds?.length) {
+      removeCachedImages(imageIds);
+    }
+    setReloadToken((token) => token + 1);
+  }
 
   function handleFilterAction({
     maskingStatus: newMaskingStatus,
@@ -554,7 +570,10 @@ export default function MaskReviewIEC({
       rightPanel={
         // showRightPanel ?
         details && maskingDetails ? (
-          <DetailsPanel details={transformDetails(details, maskingDetails)} />
+          <DetailsPanel
+            details={transformDetails(details, maskingDetails)}
+            onReload={handleReload}
+          />
         ) : (
           <div className="side-panel">
             <div className="wrapper" />
