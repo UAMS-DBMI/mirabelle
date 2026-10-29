@@ -63,6 +63,7 @@ export const messages = {
       `${count(shown)} of ${count(total)} slices shown`,
     slicesHidden: (hidden) =>
       `${count(hidden)} hidden. PHI on them won't be seen.`,
+    noneHidden: "None hidden.",
     offTitle: "Decimate is off",
     offAllShown: (total) => `All ${count(total)} slices shown.`,
     offNoExam: "Every slice will be loaded.",

@@ -9,7 +9,8 @@
 
 /* Calm on purpose: nothing is hidden, so it shouldn't compete with the warning.
    Opaque and light in both themes because it floats over the tools below. */
-.decimation-notice.is-off {
+.decimation-notice.is-off,
+.decimation-notice.is-all-shown {
   @apply bg-white text-slate-700 border border-slate-300;
 }
 

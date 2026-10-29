@@ -16,8 +16,7 @@ function wasDecimated(frameCounts) {
  *   exam with fewer frames than the decimate count is untouched, and the load
  *   limit can skip slices even when Decimate is 0.
  * - Decimate is 0 and nothing skipped: a calm "Decimate is off" line.
- * - Decimate is set but nothing skipped: nothing, so curators going through
- *   thousands of exams see the warning rarely enough to keep reading it.
+ * - Decimate is set but the series is within it: a calm "none hidden" line.
  */
 export default function DecimationNotice({ frameCounts }) {
   const decimate = useSelector((state) => state.options.decimate);
@@ -45,6 +44,18 @@ export default function DecimationNotice({ frameCounts }) {
             ? messages.decimation.offAllShown(frameCounts.total)
             : messages.decimation.offNoExam
         }
+      />
+    );
+  }
+
+  if (frameCounts) {
+    const { shown, total } = frameCounts;
+    return (
+      <NoticeCallout
+        variant="is-all-shown"
+        icon="check_circle"
+        title={messages.decimation.slicesShown(shown, total)}
+        detail={messages.decimation.noneHidden}
       />
     );
   }
