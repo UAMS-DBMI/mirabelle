@@ -2,14 +2,16 @@
 #viewer-resizer {
   @apply absolute inset-0 pointer-events-none z-50;
 }
+/* The buttons (32px) straddle the viewer border but stop at the viewer's
+   8px padding, so they never cover the slice scrollbar on a pane's edge. */
 #viewer-resizer .left-btn {
-  @apply absolute left-[-1.4rem] top-1/2 transform -translate-y-1/2 pointer-events-auto;
+  @apply absolute left-[-1.5rem] top-1/2 transform -translate-y-1/2 pointer-events-auto;
 }
 #viewer-resizer .right-btn {
-  @apply absolute right-[-1.4rem] top-1/2 transform -translate-y-1/2 pointer-events-auto;
+  @apply absolute right-[-1.5rem] top-1/2 transform -translate-y-1/2 pointer-events-auto;
 }
 #viewer-resizer button {
-  @apply bg-blue-500 text-white p-2 rounded-full transition-transform duration-300 ease-in-out;
+  @apply bg-blue-500 text-white p-1 rounded-full transition-transform duration-300 ease-in-out;
 }
 #viewer-resizer button.flipped {
   transform: translateY(-50%) rotateZ(180deg);
