@@ -52,7 +52,6 @@ import {
 } from "@/visualreview";
 import { getMaskingDetails } from "@/masking.js";
 import { describeMaskingParameters } from "@/lib/maskingParameters";
-import { usePreviousMaskOverlay } from "@/features/mask/usePreviousMaskOverlay";
 
 import Header from "@/components/Header";
 
@@ -175,17 +174,6 @@ export default function DicomReviewIEC({
   const [segMetadata, setSegMetadata] = useState([]);
   const loadRequestRef = useRef(0);
 
-  // The submitted mask's amber overlay, when this IEC has a masking record —
-  // the reviewer flagging exams for masking (the "f" hotkey) can see what any
-  // existing mask already covers. Shared with the mask and mask-review routes.
-  usePreviousMaskOverlay({
-    isInitialized,
-    volumetric,
-    volumeId,
-    imageIds,
-    maskingDetails,
-  });
-
   // Factor out the idea of "force stack view" from options
   // so we can use it as a useEffect dependency, and it
   // will only trigger a change when the "force stack view"
@@ -248,9 +236,10 @@ export default function DicomReviewIEC({
       dispatch(setLoading(true));
 
       const details = await getDicomDetails(iec);
-      // Auxiliary to this route (it feeds the details rows and the submitted
-      // mask overlay), so a masking-endpoint failure must not take down the
-      // review of the exam itself.
+      // Auxiliary to this route (it only feeds the details rows), so a
+      // masking-endpoint failure must not take down the review of the exam
+      // itself. The submitted-mask overlay is deliberately NOT mounted here:
+      // it belongs to the mask and mask-review routes only.
       const maskingDetails = await getMaskingDetails(iec).catch(() => null);
       if (isCancelled || requestId !== loadRequestRef.current) {
         console.log(
