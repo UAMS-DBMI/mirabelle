@@ -65,9 +65,6 @@ function VolumeViewport({
   segmentationId,
 }) {
   const viewMode = useSelector((state) => state.options.view);
-  // MIP / MinIP: the slab spans the whole volume, so scrolling changes nothing.
-  const isProjection =
-    viewMode === "projection" || viewMode === "min_projection";
   const activeViewport = useSelector((state) => state.options.viewport);
   const [initialized, setInitialized] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -415,7 +412,7 @@ function VolumeViewport({
         }
         className={`volume-viewport viewport${
           activeViewport === viewportId ? " active" : ""
-        }${isProjection ? " projection" : ""}`}
+        }`}
       >
         <ViewportLabel text={PANE_LABELS[orientation] ?? orientation} />
         <ViewportExpandButton

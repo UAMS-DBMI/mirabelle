@@ -20,9 +20,7 @@
   background: rgba(15, 23, 42, 0.55);
   color: rgba(226, 232, 240, 0.9);
   cursor: pointer;
-  opacity: 0;
   transition:
-    opacity 0.15s ease,
     background 0.12s ease,
     color 0.12s ease;
 }
@@ -31,10 +29,6 @@
    z-index 15) and overlaps the button's rightmost few pixels. The button is
    stacked above it so the whole 26px target stays clickable; the strip is
    still grabbable everywhere below the button. */
-.viewport:hover .viewport-expand-button,
-.viewport-expand-button:focus-visible {
-  opacity: 1;
-}
 
 .viewport-expand-button:hover {
   background: rgba(30, 41, 59, 0.85);
