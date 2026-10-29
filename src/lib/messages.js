@@ -57,6 +57,7 @@ export const messages = {
   // Neutral viewport empty states (never styled as errors).
   viewport: {
     noImage: "No image to display",
+    noMaskedImages: "No masked images to review for this exam yet.",
   },
 
   // Errors. `generic` is the safe fallback when nothing more specific applies.

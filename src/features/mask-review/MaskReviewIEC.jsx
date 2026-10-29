@@ -137,6 +137,8 @@ export default function MaskReviewIEC({
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isErrored, setIsErrored] = useState(false);
+  // The exam has no masked files to review (e.g. masking status "created").
+  const [hasNoFrames, setHasNoFrames] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
   // null until fetched — the layout shell renders before these arrive, so the
@@ -280,6 +282,16 @@ export default function MaskReviewIEC({
         setOption({ key: "rightClick", value: Enums.RightClickOptions.ZOOM }),
       );
 
+      // An exam that was never masked has no review files, so reviewfiles
+      // comes back empty. There is nothing to load: sizing the cache for zero
+      // frames reads an undefined imageId, and the viewer would mount on a
+      // volume that was never created. Show an empty state instead.
+      if (frames.length === 0) {
+        setHasNoFrames(true);
+        dispatch(setLoading(false));
+        return;
+      }
+
       try {
         // for testing error handling
         if (volumetric) {
@@ -340,6 +352,7 @@ export default function MaskReviewIEC({
     };
 
     setIsInitialized(false);
+    setHasNoFrames(false);
     // Catch failures from awaits that run before the inner try (e.g. the
     // detail/info fetches), so a thrown ApiError surfaces as a toast and a
     // clean viewport instead of an unhandled promise rejection.
@@ -450,6 +463,8 @@ export default function MaskReviewIEC({
     // Load failures are surfaced as a toast; keep the viewport itself clean
     // with a neutral placeholder so navigation still works.
     viewer = <ViewportPlaceholder />;
+  } else if (hasNoFrames) {
+    viewer = <ViewportPlaceholder message={messages.viewport.noMaskedImages} />;
   } else if (isInitialized) {
     if (volumetric) {
       console.log(">>>>> about to pass volumeId=", volumeId);
