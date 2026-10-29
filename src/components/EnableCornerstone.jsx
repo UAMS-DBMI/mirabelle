@@ -13,7 +13,7 @@ import * as cornerstoneTools from "@cornerstonejs/tools";
 import { init as dicomImageLoaderInit } from "@cornerstonejs/dicom-image-loader";
 import * as cornerstoneDicomImageLoader from "@cornerstonejs/dicom-image-loader";
 import { cornerstoneNiftiImageLoader } from "@cornerstonejs/nifti-volume-loader";
-import * as polySeg from "@cornerstonejs/polymorphic-segmentation";
+import safePolySeg from "@/lib/safePolySeg";
 
 import configureCacheSize from "@/lib/cacheSizing";
 import { openDicomRequest, uncapImageLoadPool } from "@/lib/examDownloads";
@@ -31,7 +31,7 @@ function EnableCornerstone({ children }) {
       await csRenderInit();
       await csToolsInit({
         addons: {
-          polySeg,
+          polySeg: safePolySeg,
         },
       });
       dicomImageLoaderInit({
@@ -53,7 +53,7 @@ function EnableCornerstone({ children }) {
 
       window.cornerstoneTools = cornerstoneTools;
       window.cornerstone = cornerstone;
-      window.polyseg = polySeg;
+      window.polyseg = safePolySeg;
       window.cornerstoneDicomImageLoader = cornerstoneDicomImageLoader;
 
       new cornerstone.RenderingEngine("re1");

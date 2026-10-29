@@ -40,6 +40,21 @@ function isTornDownViewportError(error) {
   );
 }
 
+// polymorphic-segmentation's updateSurfaceData dereferencing a 2D viewport's
+// missing Surface representation (Chrome and Firefox phrasings). lib/safePolySeg
+// skips the update that throws it; this is the backstop for any path it misses,
+// since masking is unaffected and the toast would only alarm the curator.
+const POLYSEG_SEGMENTATION_ID_ERRORS = [
+  "reading 'segmentationId'",
+  'property "segmentationId"',
+];
+
+function isKnownPolySegError(error) {
+  const message = typeof error === "string" ? error : error?.message;
+  if (!message) return false;
+  return POLYSEG_SEGMENTATION_ID_ERRORS.some((text) => message.includes(text));
+}
+
 // Avoid spamming identical toasts when the same error fires repeatedly
 // (e.g. once per viewport during a render).
 const recent = new Map();
@@ -50,6 +65,11 @@ function report(error) {
 
   if (isTornDownViewportError(error)) {
     console.warn("[errors] ignoring torn-down viewport error", error);
+    return;
+  }
+
+  if (isKnownPolySegError(error)) {
+    console.warn("[errors] ignoring known polySeg surface error", error);
     return;
   }
 

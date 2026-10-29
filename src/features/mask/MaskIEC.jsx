@@ -1357,8 +1357,8 @@ export default function MaskIEC({
       // Delete the current segmentation and add a new one (and activate it)
       // using a new randomly-named segmentation ID. This gets around a bug
       // with the 3d viewport not rendering after clearing a segmentation.
-      // Note: this does not prevent the error in updateSurfaceData for the
-      // previous segmentation, however.
+      // updateSurfaceData still fires for the removed segmentation; the
+      // polySeg addon (lib/safePolySeg) skips it instead of letting it throw.
       cornerstoneTools.segmentation.removeSegmentation(segmentationId);
       // removeSegmentation only drops tool state — free the old labelmap
       // volume too, or every Clear leaks a full-size volume into the cache.
