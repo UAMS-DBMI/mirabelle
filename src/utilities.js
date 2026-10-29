@@ -201,10 +201,14 @@ export async function getIECInfo(
 
   // Kept so the tools panel can tell the curator when slices were skipped
   const total = frames.length;
+  const indexInSeries = new Map(frames.map((frame, index) => [frame, index]));
   frames = decimateFrames(frames, decimate_count);
   const frameCounts = { shown: frames.length, total };
+  // Each kept frame's index in the full series, so a mask selection drawn at
+  // one Decimate value can be put back on the same slices at another.
+  const sourceIndices = frames.map((frame) => indexInSeries.get(frame));
 
-  return { volumetric, frames, frameCounts };
+  return { volumetric, frames, frameCounts, sourceIndices };
 }
 
 function decimateFrames(imageIds, maxFrames = 2000) {

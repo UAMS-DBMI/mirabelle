@@ -267,6 +267,10 @@ export default function MaskIEC({
   // has been dropped, re-fetching any slices that failed to download.
   const [reloadToken, setReloadToken] = useState(0);
   const loadRequestRef = useRef(0);
+  // The loaded frames' indices in the full series (from getIECInfo). Drafts
+  // are saved and restored through it so a selection keeps its slices when
+  // Decimate changes.
+  const sourceIndicesRef = useRef(null);
   // Set by a terminal action (mask submitted, or exam skipped / non-maskable)
   // so the load effect's cleanup doesn't re-save the now-irrelevant selection
   // as a draft after we forget it.
@@ -427,7 +431,7 @@ export default function MaskIEC({
         return;
       }
       draftRestored = true;
-      if (restoreMaskSelection(iec, segId)) return;
+      if (restoreMaskSelection(iec, segId, sourceIndicesRef.current)) return;
       if (!seedContext) return;
       // Same geometry resolution the amber overlay draws from, so the green
       // box lands exactly where the amber one shows the submitted mask.
@@ -503,6 +507,7 @@ export default function MaskIEC({
 
       setImageIds(imageIds);
       setFrameCounts(iecInfo.frameCounts);
+      sourceIndicesRef.current = iecInfo.sourceIndices;
 
       setVolumeId(volumeId);
       setVolumetric(volumetric); // still update state
@@ -646,7 +651,11 @@ export default function MaskIEC({
         // A selection still equal to the seed is the exam's stored state, not
         // curator work — leaving without touching it must not flag the exam
         // as drafted.
-        rememberMaskSelection(iec, activeSegmentationIdRef.current);
+        rememberMaskSelection(
+          iec,
+          activeSegmentationIdRef.current,
+          sourceIndicesRef.current,
+        );
       }
       // Held for the decache at the end of this cleanup, which runs after the
       // ref has been cleared below.
@@ -969,7 +978,7 @@ export default function MaskIEC({
         // redraw a box this app draws itself. Only the two listeners below
         // actually needed waking.
         refreshSelectionBoxes();
-        rememberMaskSelection(iec, segmentationId);
+        rememberMaskSelection(iec, segmentationId, sourceIndicesRef.current);
       };
 
       // Stack equivalent of commitResize. A stack has no tracked bounds —
@@ -1243,7 +1252,7 @@ export default function MaskIEC({
         }
         seededBoundsRef.current = null;
       }
-      rememberMaskSelection(iec, segmentationId);
+      rememberMaskSelection(iec, segmentationId, sourceIndicesRef.current);
     };
     cornerstone.eventTarget.addEventListener(
       csToolsEnums.Events.SEGMENTATION_DATA_MODIFIED,

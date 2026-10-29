@@ -15,7 +15,13 @@ import { getCoordsForStackSeg, getLabelmapBounds } from "@/utilities";
  * the lifetime of the tab.
  */
 
+// Bounds per IEC, with k in full-series slice numbers (see toSeriesSlices).
 const drafts = new Map();
+// The bounds the last restore applied per IEC, in the loaded volume's own
+// slices. While the selection still equals them the curator hasn't edited it,
+// so saving keeps the stored draft instead of overwriting it with a copy
+// rounded to a coarser Decimate.
+const restoredBounds = new Map();
 
 // Observable snapshot of *which* IECs currently have a draft (not their
 // bounds). The queue subscribes to this to mark rows and offer an
@@ -58,10 +64,41 @@ function readSelectionBounds(segmentationId) {
   return imageIds?.length ? getCoordsForStackSeg(imageIds) : null;
 }
 
+function boundsEqual(a, b) {
+  return ["i", "j", "k"].every(
+    (axis) => a[axis].min === b[axis].min && a[axis].max === b[axis].max,
+  );
+}
+
+// Decimation only drops slices, so a draft keeps k as full-series slice
+// numbers (`sourceIndices[k]`, from getIECInfo) and i/j as they are. Without
+// it, the same k would mean different slices at another Decimate value.
+function toSeriesSlices(bounds, sourceIndices) {
+  if (!sourceIndices?.length) return bounds;
+  const last = sourceIndices.length - 1;
+  const seriesSlice = (k) => sourceIndices[Math.max(0, Math.min(k, last))];
+  return {
+    ...bounds,
+    k: { min: seriesSlice(bounds.k.min), max: seriesSlice(bounds.k.max) },
+  };
+}
+
+// Back to the loaded volume's slices, rounding outward when the draft's edge
+// slices weren't loaded, so the box still covers every slice that was drawn.
+function fromSeriesSlices(draft, sourceIndices) {
+  if (!sourceIndices?.length) return draft;
+  const last = sourceIndices.length - 1;
+  let kMin = 0;
+  while (kMin < last && sourceIndices[kMin + 1] <= draft.k.min) kMin += 1;
+  let kMax = last;
+  while (kMax > 0 && sourceIndices[kMax - 1] >= draft.k.max) kMax -= 1;
+  return { ...draft, k: { min: kMin, max: kMax } };
+}
+
 // Volume labelmaps never have their draft voxels painted — the box overlays
 // and Accept both read only the voxel manager's tracked bounds, exactly like
-// the drag-resize commit in MaskIEC. Clamped in case the draft was saved at a
-// different decimation than the volume now loaded.
+// the drag-resize commit in MaskIEC. Clamped as a safety net against bounds
+// that don't fit the volume now loaded.
 function applyBoundsToVolumeLabelmap(segmentationId, bounds) {
   const segVolume = cornerstone.cache.getVolume(segmentationId);
   if (!segVolume?.voxelManager) return false;
@@ -110,8 +147,9 @@ function applyBoundsToStackLabelmap(segmentationId, bounds) {
  * the selection is empty (cleared, or never drawn), so a stale draft can't
  * resurrect on the next visit. A no-op while the segmentation doesn't exist
  * yet (navigating away mid-load), so an unseen earlier draft isn't destroyed.
+ * `sourceIndices` (from getIECInfo) maps the loaded slices to the full series.
  */
-export function rememberMaskSelection(iec, segmentationId) {
+export function rememberMaskSelection(iec, segmentationId, sourceIndices) {
   if (!iec || !segmentationId || !segmentationExists(segmentationId)) return;
   let bounds;
   try {
@@ -124,9 +162,12 @@ export function rememberMaskSelection(iec, segmentationId) {
     return;
   }
   const key = String(iec);
+  const restored = restoredBounds.get(key);
+  if (bounds && restored && boundsEqual(bounds, restored)) return;
+  restoredBounds.delete(key);
   if (bounds) {
     const isNew = !drafts.has(key);
-    drafts.set(key, bounds);
+    drafts.set(key, toSeriesSlices(bounds, sourceIndices));
     // Only membership changes need to notify subscribers — editing the bounds
     // of an already-marked row doesn't change how it renders in the queue.
     if (isNew) publishMembership();
@@ -143,6 +184,7 @@ export function rememberMaskSelection(iec, segmentationId) {
  */
 export function forgetMaskDraft(iec) {
   if (iec == null) return;
+  restoredBounds.delete(String(iec));
   if (drafts.delete(String(iec))) publishMembership();
 }
 
@@ -173,12 +215,21 @@ export function applyMaskSelection(segmentationId, bounds) {
 }
 
 /**
- * Re-apply the draft saved for this IEC to a freshly created segmentation.
- * Returns whether a draft was applied.
+ * Re-apply the draft saved for this IEC to a freshly created segmentation,
+ * on the same series slices whatever Decimate is now loaded. Returns whether
+ * a draft was applied.
  */
-export function restoreMaskSelection(iec, segmentationId) {
-  const draft = iec != null ? drafts.get(String(iec)) : undefined;
-  return draft ? applyMaskSelection(segmentationId, draft) : false;
+export function restoreMaskSelection(iec, segmentationId, sourceIndices) {
+  const key = iec != null ? String(iec) : null;
+  const draft = key ? drafts.get(key) : undefined;
+  if (!draft) return false;
+  const bounds = fromSeriesSlices(draft, sourceIndices);
+  // Set before the apply: applying fires the data-modified event
+  // synchronously, and the live saver must see this as the restore.
+  restoredBounds.set(key, bounds);
+  if (applyMaskSelection(segmentationId, bounds)) return true;
+  restoredBounds.delete(key);
+  return false;
 }
 
 /**
@@ -199,9 +250,5 @@ export function selectionMatchesBounds(segmentationId, bounds) {
     return false;
   }
   if (!current) return false;
-  return ["i", "j", "k"].every(
-    (axis) =>
-      current[axis].min === bounds[axis].min &&
-      current[axis].max === bounds[axis].max,
-  );
+  return boundsEqual(current, bounds);
 }
