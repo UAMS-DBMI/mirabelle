@@ -142,6 +142,13 @@ export default function useToolsManager({
   };
 
   useEffect(() => {
+    // On IEC navigation this panel remounts while MaskIEC still passes the
+    // tool group it just destroyed (child effects run before MaskIEC's effect
+    // recreates it). Setting tool modes on it then crashes: Crosshairs looks
+    // its group up by id and finds nothing ("reading 'viewportsInfo'"). Skip
+    // the stale group; this effect re-runs once the new one arrives.
+    if (ToolGroupManager.getToolGroup(toolGroup.id) !== toolGroup) return;
+
     // add tools and setup default toolGroup actions
     toolGroup.addTool(ClampedRectangleScissorsTool.toolName);
     toolGroup.addTool(StackScrollTool.toolName);
