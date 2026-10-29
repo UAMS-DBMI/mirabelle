@@ -92,7 +92,9 @@ export default function RouteMaskReviewVR() {
       })
       .catch((error) => {
         if (requestId !== listRequestRef.current) return; // superseded
-        setIecList([]);
+        // A failed refresh keeps the list already shown, so next/previous
+        // still work; only a list that never loaded falls back to empty.
+        setIecList((previous) => previous ?? []);
         dispatch(setLoading(false));
         notify.error(error, messages.filters.loadFailed);
       });
