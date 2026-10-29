@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import RouteLayout from "@/components/RouteLayout";
 import { useDispatch } from "react-redux";
-import { setTitle } from "@/features/optionSlice";
+import { setTitle, setTitleDetail } from "@/features/optionSlice";
 
 import "./home.css";
 
@@ -12,6 +12,9 @@ export default function Home() {
 
   useLayoutEffect(() => {
     dispatch(setTitle("Home")); // <-- set the title on mount
+    // The IEC routes leave their exam context beside the title; clear it
+    // so it doesn't linger next to "Home".
+    dispatch(setTitleDetail(null));
   }, [dispatch]);
 
   const content = (
