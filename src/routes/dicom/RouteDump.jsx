@@ -4,7 +4,7 @@
 import React, { useLayoutEffect } from "react";
 import { useLoaderData } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { setTitle } from "@/features/optionSlice";
+import { setTitle, setTitleDetail } from "@/features/optionSlice";
 
 import DicomDump from "@/components/DicomDump";
 
@@ -18,6 +18,7 @@ export default function RouteDump({ data }) {
 
   useLayoutEffect(() => {
     dispatch(setTitle("Experimental DICOM Dump"));
+    dispatch(setTitleDetail(null));
   }, []);
 
   return (
