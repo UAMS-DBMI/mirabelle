@@ -74,6 +74,13 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* In MIP / MinIP the projection spans the whole volume, so the slice position
+   is meaningless; hide the scrollbar. `visibility` rather than `display`
+   because the scrollbar sets its own inline display on every render. */
+.viewport.projection .viewport-slice-scrollbar {
+  visibility: hidden;
+}
+
 .viewport-slice-scrollbar-thumb {
   position: absolute;
   left: 0;
