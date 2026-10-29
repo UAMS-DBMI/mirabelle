@@ -174,6 +174,12 @@ export default function RouteDicomReviewVR() {
     }
   };
 
+  const handleSelectIec = (selectedIec) => {
+    navigate(
+      `/review/dicom/vr/${vr}/${selectedIec}/${reviewStatus}/${dicomType}`,
+    );
+  };
+
   // Always render the page; when IEC isn't resolved yet or list is empty, pass iec=null
   const resolvedIec = iec && iec !== "*" ? iec : null;
   const noIecs = Array.isArray(iecList) && iecList.length === 0;
@@ -183,6 +189,8 @@ export default function RouteDicomReviewVR() {
       vr={vr}
       iec={resolvedIec}
       noIecs={noIecs}
+      iecList={iecList}
+      onSelectIec={handleSelectIec}
       reviewStatus={reviewStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}

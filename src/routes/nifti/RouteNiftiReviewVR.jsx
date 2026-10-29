@@ -88,6 +88,10 @@ export default function RouteNiftiReviewVR() {
     }
   };
 
+  const handleSelectFile = (selectedFile) => {
+    navigate(`/review/nifti/vr/${vr}/${selectedFile}`);
+  };
+
   if (!loaded) {
     return null;
   }
@@ -96,6 +100,8 @@ export default function RouteNiftiReviewVR() {
     <NiftiReviewVR
       vr={vr}
       file={file}
+      fileList={fileList}
+      onSelectFile={handleSelectFile}
       onNext={handleNext}
       onPrevious={handlePrevious}
       hasNext={Boolean(nextFile)}

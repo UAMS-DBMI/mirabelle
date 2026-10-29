@@ -127,6 +127,19 @@ export function pauseExamDownloads() {
   refileRequests();
 }
 
+/**
+ * Whether `url` is a file of an exam loaded this session. Its download waits
+ * its exam's turn here, so it can stay unsent while the curator is elsewhere.
+ *
+ * @param {string} url
+ */
+export function isExamFile(url) {
+  for (const examFileUrls of examUrls.values()) {
+    if (examFileUrls.has(url)) return true;
+  }
+  return false;
+}
+
 function examKey(imageIds) {
   return `${imageIds.length}|${imageIds[0]}|${imageIds[imageIds.length - 1]}`;
 }

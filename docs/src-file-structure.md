@@ -60,6 +60,8 @@ components/
 ├── FilterPanel.jsx                  # Filtering controls
 ├── Header.css
 ├── Header.jsx                       # Application header
+├── IecQueue.css
+├── IecQueue.jsx                     # Searchable queue of a VR's exams in the navigation panel
 ├── LabelingPanel.css
 ├── LabelingPanel.jsx                # Image labeling interface
 ├── LoadingOverlay.css
@@ -222,6 +224,8 @@ lib/
 ├── createImageIdsAndCacheMetaData.js  # Image ID creation and caching
 ├── dicomFileStreams.js               # Streams stack files, bytes readable as they arrive
 ├── examDownloads.js                  # Queues, pauses and resumes exam downloads
+├── iecQueueData.js                   # IEC queue rows: cached details, thumbnails, size estimates
+├── loadedExams.js                    # Which exams are fully in the cache, for the IEC queue
 ├── loadingProgress.js                # The loading indicator's percentage
 ├── renderImageToCanvas.js            # Draws a thumbnail, safe for unscaled PT images
 ├── stackFramePreview.js              # Draws a stack frame while its file arrives

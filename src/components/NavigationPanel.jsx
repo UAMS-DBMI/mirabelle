@@ -10,6 +10,7 @@ function NavigationPanel({
   hasPrevious = true,
   currentId,
   idLabel = "IEC",
+  children,
 }) {
   const navButtons = [
     {
@@ -21,11 +22,19 @@ function NavigationPanel({
     { name: "Next", icon: "arrow_forward", action: onNext, dimmed: !hasNext },
   ];
 
+  // The exam queue (IecQueue) renders inside this panel rather than as a
+  // sibling card; with it present the panel grows to give the queue room.
+  const hasQueue = React.Children.toArray(children).length > 0;
+
   return (
-    <div id="navigation-panel" className="side-panel">
+    <div
+      id="navigation-panel"
+      className={`side-panel${hasQueue ? " with-queue" : ""}`}
+    >
       {/* {currentId && <p>{idLabel}: {currentId}</p>} */}
       <h2 id="title">Navigation</h2>
       <MaterialButtonSet buttonConfig={navButtons} noRemember={true} />
+      {children}
     </div>
   );
 }

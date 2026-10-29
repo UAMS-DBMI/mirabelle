@@ -133,6 +133,14 @@ export default function RouteMaskVR() {
     }
   };
 
+  // A row of the IEC queue. The exam already on screen is ignored: resetting
+  // its options would reload it, as above.
+  const handleSelectIec = (selectedIec) => {
+    if (String(selectedIec) === String(iec)) return;
+    resetExamOptions();
+    navigate(`/mask/vr/${vr}/${selectedIec}/${maskingStatus}/${dicomType}`);
+  };
+
   const resolvedIec = iec && iec !== "*" ? iec : null;
   const noIecs = Array.isArray(iecList) && iecList.length === 0;
 
@@ -141,6 +149,8 @@ export default function RouteMaskVR() {
       vr={vr}
       iec={resolvedIec}
       noIecs={noIecs}
+      iecList={iecList}
+      onSelectIec={handleSelectIec}
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}

@@ -83,6 +83,8 @@ import FilterPanel from "@/components/FilterPanel";
 import { DetailsPanel } from "@/features/details";
 
 import RouteLayout from "@/components/RouteLayout";
+import IecQueue from "@/components/IecQueue";
+import { markExamLoaded } from "@/lib/loadedExams";
 import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 
@@ -184,11 +186,13 @@ export default function MaskIEC({
   iec,
   vr,
   noIecs,
+  iecList,
   maskingStatus,
   dicomType,
   dicomTypeOptions,
   onNext = () => {},
   onPrevious = () => {},
+  onSelectIec = () => {},
   hasNext = true,
   hasPrevious = true,
 }) {
@@ -259,6 +263,23 @@ export default function MaskIEC({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
+  const loading = useSelector((state) => state.options.loading);
+  // What markExamLoaded should verify/measure, bound to the exam it was built
+  // for — written inside initialize() where `iec` is the closure value, so a
+  // render where the iec prop has advanced ahead of this state can't flag the
+  // new exam with the previous exam's cached data.
+  const loadedProbeRef = useRef(null);
+
+  // Flag this exam as loaded in the IEC queue once its images have actually
+  // arrived (the spinner comes down). markExamLoaded independently verifies
+  // every frame is in the cache.
+  useEffect(() => {
+    if (loading || isErrored || !isInitialized || !iec) return;
+    const probe = loadedProbeRef.current;
+    if (!probe || String(probe.forId) !== String(iec)) return;
+    markExamLoaded(iec, probe);
+  }, [loading, isErrored, isInitialized, iec]);
+
   // null until fetched — the layout shell renders before these arrive, so the
   // details panel gates on them instead of assuming they exist.
   const [details, setDetails] = useState(null);
@@ -514,6 +535,13 @@ export default function MaskIEC({
       setVolumetric(volumetric); // still update state
       setSegmentationId(segmentationId);
       activeSegmentationIdRef.current = segmentationId;
+      // Stacks set volumeId state too but never create a volume — only give
+      // the probe a volumeId when one will actually exist in the cache.
+      loadedProbeRef.current = {
+        forId: iec,
+        volumeId: volumetric ? volumeId : null,
+        imageIds,
+      };
       seedContext = { volumetric, volumeId, imageIds, maskingDetails };
 
       // Configure the UI for this exam type NOW — as soon as we know whether
@@ -1466,6 +1494,18 @@ export default function MaskIEC({
     return true;
   }
 
+  // The exam queue renders inside the navigation panel, so curators can jump
+  // to any exam in the list, loading or loaded.
+  const iecQueue = vr && iecList && (
+    <IecQueue
+      kind="mask"
+      items={iecList}
+      currentId={iec}
+      onSelect={onSelectIec}
+      hint="← → navigate · A accept · S skip · N non-mask · C clear"
+    />
+  );
+
   if (!iec) {
     return (
       <RouteLayout
@@ -1478,7 +1518,9 @@ export default function MaskIEC({
             hasPrevious={hasPrevious}
             currentId={iec}
             idLabel="IEC"
-          />
+          >
+            {iecQueue}
+          </NavigationPanel>
         }
         middlePanel={
           <>
@@ -1571,7 +1613,9 @@ export default function MaskIEC({
               hasPrevious={hasPrevious}
               currentId={iec}
               idLabel="IEC"
-            />
+            >
+              {iecQueue}
+            </NavigationPanel>
           )}
           {toolGroup && toolGroup3d && (
             // Key on iec so the panel remounts per exam. Its

@@ -71,6 +71,8 @@ import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
+import IecQueue from "@/components/IecQueue";
+import { markExamLoaded } from "@/lib/loadedExams";
 
 import "./DicomReviewIEC.css";
 
@@ -113,11 +115,13 @@ export default function DicomReviewIEC({
   iec,
   vr,
   noIecs,
+  iecList,
   reviewStatus,
   dicomType,
   dicomTypeOptions,
   onNext = () => {},
   onPrevious = () => {},
+  onSelectIec = () => {},
   hasNext = true,
   hasPrevious = true,
   routeName,
@@ -167,6 +171,23 @@ export default function DicomReviewIEC({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
+  const loading = useSelector((state) => state.options.loading);
+  // What markExamLoaded should verify/measure, bound to the exam it was built
+  // for — written inside initialize() where `iec` is the closure value, so a
+  // render where the iec prop has advanced ahead of this state can't flag the
+  // new exam with the previous exam's cached data.
+  const loadedProbeRef = useRef(null);
+
+  // Flag this exam as loaded in the IEC queue once its images have actually
+  // arrived (the spinner comes down). markExamLoaded independently verifies
+  // every frame is in the cache.
+  useEffect(() => {
+    if (loading || isErrored || !isInitialized || !iec) return;
+    const probe = loadedProbeRef.current;
+    if (!probe || String(probe.forId) !== String(iec)) return;
+    markExamLoaded(iec, probe);
+  }, [loading, isErrored, isInitialized, iec]);
+
   // null until fetched — the layout shell renders before the details arrive,
   // so the details panel gates on them instead of assuming they exist.
   const [details, setDetails] = useState(null);
@@ -344,6 +365,13 @@ export default function DicomReviewIEC({
       setVolumeId(volumeId);
       setVolumetric(renderAsVolume); // still update state
       setSegmentationId(segmentationId);
+      // Stacks set volumeId state too but never create a volume — only give
+      // the probe a volumeId when one will actually exist in the cache.
+      loadedProbeRef.current = {
+        forId: iec,
+        volumeId: renderAsVolume ? volumeId : null,
+        imageIds,
+      };
 
       // Configure the UI for this exam type NOW — as soon as we know whether
       // it's a volume or a stack, and before the (slow) image load. This
@@ -533,6 +561,18 @@ export default function DicomReviewIEC({
     );
   }
 
+  // The exam queue renders inside the navigation panel, so curators can jump
+  // to any exam in the list, loading or loaded.
+  const iecQueue = vr && iecList && (
+    <IecQueue
+      kind="dicom-review"
+      items={iecList}
+      currentId={iec}
+      onSelect={onSelectIec}
+      hint="← → navigate · G good · B bad · L blank · S scout · O other · F flag"
+    />
+  );
+
   // Load failures are surfaced as a toast; keep the viewport itself clean
   // with a neutral placeholder rather than an error card.
   if (isErrored) {
@@ -557,7 +597,9 @@ export default function DicomReviewIEC({
                 hasPrevious={hasPrevious}
                 currentId={iec}
                 idLabel="IEC"
-              />
+              >
+                {iecQueue}
+              </NavigationPanel>
             )}
             {toolGroup && (
               <ToolsPanel
@@ -669,7 +711,9 @@ export default function DicomReviewIEC({
               hasPrevious={hasPrevious}
               currentId={iec}
               idLabel="IEC"
-            />
+            >
+              {iecQueue}
+            </NavigationPanel>
           )}
           {toolGroup && (
             <ToolsPanel

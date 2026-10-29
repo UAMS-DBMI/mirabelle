@@ -9,6 +9,8 @@ import "./NiftiReviewVR.css";
 export default function NiftiReviewVR({
   vr,
   file,
+  fileList,
+  onSelectFile,
   onNext,
   onPrevious,
   hasNext,
@@ -33,6 +35,15 @@ export default function NiftiReviewVR({
     onPrevious();
   }
 
+  // A row of the file queue: the same reset as next/previous. The file already
+  // on screen is ignored, so clicking it doesn't reset its options.
+  function handleSelectFile(selectedFile) {
+    if (String(selectedFile) === String(file)) return;
+    dispatch(resetOptions());
+    dispatch(setOption({ key: "preset", value: null }));
+    onSelectFile(selectedFile);
+  }
+
   return (
     <>
       {file && (
@@ -40,6 +51,8 @@ export default function NiftiReviewVR({
           // routeName="nifti-review-vr"
           vr={vr}
           file={file}
+          fileList={fileList}
+          onSelectFile={handleSelectFile}
           onNext={handleNext}
           onPrevious={handlePrevious}
           hasNext={hasNext}

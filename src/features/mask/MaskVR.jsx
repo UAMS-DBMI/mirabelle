@@ -8,6 +8,8 @@ export default function MaskVR({
   vr,
   iec,
   noIecs,
+  iecList,
+  onSelectIec,
   maskingStatus,
   dicomType,
   dicomTypeOptions,
@@ -27,6 +29,8 @@ export default function MaskVR({
       vr={vr}
       iec={iec}
       noIecs={noIecs}
+      iecList={iecList}
+      onSelectIec={onSelectIec}
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}

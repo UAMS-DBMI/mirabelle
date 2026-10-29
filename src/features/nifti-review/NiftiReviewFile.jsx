@@ -53,6 +53,8 @@ import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
+import IecQueue from "@/components/IecQueue";
+import { markExamLoaded } from "@/lib/loadedExams";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 
 import "./NiftiReviewFile.css";
@@ -82,8 +84,10 @@ function transformDetails(details) {
 export default function NiftiReviewFile({
   file,
   vr,
+  fileList,
   onNext = () => {},
   onPrevious = () => {},
+  onSelectFile = () => {},
   hasNext = true,
   hasPrevious = true,
   routeName,
@@ -130,6 +134,23 @@ export default function NiftiReviewFile({
   const [isErrored, setIsErrored] = useState(false);
 
   const [volumetric, setVolumetric] = useState(true);
+  const loading = useSelector((state) => state.options.loading);
+  // What markExamLoaded should verify/measure, bound to the file it was built
+  // for — written inside initialize() where `file` is the closure value, so a
+  // render where the file prop has advanced ahead of this state can't flag the
+  // new file with the previous file's cached data.
+  const loadedProbeRef = useRef(null);
+
+  // Flag this file as loaded in the queue once its volume has actually
+  // streamed in (the spinner comes down). markExamLoaded independently
+  // verifies the volume is in the cache.
+  useEffect(() => {
+    if (loading || isErrored || !isInitialized || !file) return;
+    const probe = loadedProbeRef.current;
+    if (!probe || String(probe.forId) !== String(file)) return;
+    markExamLoaded(file, probe);
+  }, [loading, isErrored, isInitialized, file]);
+
   // null until fetched — the layout shell renders before the details arrive,
   // so the details panel gates on them instead of assuming they exist.
   const [details, setDetails] = useState(null);
@@ -308,6 +329,7 @@ export default function NiftiReviewFile({
           });
           if (isStale()) return;
         }
+        loadedProbeRef.current = { forId: file, volumeId, imageIds };
         try {
           // The completion callback — not the volume-shell creation above —
           // counts toward taking the spinner down, once the pixel data has
@@ -448,7 +470,18 @@ export default function NiftiReviewFile({
               hasPrevious={hasPrevious}
               currentId={file}
               idLabel="File"
-            />
+            >
+              {fileList && (
+                <IecQueue
+                  kind="nifti"
+                  items={fileList}
+                  currentId={file}
+                  onSelect={onSelectFile}
+                  idLabel="File"
+                  hint="← → navigate · G good · B bad · L blank · S scout · O other"
+                />
+              )}
+            </NavigationPanel>
           )}
           {/* The shell renders before the effect that creates the tool
               groups has run — ToolsPanel calls toolGroup.addTool on mount,

@@ -10,6 +10,8 @@ export default function DicomReviewVR({
   vr,
   iec,
   noIecs,
+  iecList,
+  onSelectIec,
   reviewStatus,
   dicomType,
   dicomTypeOptions,
@@ -37,6 +39,15 @@ export default function DicomReviewVR({
     onPrevious();
   }
 
+  // A row of the IEC queue: the same reset as next/previous. The exam already
+  // on screen is ignored, so clicking it doesn't reset its options.
+  function handleSelectIec(selectedIec) {
+    if (String(selectedIec) === String(iec)) return;
+    dispatch(resetOptions());
+    dispatch(setOption({ key: "preset", value: null }));
+    onSelectIec(selectedIec);
+  }
+
   // When there are no IECs or IEC isn't selected yet, show a message in the middle panel
   return (
     <DicomReviewIEC
@@ -44,6 +55,8 @@ export default function DicomReviewVR({
       vr={vr}
       iec={iec}
       noIecs={noIecs}
+      iecList={iecList}
+      onSelectIec={handleSelectIec}
       reviewStatus={reviewStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}

@@ -782,11 +782,9 @@ skipDraftSaveRef.current = true;   // stop the cleanup from re-saving it
 `skipDraftSaveRef` is essential: the box is still drawn on screen when you hit
 Accept, so without it the navigation cleanup would helpfully save it right back.
 
-> **Note on unused code.** `subscribeMaskDrafts` / `getMaskDraftIds` are a live
-> observable API for a queue UI that marks exams with a pending selection. That
-> UI lives on the `iec-list` branch and is **not** on this branch, so these two
-> exports are currently unused. They were kept deliberately so the two features
-> reconnect without changes here.
+> **Used by the IEC queue.** `subscribeMaskDrafts` / `getMaskDraftIds` are a
+> live observable API the IEC queue (ported from the `iec-list` branch, see
+> [iec-queue.md](iec-queue.md)) uses to mark exams with a pending selection.
 
 ### 4.8 Accept validates a real 3D box
 
@@ -933,8 +931,9 @@ sequenceDiagram
   `maskDrafts` re-clamps on restore, but a draft saved at one decimation and
   restored at another is approximate.
 - **Drafts don't survive a page reload** — by design (§4.7).
-- **`subscribeMaskDrafts` / `getMaskDraftIds` are currently unused** — they exist
-  for the IEC-queue UI on the `iec-list` branch (§4.7).
+- **`subscribeMaskDrafts` / `getMaskDraftIds` feed the IEC queue** — its
+  "Active mask" marker and filter on the Mask route (§4.7,
+  [iec-queue.md](iec-queue.md)).
 - **Clear works around a Cornerstone bug** by swapping in a new randomly-named
   segmentation; the `updateSurfaceData` error for the old one still appears in
   the console.

@@ -10,6 +10,8 @@ export default function MaskReviewVR({
   vr,
   iec,
   noIecs,
+  iecList,
+  onSelectIec,
   maskingStatus,
   dicomType,
   dicomTypeOptions,
@@ -37,11 +39,22 @@ export default function MaskReviewVR({
     onPrevious();
   }
 
+  // A row of the IEC queue: the same reset as next/previous. The exam already
+  // on screen is ignored, so clicking it doesn't reset its options.
+  function handleSelectIec(selectedIec) {
+    if (String(selectedIec) === String(iec)) return;
+    dispatch(resetOptions());
+    dispatch(setOption({ key: "preset", value: null }));
+    onSelectIec(selectedIec);
+  }
+
   return (
     <MaskReviewIEC
       vr={vr}
       iec={iec}
       noIecs={noIecs}
+      iecList={iecList}
+      onSelectIec={handleSelectIec}
       maskingStatus={maskingStatus}
       dicomType={dicomType}
       dicomTypeOptions={dicomTypeOptions}
