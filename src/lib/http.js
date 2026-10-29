@@ -39,6 +39,16 @@ export function isAuthStatus(status) {
 }
 
 /**
+ * The server detail worth keeping from a failed response. Gateway errors
+ * (nginx 502/503/504) come back as an HTML error page, which is noise in a
+ * toast, so those keep just the status text ("Bad Gateway").
+ */
+function errorDetail(response, body) {
+  const isHtmlPage = /^\s*<(!doctype|html)/i.test(body);
+  return isHtmlPage ? response.statusText : body;
+}
+
+/**
  * Fetch JSON from the API, throwing an `ApiError` on any failure.
  *
  * @param {string} url
@@ -59,7 +69,8 @@ export async function requestJSON(url, options, { errorMessage } = {}) {
   }
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
+    const body = await response.text().catch(() => "");
+    const detail = errorDetail(response, body);
     // A rejected credential is never about the operation the caller was
     // attempting, so the auth message wins over the caller's errorMessage.
     const message = isAuthStatus(response.status)
