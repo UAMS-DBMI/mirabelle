@@ -367,7 +367,6 @@ function VolumeViewport({
     // The volume can be gone (LRU-evicted) while its images were still
     // streaming — don't throw on a view-mode toggle in that window.
     if (!viewport || !volume) return;
-    const volDimensions = volume.dimensions;
 
     // MIP and MinIP differ only in which sample along each ray wins; both
     // project through the whole volume.
@@ -377,10 +376,16 @@ function VolumeViewport({
     }[viewMode];
 
     if (projectionBlendMode !== undefined) {
-      const volSlab = Math.sqrt(
-        volDimensions[0] * volDimensions[0] +
-          volDimensions[1] * volDimensions[1] +
-          volDimensions[2] * volDimensions[2],
+      // Cornerstone places the slab's clipping planes at the focal point
+      // plus and minus the slab thickness, in world millimeters. The physical
+      // diagonal is the longest distance between any two points of the
+      // volume, so from any slice, in any orientation, nothing is clipped.
+      // (Using voxel counts here left thick-slice volumes partially
+      // projected at either end.)
+      const volSlab = Math.hypot(
+        volume.dimensions[0] * volume.spacing[0],
+        volume.dimensions[1] * volume.spacing[1],
+        volume.dimensions[2] * volume.spacing[2],
       );
 
       viewport.setBlendMode(projectionBlendMode);
