@@ -97,6 +97,16 @@ export function takeNiftiLoadFailure(url) {
 }
 
 /**
+ * Forget how the file at `url` last loaded, so a deliberate reload waits for
+ * the new download instead of replaying the old outcome.
+ *
+ * @param {string} url
+ */
+export function forgetNiftiFileRead(url) {
+  outcomeByUrl.delete(url);
+}
+
+/**
  * The headline for a failed load. The patched loader names volumes too large
  * for the browser, which no retry will fix.
  *
