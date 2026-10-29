@@ -53,32 +53,16 @@
   background: rgba(255, 255, 255, 0.06);
   pointer-events: auto;
   cursor: pointer;
-  opacity: 0;
   transition:
-    opacity 0.15s ease,
     width 0.12s ease,
     background 0.12s ease;
   z-index: 15;
-}
-
-/* Reveal on hover over the pane, and keep it visible while actively scrubbing. */
-.viewport:hover .viewport-slice-scrollbar,
-.viewport-slice-scrollbar:hover,
-.viewport-slice-scrollbar.dragging {
-  opacity: 1;
 }
 
 .viewport-slice-scrollbar:hover,
 .viewport-slice-scrollbar.dragging {
   width: 10px;
   background: rgba(255, 255, 255, 0.1);
-}
-
-/* In MIP / MinIP the projection spans the whole volume, so the slice position
-   is meaningless; hide the scrollbar. `visibility` rather than `display`
-   because the scrollbar sets its own inline display on every render. */
-.viewport.projection .viewport-slice-scrollbar {
-  visibility: hidden;
 }
 
 .viewport-slice-scrollbar-thumb {

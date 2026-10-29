@@ -64,8 +64,9 @@ double-click gesture underneath it.
 
 Double-click already toggled a pane to fill the grid; nothing advertised it.
 [ViewportExpandButton.jsx](../src/components/ViewportExpandButton.jsx) is the
-same toggle made visible — a corner button that fades in on pane hover and
-swaps between `open_in_full` and `close_fullscreen`.
+same toggle made visible — a corner button that swaps between `open_in_full`
+and `close_fullscreen`. It originally faded in on pane hover; it is now always
+visible ([always-visible-viewport-controls.md](always-visible-viewport-controls.md)).
 
 Both viewport components had their own copy of the toggle, so the button meant a
 third. They now share `toggleViewportExpanded` in
