@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useLayoutEffect } from "react";
 import { useLoaderData } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { resetOptions } from "@/features/optionSlice";
@@ -19,7 +19,11 @@ export default function RouteNiftiReviewFile() {
 
   let { file } = useLoaderData();
 
-  useEffect(() => {
+  // A layout effect, so this reset runs before NiftiReviewFile's load effect
+  // configures the tools (child effects run before the parent's). As a plain
+  // effect it ran after, wiping the View, Crosshairs, Preset and Opacity
+  // controls and the title.
+  useLayoutEffect(() => {
     dispatch(resetOptions());
     dispatch(reset());
     dispatch(setVisualReviewConfig());
