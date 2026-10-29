@@ -675,7 +675,9 @@ useEffect(() => {
 Navigating away used to discard an unsubmitted selection. Now it's remembered.
 
 **What's stored:** only the IJK bounding box — `{i:{min,max}, j:…, k:…}` — in a
-module-level `Map` keyed by IEC:
+module-level `Map` keyed by IEC. `k` is kept as full-series slice numbers, so
+a draft survives a Decimate change
+([mask-draft-decimation-fix.md](mask-draft-decimation-fix.md)):
 
 ```js
 const drafts = new Map();
