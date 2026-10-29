@@ -10,6 +10,7 @@ import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { attachDataFrame } from "@/lib/viewportFrame";
 import { attachFramePreview } from "@/lib/stackFramePreview";
+import { attachSliceScrollbar } from "@/lib/sliceScrollbar";
 import { setOption } from "@/features/optionSlice";
 import ViewportLabel from "@/components/ViewportLabel";
 
@@ -48,6 +49,7 @@ function StackViewport({
   const elementRef = useRef(null);
   const frameDetachRef = useRef(null);
   const previewDetachRef = useRef(null);
+  const scrollbarDetachRef = useRef(null);
   const segReadyListenerRef = useRef(null);
 
   const [initialized, setInitialized] = useState(false);
@@ -207,6 +209,13 @@ function StackViewport({
       // Draw the data-boundary frame (replacing any from a previous image).
       frameDetachRef.current?.();
       frameDetachRef.current = attachDataFrame(viewport, elementRef.current);
+      // Same slice scrollbar as the volume panes (replacing any from a
+      // previous stack).
+      scrollbarDetachRef.current?.();
+      scrollbarDetachRef.current = attachSliceScrollbar(
+        viewport,
+        elementRef.current,
+      );
 
       setInitialized(true);
     };
@@ -235,6 +244,8 @@ function StackViewport({
       frameDetachRef.current = null;
       previewDetachRef.current?.();
       previewDetachRef.current = null;
+      scrollbarDetachRef.current?.();
+      scrollbarDetachRef.current = null;
       cornerstone.eventTarget.removeEventListener(
         "StackSegmentationReady",
         segReadyListenerRef.current,

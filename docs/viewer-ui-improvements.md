@@ -200,9 +200,9 @@ before the first pane appears is now something the user watches.
 
 ## 7. Known gaps
 
-- **The scrollbar is 2D-volume only.** `attachSliceScrollbar` is wired in
-  `VolumeViewport` alone; the stack viewport, which is exactly where a slice
-  indicator is most expected, doesn't have one.
+- **~~The scrollbar is 2D-volume only.~~** Resolved: the stack
+  viewport attaches the same scrollbar
+  ([stack-slice-scrollbar.md](stack-slice-scrollbar.md)).
 - **Expand state is DOM-owned.** `toggleViewportExpanded` mutates classes and
   each component mirrors the result in local state. Two panes cannot disagree in
   practice, but nothing enforces that — a second expand path would have to keep
