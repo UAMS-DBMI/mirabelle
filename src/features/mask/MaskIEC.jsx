@@ -248,6 +248,7 @@ export default function MaskIEC({
   const [volumeId, setVolumeId] = useState();
   const [segmentationId, setSegmentationId] = useState();
   const [imageIds, setImageIds] = useState();
+  const [frameCounts, setFrameCounts] = useState();
 
   const [toolGroup, setToolGroup] = useState();
   const [toolGroup3d, setToolGroup3d] = useState();
@@ -501,6 +502,7 @@ export default function MaskIEC({
       const imageIds = iecInfo.frames;
 
       setImageIds(imageIds);
+      setFrameCounts(iecInfo.frameCounts);
 
       setVolumeId(volumeId);
       setVolumetric(volumetric); // still update state
@@ -1572,6 +1574,7 @@ export default function MaskIEC({
               toolGroup={toolGroup}
               toolGroup3d={toolGroup3d}
               preset3d={preset3d}
+              frameCounts={frameCounts}
               onPresetChange={
                 (value) => dispatch(setOption({ key: "preset", value })) // ← dispatch changes
               }

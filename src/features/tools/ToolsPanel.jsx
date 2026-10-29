@@ -8,6 +8,7 @@ import * as cornerstoneTools from "@cornerstonejs/tools";
 
 import MaterialButtonSet from "@/components/MaterialButtonSet";
 import MaterialIcon from "@/components/MaterialIcon";
+import DecimationNotice from "@/components/DecimationNotice";
 
 import useToolsManager from "./toolsManager";
 import useToolsConfigs from "./toolsConfig";
@@ -27,6 +28,7 @@ export default function ToolsPanel({
   preset3d,
   renderingEngine,
   onApplyDecimate,
+  frameCounts,
 }) {
   const dispatch = useDispatch();
 
@@ -119,6 +121,19 @@ export default function ToolsPanel({
     event.preventDefault();
     handleDecimateApply();
   };
+
+  // Escape hides the hover notice until the pointer comes back to the input
+  const [isNoticeDismissed, setNoticeDismissed] = useState(false);
+
+  useEffect(() => {
+    const dismissOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setNoticeDismissed(true);
+      }
+    };
+    window.addEventListener("keydown", dismissOnEscape);
+    return () => window.removeEventListener("keydown", dismissOnEscape);
+  }, []);
 
   const handlePersistentToggle = () => {
     dispatch(setOption({ key: "persistent", value: !persistent }));
@@ -240,16 +255,21 @@ export default function ToolsPanel({
         {decimateToolGroup.visible && (
           <div className="decimate-control">
             <p>Decimate:</p>
-            <div className="decimate-control-row">
+            <div
+              className={`decimate-control-row ${isNoticeDismissed ? "is-notice-dismissed" : ""}`}
+            >
               <input
                 type="text"
                 id="decimate-input"
                 value={appliedDecimate}
                 onChange={handleDecimateChange}
                 onKeyDown={handleDecimateInputKeyDown}
-                className="decimate-input"
+                onMouseEnter={() => setNoticeDismissed(false)}
+                className={`decimate-input ${decimate > 0 ? "is-decimating" : ""}`}
                 placeholder="300"
               />
+              {/* Shown under the row only while the input is hovered */}
+              <DecimationNotice frameCounts={frameCounts} />
               <button
                 type="button"
                 title="Persistent"
