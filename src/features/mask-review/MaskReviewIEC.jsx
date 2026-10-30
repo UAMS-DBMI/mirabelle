@@ -54,7 +54,7 @@ import FilterPanel from "@/components/FilterPanel";
 import { DetailsPanel } from "@/features/details";
 
 import RouteLayout from "@/components/RouteLayout";
-import IecQueue from "@/components/IecQueue";
+import IecExplorer from "@/components/IecExplorer";
 import { markExamLoaded } from "@/lib/loadedExams";
 import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
@@ -155,7 +155,7 @@ export default function MaskReviewIEC({
   // new exam with the previous exam's cached data.
   const loadedProbeRef = useRef(null);
 
-  // Flag this exam as loaded in the IEC queue once its images have actually
+  // Flag this exam as loaded in the IEC explorer once its images have actually
   // arrived (the spinner comes down). markExamLoaded independently verifies
   // every frame is in the cache.
   useEffect(() => {
@@ -462,10 +462,10 @@ export default function MaskReviewIEC({
     }
   }
 
-  // The exam queue renders inside the navigation panel, so curators can jump
-  // to any exam in the list, loading or loaded.
-  const iecQueue = vr && iecList && (
-    <IecQueue
+  // The IEC explorer card sits under the navigation panel, so curators can
+  // jump to any exam in the list, loading or loaded.
+  const iecExplorer = vr && iecList && (
+    <IecExplorer
       kind="mask-review"
       items={iecList}
       currentId={iec}
@@ -479,16 +479,17 @@ export default function MaskReviewIEC({
       <RouteLayout
         routeName="mask-review-vr"
         leftPanel={
-          <NavigationPanel
-            onNext={onNext}
-            onPrevious={onPrevious}
-            hasNext={hasNext}
-            hasPrevious={hasPrevious}
-            currentId={iec}
-            idLabel="IEC"
-          >
-            {iecQueue}
-          </NavigationPanel>
+          <>
+            <NavigationPanel
+              onNext={onNext}
+              onPrevious={onPrevious}
+              hasNext={hasNext}
+              hasPrevious={hasPrevious}
+              currentId={iec}
+              idLabel="IEC"
+            />
+            {iecExplorer}
+          </>
         }
         middlePanel={
           <>
@@ -575,10 +576,9 @@ export default function MaskReviewIEC({
               hasPrevious={hasPrevious}
               currentId={iec}
               idLabel="IEC"
-            >
-              {iecQueue}
-            </NavigationPanel>
+            />
           )}
+          {iecExplorer}
           {/* The shell renders before the effect that creates the tool
               groups has run — ToolsPanel calls toolGroup.addTool on mount,
               so it must not mount until they exist. */}

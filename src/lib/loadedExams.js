@@ -2,8 +2,8 @@ import * as cornerstone from "@cornerstonejs/core";
 
 /*
  * Session registry of exams whose source images are currently in the
- * Cornerstone cache — i.e. reopening them is instant. The IEC queue reads this
- * to flag "already loaded" rows.
+ * Cornerstone cache — i.e. reopening them is instant. The IEC explorer reads
+ * this to flag "already loaded" tiles.
  *
  * Each exam records a cache "probe" captured when its load finished: the
  * source volumeId (volumes) or the source imageIds (stacks). "Loaded" is not a

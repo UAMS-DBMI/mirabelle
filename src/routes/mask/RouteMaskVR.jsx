@@ -133,8 +133,8 @@ export default function RouteMaskVR() {
     }
   };
 
-  // A row of the IEC queue. The exam already on screen is ignored: resetting
-  // its options would reload it, as above.
+  // A tile of the IEC explorer. The exam already on screen is ignored:
+  // resetting its options would reload it, as above.
   const handleSelectIec = (selectedIec) => {
     if (String(selectedIec) === String(iec)) return;
     resetExamOptions();

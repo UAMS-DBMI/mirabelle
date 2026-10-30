@@ -1,0 +1,343 @@
+/* IecExplorer.css */
+
+/* The explorer takes the left column's spare height, at least about half of
+   it. Beside it, Tools keeps its own height (scrolling inside if the column
+   runs short) rather than splitting the column evenly; folding Tools hands
+   the explorer the whole column. */
+.side-panel.iec-explorer:not(.collapsed) {
+  flex: 1 1 0;
+  min-height: min(22rem, 45%);
+}
+
+#left-panel:has(> .iec-explorer:not(.collapsed))
+  > #tools-panel:not(.collapsed) {
+  flex: 0 1 auto;
+}
+
+/* ————— Progress, search and filters ————— */
+
+.iec-explorer__progress {
+  flex: none;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.3);
+}
+
+.iec-explorer__progress > div {
+  height: 100%;
+  border-radius: inherit;
+  background: #22c55e;
+  transition: width 0.3s ease;
+}
+
+.iec-explorer__search {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.iec-explorer__search-icon {
+  position: absolute;
+  left: 0.5rem;
+  font-size: 1.05rem;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.iec-explorer__search input {
+  @apply w-full rounded-md py-1 pr-2 pl-8 text-sm
+    bg-blue-200/60 dark:bg-blue-950/60
+    placeholder:opacity-50
+    border border-blue-300 dark:border-blue-800
+    focus:border-blue-500 dark:focus:border-blue-400
+    outline-none;
+}
+
+/* Status filter: one segmented control. */
+.iec-explorer__segments {
+  @apply flex flex-none flex-wrap gap-0.5 p-0.5 rounded-lg
+    bg-blue-200/60 dark:bg-blue-950/60;
+}
+
+.iec-explorer__segment {
+  @apply flex flex-auto items-center justify-center gap-1 rounded-md px-1.5 py-0.5
+    text-[11px] font-semibold opacity-80
+    hover:opacity-100 hover:bg-blue-300/50 dark:hover:bg-blue-800/60;
+}
+
+.iec-explorer__segment.is-active {
+  @apply bg-blue-600 text-white opacity-100 hover:bg-blue-600;
+}
+
+.iec-explorer__segment-count {
+  @apply font-medium opacity-75 tabular-nums;
+}
+
+.iec-explorer__segment .material-symbols-rounded {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+/* "Active mask": green, like the selection box overlay and the tile marker. */
+.iec-explorer__segment--draft {
+  @apply text-green-700 dark:text-green-300;
+}
+
+.iec-explorer__segment--draft.is-active {
+  @apply bg-green-600 text-white hover:bg-green-600;
+}
+
+/* Type and Loaded: small toggles that combine with the status filter. */
+.iec-explorer__toggles {
+  @apply flex flex-none flex-wrap gap-1;
+}
+
+.iec-explorer__toggle {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]
+    border border-blue-300 dark:border-blue-700
+    hover:bg-blue-200/60 dark:hover:bg-blue-800/60;
+}
+
+.iec-explorer__toggle .material-symbols-rounded {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.iec-explorer__toggle.is-active {
+  @apply bg-blue-600 border-blue-600 text-white hover:bg-blue-600;
+}
+
+/* Sky, like the tile's loaded checkmark. */
+.iec-explorer__toggle--loaded {
+  @apply border-sky-400 text-sky-700 dark:text-sky-300;
+}
+
+.iec-explorer__toggle--loaded.is-active {
+  @apply bg-sky-600 border-sky-600 text-white hover:bg-sky-600;
+}
+
+/* ————— The grid —————
+   Only a window of rows is rendered: the spacer is the full height of the
+   grid, and the grid of visible rows is moved down within it (see
+   IecExplorer.jsx). The list scrolls via the shared .wrapper styling. */
+
+.iec-explorer__list {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.iec-explorer__spacer {
+  position: relative;
+  flex: none;
+  width: 100%;
+}
+
+.iec-explorer__grid {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: grid;
+  will-change: transform;
+}
+
+.iec-explorer__empty {
+  @apply py-4 text-center text-sm opacity-60;
+}
+
+.iec-explorer__hint {
+  @apply flex-none text-[10px] text-center opacity-60 whitespace-normal leading-tight;
+}
+
+/* ————— Tiles —————
+   A square thumbnail and an 18px caption, 4px apart: CAPTION_PX in
+   IecExplorer.jsx. */
+
+.iec-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.iec-tile:focus-visible {
+  outline: none;
+}
+
+.iec-tile__image {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+  transition: box-shadow 0.15s ease;
+}
+
+.iec-tile:hover .iec-tile__image,
+.iec-tile:focus-visible .iec-tile__image {
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.6);
+}
+
+.iec-tile.is-selected .iec-tile__image {
+  box-shadow:
+    0 0 0 2px #3b82f6,
+    0 0 0 5px rgba(59, 130, 246, 0.3);
+}
+
+.iec-tile__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.iec-tile__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.iec-tile__placeholder .material-symbols-rounded {
+  font-size: 2rem;
+}
+
+.iec-tile__placeholder.is-loading {
+  animation: iec-tile-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes iec-tile-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Review status, top left. */
+.iec-tile__status {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.iec-tile__status.pending {
+  background: #fbbf24;
+}
+
+.iec-tile__status.done {
+  background: #22c55e;
+}
+
+.iec-tile__status.skipped {
+  background: #94a3b8;
+}
+
+/* Unsubmitted selection (green) and fully loaded (sky), top right. */
+.iec-tile__badges {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 2px;
+  padding: 1px 3px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.iec-tile__badges .material-symbols-rounded {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.iec-tile__draft {
+  color: #4ade80;
+}
+
+.iec-tile__loaded {
+  color: #38bdf8;
+}
+
+/* IEC and image count over the bottom of the image. */
+.iec-tile__label {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 14px 7px 5px;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0));
+}
+
+.iec-tile.is-selected .iec-tile__label {
+  background: linear-gradient(
+    to top,
+    rgba(29, 78, 216, 0.95),
+    rgba(29, 78, 216, 0)
+  );
+}
+
+.iec-tile__id {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.iec-tile__count {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.iec-tile__caption {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.iec-tile__type {
+  flex: none;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.iec-tile__series {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+
+.iec-tile__size {
+  flex: none;
+  font-size: 10px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}

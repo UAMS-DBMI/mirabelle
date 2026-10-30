@@ -4,14 +4,6 @@
   @apply flex-none;
 }
 
-/* With the IEC queue nested inside, the panel grows to show rows, but caps
-   out so the tools panel below keeps room: the queue's 46vh plus roughly the
-   title and nav buttons above it. Folded, it's only its title. */
-#navigation-panel.with-queue:not(.collapsed) {
-  @apply flex-1 min-h-0;
-  max-height: calc(46vh + 9rem);
-}
-
 #navigation-panel ul {
   @apply flex flex-row;
 }

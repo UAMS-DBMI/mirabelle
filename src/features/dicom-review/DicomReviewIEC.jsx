@@ -71,7 +71,7 @@ import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
-import IecQueue from "@/components/IecQueue";
+import IecExplorer from "@/components/IecExplorer";
 import { markExamLoaded } from "@/lib/loadedExams";
 
 import "./DicomReviewIEC.css";
@@ -178,7 +178,7 @@ export default function DicomReviewIEC({
   // new exam with the previous exam's cached data.
   const loadedProbeRef = useRef(null);
 
-  // Flag this exam as loaded in the IEC queue once its images have actually
+  // Flag this exam as loaded in the IEC explorer once its images have actually
   // arrived (the spinner comes down). markExamLoaded independently verifies
   // every frame is in the cache.
   useEffect(() => {
@@ -561,10 +561,10 @@ export default function DicomReviewIEC({
     );
   }
 
-  // The exam queue renders inside the navigation panel, so curators can jump
-  // to any exam in the list, loading or loaded.
-  const iecQueue = vr && iecList && (
-    <IecQueue
+  // The IEC explorer card sits under the navigation panel, so curators can
+  // jump to any exam in the list, loading or loaded.
+  const iecExplorer = vr && iecList && (
+    <IecExplorer
       kind="dicom-review"
       items={iecList}
       currentId={iec}
@@ -597,10 +597,9 @@ export default function DicomReviewIEC({
                 hasPrevious={hasPrevious}
                 currentId={iec}
                 idLabel="IEC"
-              >
-                {iecQueue}
-              </NavigationPanel>
+              />
             )}
+            {iecExplorer}
             {toolGroup && (
               <ToolsPanel
                 toolGroup={toolGroup}
@@ -711,10 +710,9 @@ export default function DicomReviewIEC({
               hasPrevious={hasPrevious}
               currentId={iec}
               idLabel="IEC"
-            >
-              {iecQueue}
-            </NavigationPanel>
+            />
           )}
+          {iecExplorer}
           {toolGroup && (
             <ToolsPanel
               toolGroup={toolGroup}

@@ -53,7 +53,7 @@ import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 
 import { Context } from "@/components/Context.js";
 import RouteLayout from "@/components/RouteLayout";
-import IecQueue from "@/components/IecQueue";
+import IecExplorer from "@/components/IecExplorer";
 import { markExamLoaded } from "@/lib/loadedExams";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
 
@@ -141,7 +141,7 @@ export default function NiftiReviewFile({
   // new file with the previous file's cached data.
   const loadedProbeRef = useRef(null);
 
-  // Flag this file as loaded in the queue once its volume has actually
+  // Flag this file as loaded in the explorer once its volume has actually
   // streamed in (the spinner comes down). markExamLoaded independently
   // verifies the volume is in the cache.
   useEffect(() => {
@@ -470,18 +470,17 @@ export default function NiftiReviewFile({
               hasPrevious={hasPrevious}
               currentId={file}
               idLabel="File"
-            >
-              {fileList && (
-                <IecQueue
-                  kind="nifti"
-                  items={fileList}
-                  currentId={file}
-                  onSelect={onSelectFile}
-                  idLabel="File"
-                  hint="← → navigate · G good · B bad · L blank · S scout · O other"
-                />
-              )}
-            </NavigationPanel>
+            />
+          )}
+          {vr && fileList && (
+            <IecExplorer
+              kind="nifti"
+              items={fileList}
+              currentId={file}
+              onSelect={onSelectFile}
+              idLabel="File"
+              hint="← → navigate · G good · B bad · L blank · S scout · O other"
+            />
           )}
           {/* The shell renders before the effect that creates the tool
               groups has run — ToolsPanel calls toolGroup.addTool on mount,

@@ -83,7 +83,7 @@ import FilterPanel from "@/components/FilterPanel";
 import { DetailsPanel } from "@/features/details";
 
 import RouteLayout from "@/components/RouteLayout";
-import IecQueue from "@/components/IecQueue";
+import IecExplorer from "@/components/IecExplorer";
 import { markExamLoaded } from "@/lib/loadedExams";
 import ViewportPlaceholder from "@/components/ViewportPlaceholder";
 import ViewportGridPlaceholder from "@/components/ViewportGridPlaceholder";
@@ -270,7 +270,7 @@ export default function MaskIEC({
   // new exam with the previous exam's cached data.
   const loadedProbeRef = useRef(null);
 
-  // Flag this exam as loaded in the IEC queue once its images have actually
+  // Flag this exam as loaded in the IEC explorer once its images have actually
   // arrived (the spinner comes down). markExamLoaded independently verifies
   // every frame is in the cache.
   useEffect(() => {
@@ -1494,10 +1494,10 @@ export default function MaskIEC({
     return true;
   }
 
-  // The exam queue renders inside the navigation panel, so curators can jump
-  // to any exam in the list, loading or loaded.
-  const iecQueue = vr && iecList && (
-    <IecQueue
+  // The IEC explorer card sits under the navigation panel, so curators can
+  // jump to any exam in the list, loading or loaded.
+  const iecExplorer = vr && iecList && (
+    <IecExplorer
       kind="mask"
       items={iecList}
       currentId={iec}
@@ -1511,16 +1511,17 @@ export default function MaskIEC({
       <RouteLayout
         routeName="mask-vr"
         leftPanel={
-          <NavigationPanel
-            onNext={onNext}
-            onPrevious={onPrevious}
-            hasNext={hasNext}
-            hasPrevious={hasPrevious}
-            currentId={iec}
-            idLabel="IEC"
-          >
-            {iecQueue}
-          </NavigationPanel>
+          <>
+            <NavigationPanel
+              onNext={onNext}
+              onPrevious={onPrevious}
+              hasNext={hasNext}
+              hasPrevious={hasPrevious}
+              currentId={iec}
+              idLabel="IEC"
+            />
+            {iecExplorer}
+          </>
         }
         middlePanel={
           <>
@@ -1613,10 +1614,9 @@ export default function MaskIEC({
               hasPrevious={hasPrevious}
               currentId={iec}
               idLabel="IEC"
-            >
-              {iecQueue}
-            </NavigationPanel>
+            />
           )}
+          {iecExplorer}
           {toolGroup && toolGroup3d && (
             // Key on iec so the panel remounts per exam. Its
             // "AllowSegmentationDrawing" listener captures the tool manager at

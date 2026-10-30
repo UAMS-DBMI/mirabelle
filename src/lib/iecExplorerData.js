@@ -1,11 +1,12 @@
 /**
- * Data layer for the IEC queue panel (see components/IecQueue.jsx).
+ * Data layer for the IEC explorer (see components/IecExplorer.jsx).
  *
  * Every VR list endpoint returns bare ids, so each row enriches itself here:
  * per-id details (modality, series, status) and a small rendered thumbnail.
- * Everything is cached at module level so the queue stays warm across IEC
- * navigation — the panel remounts on every route change, and re-fetching
- * hundreds of rows each time would hammer the backend for identical data.
+ * Both are cached at module level so the explorer stays warm across IEC
+ * navigation. The details are also remembered in this browser, so after a
+ * reload every row shows at once and is refreshed in the background;
+ * thumbnails aren't, since they're renders of the images.
  */
 import * as cornerstone from "@cornerstonejs/core";
 import { wadouri } from "@cornerstonejs/dicom-image-loader";
@@ -19,39 +20,52 @@ import { renderImageToCanvas } from "@/lib/renderImageToCanvas";
  * Run async tasks with bounded concurrency. Row enrichment and thumbnail
  * rendering fire one task per list row — unbounded, a long VR would open
  * hundreds of concurrent requests and starve the exam load the curator is
- * actually waiting on.
+ * actually waiting on. A task can be hurried (rows on screen): it then starts
+ * ahead of the ones queued for the background fill.
+ *
+ * Returns a function that queues a task and returns `{ promise, hurry }`.
  */
 function createLimiter(maxConcurrent) {
   let active = 0;
-  const queue = [];
+  const waiting = [];
   const next = () => {
-    if (active >= maxConcurrent || queue.length === 0) return;
-    active += 1;
-    const { task, resolve, reject } = queue.shift();
-    task()
-      .then(resolve, reject)
-      .finally(() => {
+    while (active < maxConcurrent && waiting.length > 0) {
+      const urgentIndex = waiting.findIndex((job) => job.urgent);
+      const [job] = waiting.splice(Math.max(urgentIndex, 0), 1);
+      active += 1;
+      job.start().finally(() => {
         active -= 1;
         next();
       });
+    }
   };
-  return (task) =>
-    new Promise((resolve, reject) => {
-      queue.push({ task, resolve, reject });
-      next();
+  return (task) => {
+    const job = { urgent: false, start: null };
+    const promise = new Promise((resolve, reject) => {
+      job.start = () => Promise.resolve().then(task).then(resolve, reject);
     });
+    waiting.push(job);
+    next();
+    return {
+      promise,
+      // No effect once the task has started.
+      hurry: () => {
+        job.urgent = true;
+      },
+    };
+  };
 }
 
 const infoLimiter = createLimiter(4);
 const thumbnailLimiter = createLimiter(3);
 
 /**
- * Bucket a backend status string for the queue UI. The routes use different
+ * Bucket a backend status string for the explorer. The routes use different
  * vocabularies (review_status: Good/Bad/…, masking_status: accepted/skipped/…)
- * but the queue only distinguishes "not acted on yet", "skipped", and "done".
- * Returns null for undefined — status genuinely unknown (e.g. the nifti list,
- * whose details payload carries no status) — so the UI can omit the dot and
- * counters instead of miscounting everything as pending.
+ * but the explorer only distinguishes "not acted on yet", "skipped", and
+ * "done". Returns null for undefined — status genuinely unknown (e.g. the
+ * nifti list, whose details payload carries no status) — so the UI can omit
+ * the dot and counters instead of miscounting everything as pending.
  */
 export function statusKind(status) {
   if (status === undefined) return null;
@@ -113,29 +127,91 @@ const ROW_INFO_FETCHERS = {
 };
 ROW_INFO_FETCHERS["mask-review"] = ROW_INFO_FETCHERS.mask;
 
-const rowInfoCache = new Map(); // `${kind}:${id}` -> Promise<info>
+// ————— Remembered details —————
+//
+// Rows' details and size estimates, kept in localStorage between sessions.
+// Read once, written back a moment after the last change. Past
+// MAX_REMEMBERED the oldest are dropped, keeping the entry far below the
+// browser's quota (a row is about 100 bytes).
+const STORAGE_KEY = "mirabelle.iecExplorer.v1";
+const MAX_REMEMBERED = 5000;
+const SAVE_DELAY_MS = 1000;
+
+let remembered = null; // { rows: Map<`${kind}:${id}`, info>, sizes: Map<id, bytes> }
+let saveTimer = null;
+
+function rememberedData() {
+  if (remembered) return remembered;
+  remembered = { rows: new Map(), sizes: new Map() };
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+    stored?.rows?.forEach(([key, info]) => remembered.rows.set(key, info));
+    stored?.sizes?.forEach(([id, bytes]) => remembered.sizes.set(id, bytes));
+  } catch (error) {
+    console.warn("[iecExplorerData] couldn't read the remembered rows", error);
+  }
+  return remembered;
+}
+
+function saveRemembered() {
+  saveTimer = null;
+  const { rows, sizes } = rememberedData();
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ rows: [...rows], sizes: [...sizes] }),
+    );
+  } catch (error) {
+    console.warn("[iecExplorerData] couldn't remember the rows", error);
+  }
+}
+
+// A Map keeps insertion order, so re-inserting puts `key` last and the
+// oldest entry is always first.
+function remember(map, key, value) {
+  map.delete(key);
+  map.set(key, value);
+  if (map.size > MAX_REMEMBERED) map.delete(map.keys().next().value);
+  if (saveTimer === null) {
+    saveTimer = setTimeout(saveRemembered, SAVE_DELAY_MS);
+  }
+}
+
+const rowInfoRequests = new Map(); // `${kind}:${id}` -> { promise, hurry }
+
+/** The newest details known for a row (this session or remembered), or null. */
+export function peekRowInfo(kind, id) {
+  return rememberedData().rows.get(`${kind}:${id}`) ?? null;
+}
 
 /**
- * Cached, concurrency-limited row details. `fresh: true` bypasses the cache —
- * used for the row the curator just acted on, whose status changed server-side.
- * Failed fetches are evicted so scrolling back to a row retries it.
+ * Cached, concurrency-limited row details. `urgent` moves a queued request
+ * ahead of the background fill (a row on screen). `fresh: true` bypasses the
+ * cache — used for the row the curator just acted on, whose status changed
+ * server-side. Failed fetches are evicted so scrolling back to a row retries
+ * it.
  */
-export function getQueueRowInfo(kind, id, { fresh = false } = {}) {
+export function getRowInfo(kind, id, { fresh = false, urgent = false } = {}) {
   const fetcher = ROW_INFO_FETCHERS[kind];
   if (!fetcher) {
-    return Promise.reject(new Error(`Unknown IEC queue kind: ${kind}`));
+    return Promise.reject(new Error(`Unknown IEC explorer kind: ${kind}`));
   }
   const key = `${kind}:${id}`;
-  if (fresh) rowInfoCache.delete(key);
-  if (!rowInfoCache.has(key)) {
-    const promise = infoLimiter(() => fetcher(id));
-    promise.catch((error) => {
-      console.warn(`[iecQueueData] details failed for ${id}:`, error);
-      rowInfoCache.delete(key);
-    });
-    rowInfoCache.set(key, promise);
+  if (fresh) rowInfoRequests.delete(key);
+  let request = rowInfoRequests.get(key);
+  if (!request) {
+    request = infoLimiter(() => fetcher(id));
+    request.promise.then(
+      (info) => remember(rememberedData().rows, key, info),
+      (error) => {
+        console.warn(`[iecExplorerData] details failed for ${id}:`, error);
+        rowInfoRequests.delete(key);
+      },
+    );
+    rowInfoRequests.set(key, request);
   }
-  return rowInfoCache.get(key);
+  if (urgent) request.hurry();
+  return request.promise;
 }
 
 // The frames list is needed twice per row — middle-frame thumbnail and size
@@ -189,9 +265,9 @@ async function getMiddleFrameImageId(iec) {
 // frame's DICOM metadata, which the wadouri loader registers when the
 // thumbnail downloads that frame). Costs no extra network beyond what the
 // thumbnail already fetches; like the thumbnail, it appears when the row has
-// scrolled into view. Published as a version-counter external store so the
-// queue re-renders as estimates resolve.
-const sizeEstimates = new Map(); // idString -> bytes
+// scrolled into view, and is remembered with the row's details. Published as
+// a version-counter external store so the explorer re-renders as estimates
+// resolve.
 let sizeEstimatesVersion = 0;
 const sizeEstimateListeners = new Set();
 
@@ -206,11 +282,12 @@ export function getSizeEstimatesVersion() {
 
 /** Estimated decoded bytes for an exam, or null while unknown. */
 export function getCachedSizeEstimate(id) {
-  return sizeEstimates.get(String(id)) ?? null;
+  return rememberedData().sizes.get(String(id)) ?? null;
 }
 
 async function recordSizeEstimate(id, middleFrameImageId) {
-  if (sizeEstimates.has(String(id))) return;
+  const { sizes } = rememberedData();
+  if (sizes.has(String(id))) return;
   const { totalFrames } = await getFramesInfo(id);
   const pixelModule = cornerstone.metaData.get(
     "imagePixelModule",
@@ -219,7 +296,8 @@ async function recordSizeEstimate(id, middleFrameImageId) {
   const { rows, columns, bitsAllocated, samplesPerPixel } = pixelModule ?? {};
   if (!rows || !columns || !totalFrames) return;
   const bytesPerPixel = ((bitsAllocated ?? 16) / 8) * (samplesPerPixel ?? 1);
-  sizeEstimates.set(
+  remember(
+    sizes,
     String(id),
     Math.round(totalFrames * rows * columns * bytesPerPixel),
   );
@@ -227,13 +305,18 @@ async function recordSizeEstimate(id, middleFrameImageId) {
   sizeEstimateListeners.forEach((listener) => listener());
 }
 
-const THUMBNAIL_SIZE = 128; // rendered at 2× the ~40px display size for retina
+// Rendered at about 2× the explorer's ~124px tiles, for retina screens.
+const THUMBNAIL_SIZE = 256;
+// A thumbnail that failed isn't tried again for this long: tiles remount as
+// the grid scrolls, and each would otherwise download the broken file again.
+const THUMBNAIL_RETRY_MS = 60_000;
 
 const thumbnailCache = new Map(); // `${kind}:${id}` -> Promise<dataUrl>
 const resolvedThumbnails = new Map(); // `${kind}:${id}` -> dataUrl
+const failedThumbnails = new Map(); // `${kind}:${id}` -> time it failed
 
 /**
- * Synchronous peek used on row mount so previously rendered thumbnails paint
+ * Synchronous peek used on tile mount so previously rendered thumbnails paint
  * on the first frame instead of flickering through the placeholder.
  */
 export function getCachedThumbnail(kind, id) {
@@ -242,16 +325,19 @@ export function getCachedThumbnail(kind, id) {
 
 /**
  * An IEC's middle frame as a small JPEG data URL, or null while it can't be
- * drawn yet (see renderMiddleFrame); a null isn't cached, so the next ask
- * tries again. Nifti files have no cheap single frame to fetch (one download
- * is the whole volume), so that kind resolves to null and the row keeps its
- * placeholder.
+ * drawn (see renderMiddleFrame) or after a recent failure; a null isn't
+ * cached, so a later ask tries again. Nifti files have no cheap single frame
+ * to fetch (one download is the whole volume), so that kind resolves to null
+ * and the tile keeps its placeholder.
  */
 export function getIecThumbnail(kind, id) {
   if (kind === "nifti") return Promise.resolve(null);
   const key = `${kind}:${id}`;
+  if (Date.now() - (failedThumbnails.get(key) ?? 0) < THUMBNAIL_RETRY_MS) {
+    return Promise.resolve(null);
+  }
   if (!thumbnailCache.has(key)) {
-    const promise = thumbnailLimiter(() => renderMiddleFrame(id));
+    const { promise } = thumbnailLimiter(() => renderMiddleFrame(id));
     promise.then(
       (dataUrl) => {
         if (dataUrl) {
@@ -261,8 +347,9 @@ export function getIecThumbnail(kind, id) {
         }
       },
       (error) => {
-        console.warn(`[iecQueueData] thumbnail failed for ${id}:`, error);
+        console.warn(`[iecExplorerData] thumbnail failed for ${id}:`, error);
         thumbnailCache.delete(key);
+        failedThumbnails.set(key, Date.now());
       },
     );
     thumbnailCache.set(key, promise);
@@ -293,7 +380,7 @@ async function renderMiddleFrame(id) {
   // The frame carries the exam's pixel geometry: derive the size estimate
   // now, while its metadata is registered.
   await recordSizeEstimate(id, imageId).catch((error) => {
-    console.warn(`[iecQueueData] size estimate failed for ${id}:`, error);
+    console.warn(`[iecExplorerData] size estimate failed for ${id}:`, error);
   });
   // Keep only the data URL: a decoded frame of every listed exam would fill
   // the image cache outside the exam cache's budget (makeRoom in

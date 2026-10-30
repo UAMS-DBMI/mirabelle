@@ -39,8 +39,8 @@ export default function DicomReviewVR({
     onPrevious();
   }
 
-  // A row of the IEC queue: the same reset as next/previous. The exam already
-  // on screen is ignored, so clicking it doesn't reset its options.
+  // A tile of the IEC explorer: the same reset as next/previous. The exam
+  // already on screen is ignored, so clicking it doesn't reset its options.
   function handleSelectIec(selectedIec) {
     if (String(selectedIec) === String(iec)) return;
     dispatch(resetOptions());

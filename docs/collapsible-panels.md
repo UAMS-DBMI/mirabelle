@@ -1,7 +1,7 @@
 # Collapsible Side Panels — Implementation Notes
 
-Every card in the side columns (Navigation, Tools, Details, Segments) folds to
-its title bar.
+Every card in the side columns (Navigation, IEC Explorer, Tools, Details,
+Segments) folds to its title bar.
 
 **Branch:** `all-features-explorers`
 
@@ -25,10 +25,8 @@ since some panels set their children's display by id) and takes the card out
 of the column's flex share, so the cards around it get the room.
 
 The card's children stay direct children of `.side-panel`, exactly as before,
-so no panel's own layout or CSS changed, but for one rule: Navigation grows
-around the IEC queue only while it's open (`with-queue:not(.collapsed)`). A
-folded card's content stays mounted, just hidden, so nothing reloads or loses
-its state on unfolding.
+so no panel's own layout or CSS changed. A folded card's content stays
+mounted, just hidden, so nothing reloads or loses its state on unfolding.
 
 Each card remembers whether it's folded in `localStorage`
 (`mirabelle.foldedPanels`, keyed by `panelKey`): a curator who folds Tools
@@ -41,6 +39,7 @@ The whole side columns still collapse with the ‹ › buttons, as before.
 | Card | `panelKey` |
 |---|---|
 | Navigation | `navigation` |
+| IEC Explorer | `iec-explorer` |
 | Tools | `tools` |
 | Details | `details` |
 | Segments | `segments` |

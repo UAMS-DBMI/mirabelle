@@ -35,8 +35,8 @@ export default function NiftiReviewVR({
     onPrevious();
   }
 
-  // A row of the file queue: the same reset as next/previous. The file already
-  // on screen is ignored, so clicking it doesn't reset its options.
+  // A tile of the file explorer: the same reset as next/previous. The file
+  // already on screen is ignored, so clicking it doesn't reset its options.
   function handleSelectFile(selectedFile) {
     if (String(selectedFile) === String(file)) return;
     dispatch(resetOptions());
