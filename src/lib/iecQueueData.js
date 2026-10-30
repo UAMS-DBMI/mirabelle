@@ -13,6 +13,7 @@ import { wadouri } from "@cornerstonejs/dicom-image-loader";
 import { getDicomDetails, getNiftiDetails } from "@/visualreview";
 import { getMaskingDetails } from "@/masking";
 import { isExamFile } from "@/lib/examDownloads";
+import { renderImageToCanvas } from "@/lib/renderImageToCanvas";
 
 /**
  * Run async tasks with bounded concurrency. Row enrichment and thumbnail
@@ -287,11 +288,7 @@ async function renderMiddleFrame(id) {
   const canvas = document.createElement("canvas");
   canvas.width = THUMBNAIL_SIZE;
   canvas.height = THUMBNAIL_SIZE;
-  await cornerstone.utilities.loadImageToCanvas({
-    canvas,
-    imageId,
-    requestType: cornerstone.Enums.RequestType.Thumbnail,
-  });
+  await renderImageToCanvas(canvas, imageId);
   const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
   // The frame carries the exam's pixel geometry: derive the size estimate
   // now, while its metadata is registered.

@@ -1,5 +1,6 @@
 /**
- * Renders one image into a canvas, for the stack's slice browser thumbnails.
+ * Renders one image into a canvas, for thumbnails: the stack's slice browser
+ * and the IEC explorer's middle frames.
  *
  * Cornerstone's loadImageToCanvas does this, but it doesn't pass a render
  * error on: the error escapes as an uncaught rejection (an error toast) and

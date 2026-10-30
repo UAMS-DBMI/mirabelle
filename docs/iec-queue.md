@@ -15,6 +15,7 @@ route, ported from the `iec-list` branch.
 | [src/lib/iecQueueData.js](../src/lib/iecQueueData.js) | Row details, middle-frame thumbnails and size estimates, cached per session |
 | [src/lib/loadedExams.js](../src/lib/loadedExams.js) | Which exams are fully in the cache |
 | [src/lib/examDownloads.js](../src/lib/examDownloads.js) | `isExamFile`, for the thumbnails |
+| [src/lib/renderImageToCanvas.js](../src/lib/renderImageToCanvas.js) | Draws a thumbnail (shared with the slice browser) |
 | [src/components/NavigationPanel.jsx](../src/components/NavigationPanel.jsx) | Renders the queue as its children |
 
 The four VR routes (DICOM review, Mask, Mask Review, NIfTI review) pass their
@@ -60,6 +61,13 @@ thumbnail would cost a download of the whole volume.
     budget, unless an exam has it or opened meanwhile.
 - **Thumbnails are 128px**, as the code intended (`thumbnail: true` made them
   256px).
+- **Thumbnails are drawn by `lib/renderImageToCanvas`**, not Cornerstone's
+  `loadImageToCanvas`. That one turned a PT series with an identity rescale
+  (slope 1, intercept 0) into an error toast ("Cannot read properties of
+  undefined (reading 'scaled')"): its renderer reads `image.preScale.scaled`
+  for PT, and the DICOM loader leaves `preScale` out when it didn't rescale.
+  And as it never passes a render error on, the thumbnail never finished,
+  holding one of the three render slots for good.
 - **Failures are logged** (`[iecQueueData]` warnings) rather than dropped.
 
 The header glyph, the "IEC · modality · series" detail and the mask-draft
