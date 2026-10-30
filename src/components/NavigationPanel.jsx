@@ -1,5 +1,6 @@
 import React from "react";
 import MaterialButtonSet from "@/components/MaterialButtonSet";
+import CollapsiblePanel from "@/components/CollapsiblePanel";
 
 import "./NavigationPanel.css";
 
@@ -27,15 +28,16 @@ function NavigationPanel({
   const hasQueue = React.Children.toArray(children).length > 0;
 
   return (
-    <div
+    <CollapsiblePanel
       id="navigation-panel"
-      className={`side-panel${hasQueue ? " with-queue" : ""}`}
+      panelKey="navigation"
+      title="Navigation"
+      className={hasQueue ? "with-queue" : undefined}
     >
       {/* {currentId && <p>{idLabel}: {currentId}</p>} */}
-      <h2 id="title">Navigation</h2>
       <MaterialButtonSet buttonConfig={navButtons} noRemember={true} />
       {children}
-    </div>
+    </CollapsiblePanel>
   );
 }
 

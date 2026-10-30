@@ -14,6 +14,7 @@ import * as cornerstoneTools from "@cornerstonejs/tools";
 import MaterialButtonSet from "@/components/MaterialButtonSet";
 import MaterialIcon from "@/components/MaterialIcon";
 import DecimationNotice from "@/components/DecimationNotice";
+import CollapsiblePanel from "@/components/CollapsiblePanel";
 
 import useToolsManager from "./toolsManager";
 import useToolsConfigs from "./toolsConfig";
@@ -240,8 +241,7 @@ export default function ToolsPanel({
   };
 
   return (
-    <div id="tools-panel" className="side-panel">
-      <h2 id="title">Tools</h2>
+    <CollapsiblePanel id="tools-panel" panelKey="tools" title="Tools">
       <div className="wrapper">
         {globalToolsConfig.viewToolGroup.visible && (
           <div>
@@ -504,6 +504,6 @@ export default function ToolsPanel({
           </div>
         )}
       </div>
-    </div>
+    </CollapsiblePanel>
   );
 }

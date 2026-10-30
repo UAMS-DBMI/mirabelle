@@ -45,6 +45,8 @@ components/
 ├── AppLayout.css
 ├── AppLayout.jsx                    # Main application layout
 ├── CacheStatus.jsx                  # Header image-cache usage indicator
+├── CollapsiblePanel.css
+├── CollapsiblePanel.jsx             # Side-panel card that folds to its title, remembered per browser
 ├── Context.js                       # React context definitions
 ├── Counter.css
 ├── Counter.jsx                      # Counter component

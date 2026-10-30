@@ -3,6 +3,8 @@ import * as cornerstoneTools from "@cornerstonejs/tools";
 const { segmentation } = cornerstoneTools;
 import { useSelector } from "react-redux";
 
+import CollapsiblePanel from "@/components/CollapsiblePanel";
+
 import "./SegPanel.css";
 
 export default function SegPanel({ segments }) {
@@ -96,8 +98,7 @@ export default function SegPanel({ segments }) {
   }
 
   return (
-    <div id="seg-panel" className="side-panel">
-      <h2 id="title">Segments</h2>
+    <CollapsiblePanel id="seg-panel" panelKey="segments" title="Segments">
       {!displaySegments || displaySegments.length === 0 ? (
         <p>No segment data available.</p>
       ) : (
@@ -123,6 +124,6 @@ export default function SegPanel({ segments }) {
           </ul>
         </>
       )}
-    </div>
+    </CollapsiblePanel>
   );
 }

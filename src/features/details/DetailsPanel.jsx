@@ -4,6 +4,7 @@ import quinceLogo from "@/assets/quince-small-logo.svg";
 
 import { notify } from "@/lib/notify";
 import { messages } from "@/lib/messages";
+import CollapsiblePanel from "@/components/CollapsiblePanel";
 import "./DetailsPanel.css";
 
 function downloadFile(details) {
@@ -57,8 +58,7 @@ export default function DetailsPanel({ details, onReload }) {
   }
 
   return (
-    <div id="details-panel" className="side-panel">
-      <h2 id="title">Details</h2>
+    <CollapsiblePanel id="details-panel" panelKey="details" title="Details">
       <div className="wrapper">
         {Object.entries(details)
           .filter(([key]) => !ignoredKeys.includes(key))
@@ -103,6 +103,6 @@ export default function DetailsPanel({ details, onReload }) {
       >
         Download
       </button>
-    </div>
+    </CollapsiblePanel>
   );
 }
