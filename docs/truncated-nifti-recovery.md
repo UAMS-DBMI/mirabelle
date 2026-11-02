@@ -75,8 +75,9 @@ volume finishes loading, and the spinner comes down (§4.5).
 
 - The viewports show the recovered data. Anything missing is zero-filled, so
   it appears black.
-- An error toast stays up until the curator closes it (like every error toast,
-  see `DURATION.error` in [notify.js](../src/lib/notify.js)):
+- An error toast stays up until the curator closes it or moves to another image,
+  and comes back with the file (see
+  [per-image-error-toasts.md](per-image-error-toasts.md)):
 
   > This NIfTI file is corrupted. Only the part that could be read is shown;
   > missing data appears black.
@@ -87,7 +88,7 @@ volume finishes loading, and the spinner comes down (§4.5).
   how much of the voxel data survived. It reads `all image data recovered`
   when only the gzip trailer is missing (case 1 above).
 - The toast appears **on every visit** to the file, including revisits served
-  from cache (§5).
+  from cache (§5), until the curator clears it for that file.
 
 Showing a partial image is deliberate, but it is never silent. A curator
 should treat any file with this toast as damaged, however complete the image
@@ -268,6 +269,8 @@ again and simply overwrites the `Map` entry.
   ([NiftiReviewFile.jsx:253](../src/features/nifti-review/NiftiReviewFile.jsx#L253)).
 - The callback checks `isStale()`, so a damaged file the curator has already
   navigated away from can't raise a toast on the next file.
+- It raises the toast with `notify.imageError`, so a curator's clear holds even
+  though this fires on every visit.
 - The effect's cleanup calls `stopWatchingTruncation()`
   ([NiftiReviewFile.jsx:330](../src/features/nifti-review/NiftiReviewFile.jsx#L330)).
 

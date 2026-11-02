@@ -8,9 +8,11 @@ import "./notifications.css";
 import ErrorBoundary from "./ErrorBoundary";
 import TestError from "./TestError";
 import useDecimateInUrl from "@/hooks/useDecimateInUrl";
+import useErrorsPerImage from "@/hooks/useErrorsPerImage";
 
 export default function AppLayout() {
   useDecimateInUrl();
+  useErrorsPerImage();
 
   return (
     <div id="app">

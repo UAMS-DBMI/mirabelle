@@ -119,6 +119,27 @@
   border-color: transparent;
 }
 
+/* "Clear all" on the newest of several error toasts. Same resets as above. */
+.app-toast__clear-all {
+  display: block;
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.app-toast__clear-all:hover {
+  border-color: transparent;
+  opacity: 0.75;
+}
+
 .app-toast--info {
   border-left-color: var(--toast-info);
 }
