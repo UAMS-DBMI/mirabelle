@@ -76,7 +76,7 @@ export function windowNiftiWhileLoading(imageIds, volumeId) {
     if (image.imageId === middleImageId) {
       stop();
       finalWindows.add(middleImageId);
-      show(imageRange(image));
+      show(middleSliceWindow(image, receivedRange));
       return;
     }
     receivedRange = widenRange(receivedRange, imageRange(image));
@@ -97,6 +97,14 @@ function setFinalWindow(middleImageId, range) {
   setWindowMetadata(middleImageId, range);
 }
 
+// The middle slice's range, or the range of the slices before it if it has
+// none: a damaged file can lose it, leaving it zero-filled. A window of nothing
+// would clip every other slice to white.
+function middleSliceWindow(image, receivedRange) {
+  const range = imageRange(image);
+  return range.upper > range.lower ? range : (receivedRange ?? range);
+}
+
 // The range of an image's values, as Cornerstone takes the middle slice's.
 function imageRange(image) {
   let { min, max } = image.voxelManager.getMinMax();
@@ -115,7 +123,7 @@ function widenRange(range, other) {
   };
 }
 
-function windowInMetadata(imageId) {
+export function windowInMetadata(imageId) {
   const stored = utilities.genericMetadataProvider.get("voiLutModule", imageId);
   if (!stored) return null;
   return utilities.windowLevel.toLowHighRange(
