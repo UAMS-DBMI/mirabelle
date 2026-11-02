@@ -75,6 +75,11 @@ export const messages = {
     noMaskedImages: "No masked images to review for this exam yet.",
   },
 
+  // Actions on the toasts themselves.
+  toasts: {
+    clearAllErrors: (n) => `Clear all ${count(n)} errors`,
+  },
+
   // Errors. `generic` is the safe fallback when nothing more specific applies.
   errors: {
     generic: "Something went wrong. Please try again.",
