@@ -177,6 +177,7 @@ Custom React hooks:
 hooks/
 ├── useConfigState.js                # Configuration state hook
 ├── useDecimateInUrl.js              # Mirrors the decimate option to ?decimate=N
+├── useErrorsPerImage.js             # Keeps error toasts with their image
 └── useRendererResize.js             # Renderer resize handling hook
 ```
 

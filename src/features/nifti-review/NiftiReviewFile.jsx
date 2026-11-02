@@ -234,7 +234,7 @@ export default function NiftiReviewFile({
         setDetails(details);
 
         if (details.download_path === undefined) {
-          notify.error(messages.errors.missingNiftiFile);
+          notify.imageError(messages.errors.missingNiftiFile);
           setIsErrored(true);
           dispatch(setLoading(false));
           return;
@@ -264,7 +264,9 @@ export default function NiftiReviewFile({
         }
         stopWatchingTruncation = watchNiftiTruncation(url, (detail) => {
           if (isStale()) return;
-          notify.error(truncationError(detail, messages.errors.truncatedNifti));
+          notify.imageError(
+            truncationError(detail, messages.errors.truncatedNifti),
+          );
         });
         // The pixel-data load below fails outside this try/catch, so a
         // failure is reported here: say why, and swap the viewer for the

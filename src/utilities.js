@@ -1036,7 +1036,7 @@ export async function loadSEGSegmentation(
   } catch (err) {
     // Surface a clean error to the user, log the raw one for yourself
     console.error('SEG load failed or timed out:', err);
-    notify.error(messages.errors.segLoadError);
+    notify.imageError(messages.errors.segLoadError);
 
     // Return an empty segmentation object to avoid breaking the app
     return {
