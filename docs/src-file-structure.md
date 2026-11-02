@@ -143,7 +143,8 @@ features/
 │   ├── niftiFileRead.js             # How each NIfTI file's download ended
 │   ├── niftiLoadingWindow.js        # Windows a volume as its slices arrive
 │   ├── niftiReviewOrder.js          # Review order kept across page refreshes
-│   └── niftiTruncation.js           # NIfTI files that only partly decoded
+│   ├── niftiTruncation.js           # NIfTI files that only partly decoded
+│   └── niftiViewWindow.js           # The window a NIfTI shows in each view mode
 │
 ├── seg/
 │   ├── SegPanel.css
