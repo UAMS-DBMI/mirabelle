@@ -1,8 +1,8 @@
 diff --git a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-index a56de79..c27578f 100644
+index a56de79..f6e59bb 100644
 --- a/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
 +++ b/node_modules/@cornerstonejs/nifti-volume-loader/dist/esm/cornerstoneNiftiImageLoader.js
-@@ -1,119 +1,560 @@
+@@ -1,119 +1,568 @@
 -import { Enums, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
 +import { Enums, cache, eventTarget, metaData, triggerEvent, utilities, } from '@cornerstonejs/core';
  import * as NiftiReader from 'nifti-reader-js';
@@ -59,6 +59,12 @@ index a56de79..c27578f 100644
 -    });
 -}
 +const NIFTI2_HEADER_SIZE = 540;
++// The most compressed bytes given to fflate at once. Each push only ensures
++// 128 KB of room for its output, and fflate writes literals (at least a bit
++// each) without checking: more of them in one push overflow its buffer, losing
++// bytes silently and then throwing "Invalid typed array length" on a valid
++// file. A fast connection delivers chunks well past this size.
++const MAX_GUNZIP_PUSH_BYTES = 8192;
 +const fileLoadsByUrl = new Map();
  export default function cornerstoneNiftiImageLoader(imageId) {
      const [url, frame] = imageId.substring(6).split('?frame=');
@@ -383,7 +389,9 @@ index a56de79..c27578f 100644
 +            return null;
 +        }
 +        try {
-+            this.gunzip.push(bytes, false);
++            for (let from = 0; from < bytes.length; from += MAX_GUNZIP_PUSH_BYTES) {
++                this.gunzip.push(bytes.subarray(from, from + MAX_GUNZIP_PUSH_BYTES), false);
++            }
 +            return null;
 +        }
 +        catch (error) {

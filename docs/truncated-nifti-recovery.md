@@ -156,6 +156,15 @@ Where it throws also tells us what went wrong:
 - **No error, but fewer bytes than the header declares:** recorded as
   `the file ends before its image data does`.
 
+`NiftiStreamDecoder` gives fflate at most 8 KB per push
+(`MAX_GUNZIP_PUSH_BYTES`), whatever size the network chunk is. fflate ensures
+128 KB of output room per push and writes literals without checking, so a
+larger push holding a long run of literals overflows its buffer. Up to 32 KB
+over, it loses those bytes silently and every later voxel is wrong. Further
+over, it throws `Invalid typed array length: -N`, which would read here as
+corruption on a valid file. Standard zlib output didn't trigger this in testing;
+it takes an encoder that writes much longer runs of literals in one block.
+
 ### 4.3 Making the result loadable
 
 If no header can be read (not a NIfTI, or fewer bytes decoded than a header),
