@@ -39,6 +39,9 @@ the blend mode from the view mode:
 | `min_projection` | `MINIMUM_INTENSITY_BLEND` |
 | `volume` | none — `resetProperties` / `resetToDefaultProperties`, as before |
 
+On a NIfTI volume, each mode also sets a window: see
+[nifti-view-mode-window-fix.md](nifti-view-mode-window-fix.md).
+
 Both projections use the same slab thickness: the volume's diagonal, so each
 ray crosses the whole volume whatever the orientation. A lookup table rather
 than a second `if` branch keeps the two projections from drifting apart. They

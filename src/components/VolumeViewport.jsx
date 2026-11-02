@@ -13,6 +13,7 @@ import {
 } from "@/lib/viewportView";
 import ViewportLabel from "@/components/ViewportLabel";
 import ViewportExpandButton from "@/components/ViewportExpandButton";
+import { niftiViewWindow } from "@/features/nifti-review/niftiViewWindow";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -397,6 +398,12 @@ function VolumeViewport({
       console.log("Resetting viewport to default properties:", viewportId);
       viewport.resetProperties();
       viewport.resetToDefaultProperties();
+    }
+
+    // After the resets above, which don't know a NIfTI's final window.
+    const niftiWindow = niftiViewWindow(volume, viewMode);
+    if (niftiWindow) {
+      viewport.setProperties({ voiRange: niftiWindow }, volumeId);
     }
 
     // Reapply the margin: resetProperties above restores a full-fit zoom.
