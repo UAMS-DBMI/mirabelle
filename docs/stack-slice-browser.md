@@ -2,7 +2,7 @@
 
 Curators can now step through a stack from the keyboard, see which slice
 they're on at a glance, play the stack as a cine loop, and jump to any slice
-from a column of thumbnails.
+from a column of thumbnails they can resize.
 
 **Branch:** `multi-slice-stack-explorer-develop-main`
 
@@ -15,8 +15,9 @@ builds on is described in [stack-slice-scrollbar.md](stack-slice-scrollbar.md).
 |---|---|
 | [src/components/StackViewport.jsx](../src/components/StackViewport.jsx) | Slice keys; attaches the slice counter; hands its viewport to `StackView` |
 | [src/lib/sliceScrollbar.js](../src/lib/sliceScrollbar.js) | `attachSliceCounter`, the "N / total" corner counter |
+| [src/hooks/useRendererResize.js](../src/hooks/useRendererResize.js) | Keeps a stack fitted to its pane when the pane changes size |
 | [src/lib/renderImageToCanvas.js](../src/lib/renderImageToCanvas.js) | Draws a thumbnail, safe for unscaled PT images |
-| [src/features/stack-view/SliceBrowser.jsx](../src/features/stack-view/SliceBrowser.jsx) | Cine controls and the thumbnail column |
+| [src/features/stack-view/SliceBrowser.jsx](../src/features/stack-view/SliceBrowser.jsx) | Cine controls, the thumbnail column and its drag handle |
 | [src/features/stack-view/StackView.jsx](../src/features/stack-view/StackView.jsx) | Lays the image pane and the slice browser side by side |
 
 ---
@@ -97,6 +98,32 @@ the viewer.
   image pane is laid out at its final width from the start. The list has a zero
   flex basis, so its height never counts toward the viewer's.
 
+### 2.5 Resizing
+
+Drag the strip between the image and the column, which grows or shrinks the
+thumbnails. It goes from 6rem to half the viewer and starts at 7.5rem. The limits
+are in the stylesheet, with the handler keeping a dragged width from going
+negative (ignored) or wider than half the viewer (the layout around it would
+grow, and the 50% limit with it).
+
+- **While dragging,** the width is set on the element directly and the
+  thumbnails are scaled by CSS. Storing it on every move would re-render every
+  thumbnail. Each move fires the window `resize` event the side panels use, so
+  the image's canvas follows.
+- **The image stays fitted.** Cornerstone's `resize(true, true)` keeps the
+  camera, which crops the image once the pane is narrower than it. So
+  `useRendererResize` puts a stack's zoom back afterwards, relative to the pane's
+  new fit. That also applies to window resizes and the side-panel buttons, and
+  it leaves a curator's own zoom and pan in place. Volume panes aren't stack
+  viewports, so they aren't affected.
+- **On release,** the width goes into the `sliceBrowserWidth` option, kept across
+  exams through `PRESERVED_ON_RESET`, and thumbnails near the visible part of the
+  list are redrawn if they now need more pixels. The others are redrawn when
+  scrolled to, and a narrower column redraws nothing.
+- **Redraws of a slice run one at a time.** `renderToCanvasGPU` keys its temporary
+  viewport on the image id, and a second draw that overlaps the first never
+  finishes. They draw off screen so a thumbnail doesn't flash black.
+
 `getRenderingEngines()[0]` is still the app's `re1` engine: Cornerstone sorts
 engines whose id starts with `_` last.
 
@@ -104,6 +131,8 @@ engines whose id starts with `_` last.
 
 - Volume panes: no keys, counter, cine or thumbnails.
 - No keyboard shortcut for Play/Pause.
+- The column's width isn't kept across a page reload, and it can't be resized
+  from the keyboard.
 
 ## 4. Testing
 
@@ -124,4 +153,9 @@ Manual. No automated tests were added.
 6. Scroll the column to the bottom of a long stack: thumbnails are drawn as they
    come into view.
 7. Open a single-slice stack: no column, no counter.
-8. Repeat 1–4 on a Mask and a Mask Review stack exam.
+8. Drag the strip left of the column. The column and thumbnails grow, the image
+   pane narrows and the image stays fitted, and the highlighted thumbnail stays
+   in view. It stops at half the viewer one way and at 6rem the other. On
+   release, wider thumbnails sharpen.
+9. Press Right: the next exam opens with the column at the same width.
+10. Repeat 1–4 and 8 on a Mask and a Mask Review stack exam.
