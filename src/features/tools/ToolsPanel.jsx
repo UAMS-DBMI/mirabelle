@@ -2,6 +2,11 @@ import React, { useState, useContext, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { setOption } from "@/features/optionSlice";
 import { Enums } from "@/features/presentationSlice";
+import {
+  THRESHOLD_MAX,
+  THRESHOLD_OFF,
+  THRESHOLD_STEP,
+} from "@/lib/volumePresets";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -63,6 +68,13 @@ export default function ToolsPanel({
   const handleOpacityChange = (e) => {
     const value = parseFloat(e.target.value);
     dispatch(setOption({ key: "opacity", value }));
+  };
+
+  const volumeThreshold = globalStateValues.volumeThreshold;
+
+  const handleVolumeThresholdChange = (e) => {
+    const value = parseInt(e.target.value);
+    dispatch(setOption({ key: "volumeThreshold", value }));
   };
 
   // pull mask selection-box config + values from Redux
@@ -326,6 +338,25 @@ export default function ToolsPanel({
               step={opacityToolGroup.step}
               value={opacity}
               onChange={handleOpacityChange}
+            />
+          </div>
+        )}
+        {opacityToolGroup.visible && (
+          <div className="opacity-control">
+            <p>
+              Threshold:{" "}
+              <span>
+                {volumeThreshold <= THRESHOLD_OFF ? "off" : volumeThreshold}
+              </span>
+            </p>
+            <input
+              id="volume-threshold"
+              type="range"
+              min={THRESHOLD_OFF}
+              max={THRESHOLD_MAX}
+              step={THRESHOLD_STEP}
+              value={volumeThreshold}
+              onChange={handleVolumeThresholdChange}
             />
           </div>
         )}
