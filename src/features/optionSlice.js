@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { Enums } from "@/features/presentationSlice";
+import { THRESHOLD_OFF } from "@/lib/volumePresets";
 
 const initialState = {
   left: false,
@@ -12,7 +13,9 @@ const initialState = {
   fill: 3,
   leftClick: Enums.LeftClickOptions.SELECTION,
   rightClick: Enums.RightClickOptions.ZOOM,
-  opacity: 0.3,
+  opacity: 1,
+  // The 3D volume hides everything below this value, whichever preset is active.
+  volumeThreshold: THRESHOLD_OFF,
   // Selection-box overlay controls. `opacity` above is the 3D volume's scalar
   // opacity — these two are the mask box drawn on top of it. Half opacity is
   // the useful starting point: the glass reads clearly as a solid region while

@@ -1,5 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import * as cornerstone from "@cornerstonejs/core";
+// Adds our presets to Cornerstone's list, which `presets` below is built from.
+import "@/lib/volumePresets";
 
 export const Enums = {
   ViewOptions: Object.freeze({
@@ -105,7 +107,7 @@ const presentationSlice = createSlice({
         min: 0,
         max: 1,
         step: 0.01,
-        defaultValue: 0.3,
+        defaultValue: 1,
       },
       // Opacity + show/hide for the mask selection box (distinct from
       // opacityToolGroup, which drives the 3D volume's transfer function).
