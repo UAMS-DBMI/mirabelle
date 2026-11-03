@@ -5,7 +5,7 @@ skeleton. Volume Opacity fades the active preset instead of replacing its curve,
 four new presets reach what the existing ones don't, and a new **Threshold**
 slider hides everything below a chosen value.
 
-**Branch:** `volume-thershold-develop-main`
+**Branch:** `volume-threshold-develop-main`
 
 **Commit:** Show every layer in the 3D volume, with a threshold slider
 
