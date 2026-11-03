@@ -1,5 +1,11 @@
+/* The image pane and, beside it, the slice browser. */
 #stack-view {
-  @apply relative overflow-visible;
+  @apply relative overflow-visible flex gap-2;
+}
+
+/* The image takes the width the slice browser leaves. */
+#stack-view > .stack-viewport {
+  @apply flex-1 min-w-0;
 }
 
 /* #stack-view #viewer-resizer {

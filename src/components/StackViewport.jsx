@@ -3,6 +3,7 @@
  **/
 import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useHotkeys } from "react-hotkeys-hook";
 
 import * as cornerstone from "@cornerstonejs/core";
 import * as cornerstoneTools from "@cornerstonejs/tools";
@@ -10,7 +11,7 @@ import { RenderingEngine, Enums, volumeLoader } from "@cornerstonejs/core";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { attachDataFrame } from "@/lib/viewportFrame";
 import { attachFramePreview } from "@/lib/stackFramePreview";
-import { attachSliceScrollbar } from "@/lib/sliceScrollbar";
+import { attachSliceScrollbar, attachSliceCounter } from "@/lib/sliceScrollbar";
 import { setOption } from "@/features/optionSlice";
 import ViewportLabel from "@/components/ViewportLabel";
 
@@ -19,6 +20,12 @@ import "./StackViewport.css";
 // Zoom out a touch so the image doesn't touch the panel edge — keeps the
 // selection box and the data-boundary frame visible. Matches VolumeViewport.
 const MARGIN_ZOOM = 0.92;
+
+// Slices PageUp / PageDown step through at a time.
+const PAGE_STEP = 10;
+
+// The slice keys also scroll whichever panel has focus unless prevented.
+const SLICE_KEY_OPTIONS = { preventDefault: true };
 
 const {
   PanTool,
@@ -44,17 +51,37 @@ function StackViewport({
   toolGroup,
   segmentationId,
   onImageChange,
+  onViewportReady,
 }) {
   console.log("[StackViewport] rendering");
   const elementRef = useRef(null);
   const frameDetachRef = useRef(null);
   const previewDetachRef = useRef(null);
   const scrollbarDetachRef = useRef(null);
+  const counterDetachRef = useRef(null);
   const segReadyListenerRef = useRef(null);
+  // The viewport once its stack is set, for the slice keys.
+  const viewportRef = useRef(null);
 
   const [initialized, setInitialized] = useState(false);
   const dispatch = useDispatch();
   const activeViewport = useSelector((state) => state.options.viewport);
+
+  // Up/Down step one slice, PageUp/PageDown ten, Home/End go to the first and
+  // last (scroll() clamps at the ends, so a step the stack's length lands
+  // there). Left/Right stay IEC navigation. useHotkeys memoizes its callbacks
+  // on the first render, so they reach the viewport through the ref.
+  const stepSlices = (delta) => viewportRef.current?.scroll(delta);
+  const stepToEnd = (direction) => {
+    const viewport = viewportRef.current;
+    viewport?.scroll(direction * viewport.getImageIds().length);
+  };
+  useHotkeys("up", () => stepSlices(-1), SLICE_KEY_OPTIONS);
+  useHotkeys("down", () => stepSlices(1), SLICE_KEY_OPTIONS);
+  useHotkeys("pageup", () => stepSlices(-PAGE_STEP), SLICE_KEY_OPTIONS);
+  useHotkeys("pagedown", () => stepSlices(PAGE_STEP), SLICE_KEY_OPTIONS);
+  useHotkeys("home", () => stepToEnd(-1), SLICE_KEY_OPTIONS);
+  useHotkeys("end", () => stepToEnd(1), SLICE_KEY_OPTIONS);
 
   useEffect(() => {
     // Navigation can supersede this setup while it awaits setStack. Past that
@@ -216,6 +243,15 @@ function StackViewport({
         viewport,
         elementRef.current,
       );
+      // "N / total" in the corner; the scrollbar only shows it on hover.
+      counterDetachRef.current?.();
+      counterDetachRef.current = attachSliceCounter(
+        viewport,
+        elementRef.current,
+      );
+
+      viewportRef.current = viewport;
+      onViewportReady?.(viewport);
 
       setInitialized(true);
     };
@@ -246,6 +282,9 @@ function StackViewport({
       previewDetachRef.current = null;
       scrollbarDetachRef.current?.();
       scrollbarDetachRef.current = null;
+      counterDetachRef.current?.();
+      counterDetachRef.current = null;
+      viewportRef.current = null;
       cornerstone.eventTarget.removeEventListener(
         "StackSegmentationReady",
         segReadyListenerRef.current,
