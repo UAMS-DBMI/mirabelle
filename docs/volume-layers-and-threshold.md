@@ -17,9 +17,9 @@ is drawn.
 | File | Responsibility |
 |---|---|
 | [src/lib/volumePresets.js](../src/lib/volumePresets.js) | The four presets, the Threshold range, and the opacity curve with a threshold applied |
-| [src/components/VolumeViewport3d.jsx](../src/components/VolumeViewport3d.jsx) | `applyVolumeOpacity`: puts both sliders on the active preset's curve, and does it again after every preset change |
+| [src/components/VolumeViewport3d.jsx](../src/components/VolumeViewport3d.jsx) | `applyVolumeOpacity`: puts both sliders on the active preset's curve, and does it again after every preset change. Also opens a CT in `CT-All-Layers` |
 | [src/features/tools/ToolsPanel.jsx](../src/features/tools/ToolsPanel.jsx) | The Threshold slider, under Volume Opacity, and resetting both sliders when a preset is picked |
-| [src/features/optionSlice.js](../src/features/optionSlice.js) | `volumeThreshold`, and `opacity` starting at 1 |
+| [src/features/optionSlice.js](../src/features/optionSlice.js) | `volumeThreshold`, `opacity` starting at 1, and `preset` starting null |
 | [src/features/presentationSlice.js](../src/features/presentationSlice.js) | Loads the presets before building the dropdown's list, and the slider's default |
 
 ---
@@ -48,8 +48,8 @@ Opacity per mm on a synthetic head in `CT-MIP`, with the slider at 0.99:
 
 ### 2.2 No preset reaches just above air
 
-Most presets are fully transparent where thin fabric falls. `CT-MIP`, the CT
-default, stays at 0 up to -637 HU. `CT-Air` and `CT-Chest-Vessels` do reach that
+Most presets are fully transparent where thin fabric falls. `CT-MIP`, which was the
+CT default, stays at 0 up to -637 HU. `CT-Air` and `CT-Chest-Vessels` do reach that
 low, but they also draw the air, which buries fabric in fog.
 
 A curve can't simply start lower, because a ray crosses 200 mm or more of air. Even
@@ -111,7 +111,11 @@ threshold is.
 
 They are added to the front of `cornerstone.CONSTANTS.VIEWPORT_PRESETS`, which
 `setPreset` looks names up in and the dropdown is built from, so every route offers
-them. No exam opens in them: a CT still opens in `CT-MIP`.
+them.
+
+A CT now opens in `CT-All-Layers`. PET and MR keep their defaults, and any other
+modality stays on `CT-MIP`. `options.preset` is null until a preset is picked or the
+modality decides one, so a picked preset survives Decimate, whichever it is.
 
 What shaped the curves, for anyone tuning them:
 
@@ -212,6 +216,9 @@ interpolation, about 0.54 of the SD per voxel.
   left the mask box's own opacity alone. Both sliders stayed through Decimate 50 and
   back.
 - Off restored the preset's curve exactly, and Next turned the threshold off.
+- A CT opened in `CT-All-Layers`, on a fresh load and on Next from a PET. A PET opened
+  in `CT-AAA` and another modality in `CT-MIP`. `CT-MIP` picked on a CT and
+  `CT-All-Layers` picked on a PET both stayed through Decimate 50 and back.
 - The volume stayed actor 0 with the mask boxes after it, and there were no page
   errors.
 
@@ -248,5 +255,5 @@ Found along the way and not fixed:
 
 - **Every NIfTI opens in `MR-Angio`.** Modality detection calls
   `volume.getScalarData()`, which throws, so it falls back to MR. A CT NIfTI shows
-  only bone until another preset is picked.
+  only bone until another preset is picked, and doesn't get the CT default.
 - **The Volume Opacity label rounds to one decimal,** though the slider steps by 0.01.
