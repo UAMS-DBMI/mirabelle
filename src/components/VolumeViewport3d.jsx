@@ -207,7 +207,7 @@ function VolumeViewport3d({
   // Set default preset based on modality
   const getDefaultPresetForModality = (modality, currentPreset) => {
     // If a preset is already explicitly set, use it
-    if (currentPreset && currentPreset !== "CT-MIP") return currentPreset;
+    if (currentPreset) return currentPreset;
 
     switch (modality?.toUpperCase()) {
       case "PT":
@@ -217,6 +217,7 @@ function VolumeViewport3d({
       case "MRI":
         return "MR-Angio";
       case "CT":
+        return "CT-All-Layers";
       default:
         return "CT-MIP";
     }
