@@ -38,7 +38,8 @@ const initialState = {
   // itself is always on the panel — this only decides whether it is live, so
   // an exam with nothing to show says so instead of the row vanishing.
   prevMaskAvailable: false,
-  preset: "CT-MIP",
+  // Null until a preset is picked or the exam's modality decides one.
+  preset: null,
   decimate: 0,
   persistent: true,
   loading: false,
