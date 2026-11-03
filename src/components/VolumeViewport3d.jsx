@@ -9,6 +9,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { setPresets } from "@/features/presentationSlice";
 import { setOption } from "@/features/optionSlice";
 import { toggleViewportExpanded } from "@/lib/viewportView";
+import { thresholdedOpacityCurve } from "@/lib/volumePresets";
 import ViewportLabel from "@/components/ViewportLabel";
 import ViewportExpandButton from "@/components/ViewportExpandButton";
 
@@ -36,6 +37,29 @@ const { segmentation: segmentationUtils } = cstUtils;
 
 const { ViewportType } = Enums;
 
+// Applies the two sliders to the active preset's opacity curve: the threshold
+// hides everything below it and the opacity fades what's left. The preset's curve
+// spans the scalar range it was designed for, and that decides which tissues
+// show, so neither slider replaces it. With the threshold off and the opacity at
+// 1 the view is the preset as is.
+function applyVolumeOpacity(viewport, opacity, threshold) {
+  const volumeActor = viewport?.getActors()[0]?.actor;
+  const preset = volumeActor && viewport.getProperties()?.preset;
+  if (!preset) return;
+
+  const property = volumeActor.getProperty();
+  const fn = property.getScalarOpacity(0);
+  const curve = thresholdedOpacityCurve(preset, threshold);
+
+  fn.removeAllPoints();
+  for (const [value, pointOpacity] of curve) {
+    fn.addPoint(value, pointOpacity * opacity);
+  }
+
+  property.setScalarOpacity(0, fn);
+  viewport.render();
+}
+
 function VolumeViewport3d({
   viewportId,
   renderingEngine,
@@ -50,6 +74,7 @@ function VolumeViewport3d({
   const [expanded, setExpanded] = useState(false);
 
   const opacity = useSelector((state) => state.options.opacity);
+  const threshold = useSelector((state) => state.options.volumeThreshold);
   const activeViewport = useSelector((state) => state.options.viewport);
 
   let realOrientation = Enums.OrientationAxis.ACQUISITION;
@@ -334,28 +359,21 @@ function VolumeViewport3d({
     };
   }, []);
 
-  // Update scalar opacity
+  // Keep the volume at the sliders' values. Applying a preset replaces the curve,
+  // on every exam load and preset change, so each of those re-applies them.
   useEffect(() => {
-    if (!renderingEngine) return;
-    const viewport = renderingEngine.getViewport(viewportId);
-    if (!viewport) return;
+    const element = elementRef.current;
+    const apply = () =>
+      applyVolumeOpacity(
+        renderingEngine?.getViewport(viewportId),
+        opacity,
+        threshold,
+      );
 
-    const actorEntry = viewport.getActors()[0];
-    if (!actorEntry?.actor) return;
-    const volumeActor = actorEntry.actor;
-    const property = volumeActor.getProperty();
-    const fn = property.getScalarOpacity(0);
-
-    fn.removeAllPoints();
-    fn.addPoint(0, 0.0);
-    fn.addPoint(500, opacity);
-    fn.addPoint(1000, opacity);
-    fn.addPoint(1500, opacity);
-    fn.addPoint(2000, opacity);
-
-    property.setScalarOpacity(0, fn);
-    viewport.render();
-  }, [renderingEngine, viewportId, opacity]);
+    apply();
+    element.addEventListener(Events.PRESET_MODIFIED, apply);
+    return () => element.removeEventListener(Events.PRESET_MODIFIED, apply);
+  }, [renderingEngine, viewportId, opacity, threshold]);
 
   // useEffect(() => {
   //   const viewport = renderingEngine.getViewport(viewportId);

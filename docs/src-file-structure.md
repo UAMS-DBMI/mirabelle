@@ -192,7 +192,8 @@ lib/
 ├── dicomFileStreams.js               # Streams stack files, bytes readable as they arrive
 ├── examDownloads.js                  # Queues, pauses and resumes exam downloads
 ├── loadingProgress.js                # The loading indicator's percentage
-└── stackFramePreview.js              # Draws a stack frame while its file arrives
+├── stackFramePreview.js              # Draws a stack frame while its file arrives
+└── volumePresets.js                  # Extra 3D presets and the threshold slider's curve
 ```
 
 ## routes/
