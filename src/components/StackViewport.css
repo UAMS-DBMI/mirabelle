@@ -18,3 +18,22 @@
   pointer-events: none;
   display: none;
 }
+
+/* The "N / total" slice counter (lib/sliceScrollbar attachSliceCounter): the
+   corner label's look, in the top-right corner clear of the slice scrollbar
+   (4–14px in from the edge), and click-through so the tools work under it. */
+.viewport-slice-counter {
+  position: absolute;
+  top: 6px;
+  right: 20px;
+  z-index: 13;
+  pointer-events: none;
+  user-select: none;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.55);
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

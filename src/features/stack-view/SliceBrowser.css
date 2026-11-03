@@ -1,0 +1,94 @@
+/* SliceBrowser.css */
+
+/* A fixed-width column beside the image: cine controls, then the thumbnails. */
+.slice-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: none;
+  width: 7.5rem;
+  min-height: 0;
+}
+
+.slice-browser-cine {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.slice-browser-play {
+  @apply inline-flex items-center justify-center w-8 h-8 shrink-0 p-0 rounded-lg bg-slate-900 text-white cursor-pointer;
+}
+
+.slice-browser-play.is-active {
+  @apply bg-blue-500;
+}
+
+.slice-browser-play:disabled {
+  @apply opacity-40 cursor-not-allowed;
+}
+
+.slice-browser-speed {
+  @apply flex-1 min-w-0 h-8 px-1 rounded-lg bg-slate-900 text-white text-xs cursor-pointer;
+}
+
+/* Scrolls on its own. The zero flex basis keeps the thumbnails' total height
+   out of the viewer's size, so the column is only as tall as the image pane.
+   Positioned so the thumbnails' offsetTop is measured from it (keepInView). */
+.slice-browser-list {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  background: #000;
+}
+
+/* Hover and active edges match the viewport's own (RouteLayout.css). */
+.slice-thumbnail {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background: #000;
+  cursor: pointer;
+}
+
+.slice-thumbnail:hover {
+  border-color: rgba(147, 197, 253, 0.35);
+}
+
+.slice-thumbnail.is-active {
+  border-color: rgba(96, 165, 250, 0.9);
+}
+
+/* --thumbnail-aspect is height / width, set on the list from the image. */
+.slice-thumbnail canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / var(--thumbnail-aspect);
+}
+
+.slice-thumbnail-number {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(15, 23, 42, 0.7);
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 10px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.slice-thumbnail.is-active .slice-thumbnail-number {
+  background: rgba(59, 130, 246, 0.9);
+  color: #fff;
+}

@@ -10,6 +10,9 @@
  *
  * Top of the track is slice 0, bottom is the last slice — index order, matching
  * viewport.getSliceIndex().
+ *
+ * Also an always-visible "N / total" slice counter for the pane's corner
+ * (attachSliceCounter); the scrollbar's own label only shows on hover.
  */
 
 import { Enums } from "@cornerstonejs/core";
@@ -17,6 +20,7 @@ import { Enums } from "@cornerstonejs/core";
 const SCROLLBAR_CLASS = "viewport-slice-scrollbar";
 const THUMB_CLASS = "viewport-slice-scrollbar-thumb";
 const LABEL_CLASS = "viewport-slice-scrollbar-label";
+const COUNTER_CLASS = "viewport-slice-counter";
 
 // Smallest the thumb is allowed to get on a deep stack, so it stays grabbable.
 const MIN_THUMB_PX = 18;
@@ -146,5 +150,35 @@ export function attachSliceScrollbar(viewport, element) {
     window.removeEventListener("mousemove", onPointerMove);
     window.removeEventListener("mouseup", onPointerUp);
     track.remove();
+  };
+}
+
+/**
+ * Attach an always-visible "N / total" slice counter to a 2D viewport's
+ * element. Like the scrollbar, it's hidden while there's a single slice and
+ * kept in step on every IMAGE_RENDERED, so it follows the wheel, the keys,
+ * scrubbing and cine alike. Returns a detach function.
+ */
+export function attachSliceCounter(viewport, element) {
+  const counter = document.createElement("div");
+  counter.className = COUNTER_CLASS;
+  element.appendChild(counter);
+
+  const update = () => {
+    const position = readSlicePosition(viewport);
+    if (!position) {
+      counter.style.display = "none";
+      return;
+    }
+    counter.style.display = "block";
+    counter.textContent = `${position.index + 1} / ${position.total}`;
+  };
+
+  element.addEventListener(Enums.Events.IMAGE_RENDERED, update);
+  update();
+
+  return () => {
+    element.removeEventListener(Enums.Events.IMAGE_RENDERED, update);
+    counter.remove();
   };
 }

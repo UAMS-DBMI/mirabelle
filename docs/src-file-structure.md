@@ -152,6 +152,8 @@ features/
 │   └── index.js                     # Module exports
 │
 ├── stack-view/
+│   ├── SliceBrowser.css
+│   ├── SliceBrowser.jsx             # Cine controls and slice thumbnails beside the stack
 │   ├── StackView.css
 │   ├── StackView.jsx                # Stack viewing functionality
 │   └── index.js                     # Module exports
@@ -192,6 +194,7 @@ lib/
 ├── dicomFileStreams.js               # Streams stack files, bytes readable as they arrive
 ├── examDownloads.js                  # Queues, pauses and resumes exam downloads
 ├── loadingProgress.js                # The loading indicator's percentage
+├── renderImageToCanvas.js            # Draws a thumbnail, safe for unscaled PT images
 ├── stackFramePreview.js              # Draws a stack frame while its file arrives
 └── volumePresets.js                  # Extra 3D presets and the threshold slider's curve
 ```

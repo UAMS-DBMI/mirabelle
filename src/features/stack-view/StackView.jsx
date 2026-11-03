@@ -9,6 +9,7 @@ import { useDispatch } from "react-redux";
 
 import StackViewport from "@/components/StackViewport";
 import { ToolsPanel } from "@/features/tools";
+import SliceBrowser from "./SliceBrowser";
 
 import ViewerResizer from "@/components/ViewerResizer";
 
@@ -35,6 +36,8 @@ export default function StackView({
   // onToggleRightPanel,
 }) {
   const [renderingEngine, setRenderingEngine] = useState();
+  // The stack viewport once its stack is set; drives the slice browser.
+  const [viewport, setViewport] = useState(null);
   const dispatch = useDispatch();
 
   useRendererResize(renderingEngine);
@@ -105,7 +108,14 @@ export default function StackView({
         renderingEngine={renderingEngine}
         segmentationId={segmentationId}
         viewportId="myviewport"
+        onViewportReady={setViewport}
       />
+
+      {/* Rendered from the start, before the viewport is ready, so the
+          image pane is laid out at its final width. */}
+      {frames?.length > 1 && (
+        <SliceBrowser viewport={viewport} frames={frames} />
+      )}
     </div>
   );
 }
