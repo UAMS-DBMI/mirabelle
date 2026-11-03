@@ -18,7 +18,7 @@ is drawn.
 |---|---|
 | [src/lib/volumePresets.js](../src/lib/volumePresets.js) | The four presets, the Threshold range, and the opacity curve with a threshold applied |
 | [src/components/VolumeViewport3d.jsx](../src/components/VolumeViewport3d.jsx) | `applyVolumeOpacity`: puts both sliders on the active preset's curve, and does it again after every preset change |
-| [src/features/tools/ToolsPanel.jsx](../src/features/tools/ToolsPanel.jsx) | The Threshold slider, under Volume Opacity |
+| [src/features/tools/ToolsPanel.jsx](../src/features/tools/ToolsPanel.jsx) | The Threshold slider, under Volume Opacity, and resetting both sliders when a preset is picked |
 | [src/features/optionSlice.js](../src/features/optionSlice.js) | `volumeThreshold`, and `opacity` starting at 1 |
 | [src/features/presentationSlice.js](../src/features/presentationSlice.js) | Loads the presets before building the dropdown's list, and the slider's default |
 
@@ -96,8 +96,9 @@ threshold is.
   hides nothing. The panel reads "off" there, and the curve is exactly the preset's.
 - **It only hides.** It can't bring in what a preset doesn't draw, so the low end
   does nothing on `CT-MIP` (starts at -637) or `CT-Muscle-Skeleton` (starts at -60).
-- **State:** `options.volumeThreshold`. It stays through preset changes and
-  Decimate. Next and Previous turn it off, as they reset opacity and preset.
+- **State:** `options.volumeThreshold`. Picking a preset turns it off and puts Volume
+  Opacity back to 1, so each preset starts as designed. Both stay through Decimate.
+  Next and Previous reset them too, along with the preset.
 
 ### 3.3 The presets
 
@@ -134,7 +135,7 @@ What shaped the curves, for anyone tuning them:
   1.2 on a surface facing the camera, so brighter ramps clip most of a bone to flat
   white and lose its shape.
 
-To see each layer:
+To see each layer, pick the preset first, because picking one resets both sliders:
 
 | To see | Preset | Threshold | Volume Opacity |
 |---|---|---|---|
@@ -207,7 +208,9 @@ interpolation, about 0.54 of the SD per voxel.
 
 - The curve matched the preset at every slider position tried, and the threshold cut
   exactly at 150 and -50.
-- The threshold stayed through a preset change and through Decimate 50 and back.
+- Picking a preset put both sliders back, matched the new preset's curve exactly and
+  left the mask box's own opacity alone. Both sliders stayed through Decimate 50 and
+  back.
 - Off restored the preset's curve exactly, and Next turned the threshold off.
 - The volume stayed actor 0 with the mask boxes after it, and there were no page
   errors.

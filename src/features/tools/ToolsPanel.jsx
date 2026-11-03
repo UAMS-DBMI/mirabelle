@@ -230,6 +230,12 @@ export default function ToolsPanel({
     const newPreset = event.target.value;
     console.log("Selected Preset:", newPreset);
     // setSelectedPreset(newPreset);
+    // Each preset starts as designed: slider values picked for one curve mean
+    // something else on the next.
+    dispatch(
+      setOption({ key: "opacity", value: opacityToolGroup.defaultValue }),
+    );
+    dispatch(setOption({ key: "volumeThreshold", value: THRESHOLD_OFF }));
     onPresetChange(newPreset);
   };
 
