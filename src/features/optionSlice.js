@@ -50,6 +50,9 @@ const initialState = {
   // Compact "what am I looking at" line shown beside the header title (e.g.
   // "1117932 · CT · AXIAL LUNG"). Set by the exam routes when details load.
   titleDetail: null,
+  // Width of the stack's slice browser in px once dragged. Null until then,
+  // which leaves it at the stylesheet's default.
+  sliceBrowserWidth: null,
 };
 
 // Options navigation must NOT reset:
@@ -83,6 +86,8 @@ const PRESERVED_ON_RESET = new Set([
   // so resetting here took it straight back down and hid the whole load.
   "loading",
   "loadingProgress",
+  // A layout choice, which carries across the queue.
+  "sliceBrowserWidth",
 ]);
 // `?decimate=N` in the URL. Read here, when the store is created, so the very
 // first exam load already uses it — applying it later from an effect would

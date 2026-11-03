@@ -1,13 +1,49 @@
 /* SliceBrowser.css */
 
-/* A fixed-width column beside the image: cine controls, then the thumbnails. */
+/* A column beside the image: cine controls, then the thumbnails. The width is
+   the default until dragged. The limits keep the cine controls usable and leave
+   the image pane about half of the viewer. */
 .slice-browser {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   flex: none;
   width: 7.5rem;
+  min-width: 6rem;
+  max-width: 50%;
   min-height: 0;
+}
+
+/* The drag handle fills the gap to the image pane (#stack-view's gap-2), so it
+   doesn't shift the layout or cover the slice scrollbar. */
+.slice-browser-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -0.5rem;
+  width: 0.5rem;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.slice-browser-resizer::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 2.5rem;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: #94a3b8;
+}
+
+.slice-browser-resizer:hover::before,
+.slice-browser-resizer:active::before {
+  height: 100%;
+  background: rgba(96, 165, 250, 0.9);
 }
 
 .slice-browser-cine {

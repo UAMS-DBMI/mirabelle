@@ -3,12 +3,15 @@
  * (Play/Pause and a speed) on top and a thumbnail of every slice below it.
  * Clicking a thumbnail shows that slice. The slice on screen is highlighted
  * and kept in view, so the column follows the wheel, the keys and cine alike.
+ * Dragging the strip on its left edge resizes the column.
  */
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Enums } from "@cornerstonejs/core";
 import { utilities as toolsUtilities } from "@cornerstonejs/tools";
 
 import MaterialIcon from "@/components/MaterialIcon";
+import { setOption } from "@/features/optionSlice";
 import { renderImageToCanvas } from "@/lib/renderImageToCanvas";
 
 import "./SliceBrowser.css";
@@ -30,7 +33,13 @@ const MIN_ASPECT = 0.5;
 const MAX_ASPECT = 1.6;
 
 export default function SliceBrowser({ viewport, frames }) {
+  const browserRef = useRef(null);
   const listRef = useRef(null);
+  // Column edge relative to the pointer, so it doesn't jump on the first move.
+  const grabOffsetRef = useRef(0);
+  const dispatch = useDispatch();
+  // Stored, as this component is remounted for every exam.
+  const width = useSelector((state) => state.options.sliceBrowserWidth);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [framesPerSecond, setFramesPerSecond] = useState(DEFAULT_CINE_SPEED);
@@ -73,8 +82,51 @@ export default function SliceBrowser({ viewport, frames }) {
     event.target.blur();
   };
 
+  const handleResizeStart = (event) => {
+    const { left } = browserRef.current.getBoundingClientRect();
+    grabOffsetRef.current = left - event.clientX;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  // Mid-drag the width goes straight on the element: storing it on every move
+  // would re-render every thumbnail. The stylesheet sets the limits, but two
+  // widths have to be stopped here: a negative one is ignored rather than
+  // limited, and a very wide one makes the layout around it grow, and the 50%
+  // limit with it.
+  const handleResizeMove = (event) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    const browser = browserRef.current;
+    const { right } = browser.getBoundingClientRect();
+    const wanted = right - event.clientX - grabOffsetRef.current;
+    const widest = browser.parentElement.clientWidth / 2;
+    browser.style.width = `${Math.min(Math.max(wanted, 0), widest)}px`;
+    // The thumbnails change height with the column.
+    keepInView(listRef.current, listRef.current.children[activeIndex]);
+    // The image pane takes the width left over, so its canvas has to follow.
+    window.dispatchEvent(new Event("resize"));
+  };
+
+  const handleResizeEnd = () => {
+    dispatch(
+      setOption({
+        key: "sliceBrowserWidth",
+        value: browserRef.current.offsetWidth,
+      }),
+    );
+  };
+
   return (
-    <div className="slice-browser">
+    <div ref={browserRef} className="slice-browser" style={{ width }}>
+      <div
+        className="slice-browser-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize slice browser"
+        title="Drag to resize"
+        onPointerDown={handleResizeStart}
+        onPointerMove={handleResizeMove}
+        onLostPointerCapture={handleResizeEnd}
+      />
       <div className="slice-browser-cine">
         <button
           type="button"
@@ -116,6 +168,7 @@ export default function SliceBrowser({ viewport, frames }) {
               index={index}
               active={index === activeIndex}
               listRef={listRef}
+              columnWidth={width}
               onSelect={showSlice}
             />
           ))}
@@ -124,29 +177,36 @@ export default function SliceBrowser({ viewport, frames }) {
   );
 }
 
-// One slice's thumbnail, drawn once it nears the visible part of the list.
+// One slice's thumbnail, drawn once it nears the visible part of the list, and
+// again after the column settles at a new width.
 const SliceThumbnail = memo(function SliceThumbnail({
   imageId,
   index,
   active,
   listRef,
+  columnWidth,
   onSelect,
 }) {
   const buttonRef = useRef(null);
   const canvasRef = useRef(null);
+  const lastDrawRef = useRef(Promise.resolve());
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
         observer.disconnect();
-        drawThumbnail(canvasRef.current, imageId);
+        const canvas = canvasRef.current;
+        // One at a time; drawThumbnail says why.
+        lastDrawRef.current = lastDrawRef.current.then(() =>
+          drawThumbnail(canvas, imageId),
+        );
       },
       { root: listRef.current, rootMargin: DRAW_AHEAD_MARGIN },
     );
     observer.observe(buttonRef.current);
     return () => observer.disconnect();
-  }, [imageId, listRef]);
+  }, [imageId, listRef, columnWidth]);
 
   return (
     <button
@@ -158,7 +218,8 @@ const SliceThumbnail = memo(function SliceThumbnail({
       aria-label={`Slice ${index + 1}`}
       aria-current={active}
     >
-      <canvas ref={canvasRef} />
+      {/* Empty until drawn: drawThumbnail compares against these. */}
+      <canvas ref={canvasRef} width={0} height={0} />
       <span className="slice-thumbnail-number">{index + 1}</span>
     </button>
   );
@@ -166,14 +227,31 @@ const SliceThumbnail = memo(function SliceThumbnail({
 
 // Draw `imageId` into `canvas` at the canvas's laid-out size, with the
 // image's own window/level. It goes through the image cache, so a frame the
-// stack already loaded (or is loading) isn't fetched again.
-function drawThumbnail(canvas, imageId) {
+// stack already loaded (or is loading) isn't fetched again. A canvas with
+// enough pixels already is left alone: a narrower column only scales it down.
+async function drawThumbnail(canvas, imageId) {
   const { width, height } = canvas.getBoundingClientRect();
-  canvas.width = Math.round(width * devicePixelRatio);
-  canvas.height = Math.round(height * devicePixelRatio);
-  renderImageToCanvas(canvas, imageId).catch((error) => {
+  const pixelWidth = Math.round(width * devicePixelRatio);
+  if (canvas.width >= pixelWidth) return;
+
+  // Drawn off screen, so the thumbnail keeps its picture until the new one is
+  // ready instead of flashing black.
+  const drawing = document.createElement("canvas");
+  drawing.width = pixelWidth;
+  drawing.height = Math.round(height * devicePixelRatio);
+  try {
+    await renderImageToCanvas(drawing, imageId);
+    canvas.width = drawing.width;
+    canvas.height = drawing.height;
+    canvas.getContext("2d").drawImage(drawing, 0, 0);
+  } catch (error) {
     console.warn("[SliceBrowser] couldn't draw thumbnail", imageId, error);
-  });
+  }
+
+  // renderToCanvasGPU keys a temporary viewport on the image id and removes it
+  // in a timeout. A second draw of this slice before then would join the dying
+  // viewport and never finish, so the next draw waits for that timeout to pass.
+  await new Promise((resolve) => setTimeout(resolve));
 }
 
 // Height/width of the thumbnails, from the slice on screen (a stack's slices
