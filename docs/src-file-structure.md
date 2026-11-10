@@ -167,6 +167,7 @@ features/
 │   ├── QCViewport.css
 │   ├── QCViewport.jsx               # The QC stack viewport and overlays
 │   ├── dicomText.js                 # Formats raw DICOM values for display
+│   ├── dicomText.test.js            # Formatter tests
 │   ├── index.js                     # Module exports
 │   ├── noPixelData.js               # Frames with no pixel data (e.g. SRs)
 │   ├── noPixelData.test.js          # No-pixel-data tests

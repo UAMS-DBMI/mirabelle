@@ -44,16 +44,26 @@ export default function QCNavBar({
 
   return (
     <div id="qc-nav-bar">
-      <button className="qc-btn" disabled={!hasPrevious} onClick={onPrevious}>
-        ← Back
+      <button
+        className="qc-btn qc-nav-step qc-nav-prev"
+        disabled={!hasPrevious}
+        onClick={onPrevious}
+      >
+        ← Previous
       </button>
-      <button className="qc-btn" disabled={!hasNext} onClick={onNext}>
-        Forward →
+      <button
+        className="qc-btn qc-nav-step qc-nav-next"
+        disabled={!hasNext}
+        onClick={onNext}
+      >
+        Next →
       </button>
 
       <div className="qc-nav-position">
         Series {position ?? "–"} of {total ?? "–"}
       </div>
+
+      <div className="qc-nav-divider" />
 
       <label className="qc-nav-filter">
         <span>Status:</span>

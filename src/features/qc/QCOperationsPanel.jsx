@@ -24,12 +24,10 @@ export default function QCOperationsPanel({
   const status = series?.qc_status;
 
   const buttonClass = (action, colorClass) =>
-    `qc-review-button ${colorClass}${status === action ? " active" : ""}`;
+    `qc-review-button ${colorClass}${status === action ? " qc-active" : ""}`;
 
   return (
     <div id="qc-review-panel">
-      <div className="qc-section-heading">Stack Review</div>
-
       {readOnly && <p className="qc-readonly-notice">{messages.qc.readOnly}</p>}
 
       <textarea
@@ -70,10 +68,6 @@ export default function QCOperationsPanel({
         >
           ⚑ Flag
         </button>
-      </div>
-
-      <div className="qc-review-hint">
-        Deciding advances to the next series in this assignment.
       </div>
     </div>
   );

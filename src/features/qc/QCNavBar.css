@@ -4,6 +4,41 @@
   border-bottom: 1px solid var(--qc-border);
 }
 
+/* Previous and Next share one width and stand a little taller than the
+   filters. Next, the usual way forward, is the filled primary button;
+   Previous is outlined in the same accent. Disabled, both fall back to the
+   plain disabled .qc-btn (the :not(:disabled) rules outrank it). */
+#qc-nav-bar .qc-nav-step {
+  @apply w-28 h-9 justify-center items-center font-semibold;
+}
+
+#qc-nav-bar .qc-btn.qc-nav-prev:not(:disabled) {
+  background: var(--qc-surface);
+  border-color: var(--qc-accent);
+  color: var(--qc-accent);
+}
+
+#qc-nav-bar .qc-btn.qc-nav-prev:hover:not(:disabled) {
+  background: oklch(0.96 0.02 250);
+}
+
+#qc-nav-bar .qc-btn.qc-nav-next:not(:disabled) {
+  background: var(--qc-accent);
+  border-color: var(--qc-accent);
+  color: #fff;
+}
+
+#qc-nav-bar .qc-btn.qc-nav-next:hover:not(:disabled) {
+  background: oklch(0.44 0.15 250);
+  border-color: oklch(0.44 0.15 250);
+}
+
+/* Sets navigation apart from the filters, like the toolbar's dividers. */
+#qc-nav-bar .qc-nav-divider {
+  @apply w-px h-6 mx-1.5 shrink-0;
+  background: var(--qc-border-strong);
+}
+
 #qc-nav-bar .qc-nav-position {
   @apply text-xs font-semibold ml-1.5 whitespace-nowrap tabular-nums;
   color: var(--qc-text-secondary);
@@ -12,6 +47,11 @@
 #qc-nav-bar .qc-nav-filter {
   @apply flex items-center gap-1.5 text-xs ml-2;
   color: var(--qc-text-muted);
+}
+
+/* Both filters share one width, so they line up whatever they show. */
+#qc-nav-bar .qc-nav-filter select {
+  @apply w-28;
 }
 
 #qc-nav-bar .qc-nav-spacer {

@@ -18,7 +18,7 @@ import "./StackViewport.css";
 
 // Zoom out a touch so the image doesn't touch the panel edge — keeps the
 // selection box and the data-boundary frame visible. Matches VolumeViewport.
-const MARGIN_ZOOM = 0.92;
+export const MARGIN_ZOOM = 0.92;
 
 const {
   PanTool,
@@ -44,6 +44,8 @@ function StackViewport({
   toolGroup,
   segmentationId,
   onImageChange,
+  // Corner badge naming the view; null hides it (a page with one viewport).
+  label = "Stack",
 }) {
   console.log("[StackViewport] rendering");
   const elementRef = useRef(null);
@@ -271,7 +273,7 @@ function StackViewport({
           activeViewport === viewportId ? " active" : ""
         }`}
       >
-        <ViewportLabel text="Stack" />
+        {label && <ViewportLabel text={label} />}
       </div>
     </>
   );

@@ -84,6 +84,12 @@
   color: var(--qc-text-secondary);
 }
 
+/* The app-wide focus ring (index.css) is for keyboard focus: don't draw it
+   on a button just clicked with the mouse. */
+#qc-page button:focus:not(:focus-visible) {
+  outline: none;
+}
+
 #qc-page .qc-btn:hover:not(:disabled) {
   background: oklch(0.96 0.004 90);
 }
@@ -95,7 +101,7 @@
   color: var(--qc-text-disabled);
 }
 
-/* Shared section heading ("STACK REVIEW", "DICOM DUMP — …") */
+/* Shared section heading ("DICOM DUMP — …", "KEYBOARD SHORTCUTS") */
 #qc-page .qc-section-heading {
   @apply text-xs font-semibold uppercase tracking-wide;
   color: var(--qc-text-muted);

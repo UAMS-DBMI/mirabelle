@@ -2,6 +2,11 @@
   @apply flex items-center gap-2 shrink-0 px-4 pt-2.5 pb-1.5;
 }
 
+/* The controls keep their size; when the row is tight, the hint gives way. */
+#qc-viewer-toolbar > :not(.qc-toolbar-hint):not(.qc-toolbar-spacer) {
+  @apply shrink-0 whitespace-nowrap;
+}
+
 #qc-viewer-toolbar .qc-tool-toggle {
   @apply flex gap-0.5 rounded-lg p-[3px];
   background: var(--qc-chip-bg);
@@ -13,7 +18,7 @@
   color: var(--qc-text-muted);
 }
 
-#qc-viewer-toolbar .qc-tool-toggle button.active {
+#qc-viewer-toolbar .qc-tool-toggle button.qc-active {
   background: var(--qc-surface);
   color: var(--qc-text-strong);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
@@ -24,20 +29,42 @@
   background: var(--qc-border-strong);
 }
 
-#qc-viewer-toolbar .qc-zoom-btn {
-  @apply w-[30px] h-[30px] p-0 text-[15px] leading-none;
+/* Zoom out | level | zoom in, as one bordered control. */
+#qc-viewer-toolbar .qc-zoom-group {
+  @apply flex items-stretch rounded-[7px] overflow-hidden;
+  background: var(--qc-surface);
+  border: 1px solid var(--qc-border-strong);
+}
+
+#qc-viewer-toolbar .qc-zoom-group button {
+  @apply flex items-center justify-center w-[30px] h-[30px] p-0 m-0 border-0 rounded-none text-[15px] leading-none cursor-pointer;
+  background: transparent;
+  color: var(--qc-text-secondary);
+}
+
+#qc-viewer-toolbar .qc-zoom-group button:hover {
+  background: oklch(0.96 0.004 90);
 }
 
 #qc-viewer-toolbar .qc-zoom-label {
-  @apply text-xs w-11 text-center tabular-nums;
+  @apply flex items-center justify-center text-xs w-12 tabular-nums;
   color: var(--qc-text-muted);
+  border-left: 1px solid var(--qc-border-strong);
+  border-right: 1px solid var(--qc-border-strong);
 }
 
 #qc-viewer-toolbar .qc-toolbar-spacer {
   @apply flex-1;
 }
 
+/* On: pressed in. QC uses .qc-active, never .active: MaterialButtonSet.css
+   styles every .active app-wide (full width, blue). */
+#qc-viewer-toolbar .qc-labels-toggle.qc-active {
+  background: var(--qc-chip-bg);
+  color: var(--qc-text-strong);
+}
+
 #qc-viewer-toolbar .qc-toolbar-hint {
-  @apply text-xs whitespace-nowrap;
+  @apply text-xs whitespace-nowrap min-w-0 overflow-hidden text-ellipsis;
   color: var(--qc-text-faint);
 }
