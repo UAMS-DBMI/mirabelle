@@ -11,7 +11,56 @@ import { messages } from "@/lib/messages";
 
 import { RENDERING_ENGINE_ID, VIEWPORT_ID } from "./viewport";
 
+import { hasValue } from "./dicomText";
+
 import "./QCViewport.css";
+
+// The usual viewer corners: patient top-left, study top-right, display
+// bottom-left, position bottom-right. A line or part with no value is left
+// out.
+
+// The values that are present, joined with " · ".
+function join(...values) {
+  return values.filter(hasValue).join(" · ");
+}
+
+function patientLines(info) {
+  if (!info) return [];
+  return [
+    info.patientName,
+    hasValue(info.patientId) ? `ID ${info.patientId}` : "",
+    join(
+      hasValue(info.patientBirthDate) ? `DOB ${info.patientBirthDate}` : "",
+      [info.patientAge, info.patientSex].filter(hasValue).join(" "),
+    ),
+  ];
+}
+
+function studyLines(info) {
+  if (!info) return [];
+  // The series line leads: it is often the longest, and wrapping at the top
+  // pushes the shorter lines down rather than running toward the image.
+  return [
+    join(
+      info.modality,
+      hasValue(info.seriesNumber) ? `Se ${info.seriesNumber}` : "",
+      info.seriesDescription,
+    ),
+    info.studyDescription,
+    join(info.studyDate, info.studyTime),
+    info.institution,
+  ];
+}
+
+function OverlayLines({ className, lines }) {
+  return (
+    <div className={className}>
+      {lines.filter(hasValue).map((line, i) => (
+        <div key={i}>{line}</div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * The QC viewer area: the shared Cornerstone stack viewport inside a black
@@ -26,6 +75,7 @@ export default function QCViewport({
   frameIndex,
   frameCount,
   noPixelData,
+  showLabels = true,
 }) {
   const dispatch = useDispatch();
   const [renderingEngine, setRenderingEngine] = useState();
@@ -60,6 +110,7 @@ export default function QCViewport({
         toolGroup={toolGroup}
         renderingEngine={renderingEngine}
         viewportId={VIEWPORT_ID}
+        label={null}
       />
 
       {/* Covers the last image drawn, which the viewport still holds. */}
@@ -67,12 +118,15 @@ export default function QCViewport({
         <div className="qc-no-pixel-data">{messages.viewport.noPixelData}</div>
       )}
 
-      <div className="qc-viewport-overlay">
-        <div className="qc-overlay-top-right">
-          {studyInfo?.modality || "—"} · {studyInfo?.studyDate || "—"}
-          <br />
-          {studyInfo?.seriesDescription || "—"}
-        </div>
+      <div className="qc-viewport-overlay" hidden={!showLabels}>
+        <OverlayLines
+          className="qc-overlay-top-left"
+          lines={patientLines(studyInfo)}
+        />
+        <OverlayLines
+          className="qc-overlay-top-right"
+          lines={studyLines(studyInfo)}
+        />
         {!noPixelData && (
           <div className="qc-overlay-bottom-left">
             WL {windowCenter ?? "—"}&nbsp;&nbsp;WW {windowWidth ?? "—"}

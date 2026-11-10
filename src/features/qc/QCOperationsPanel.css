@@ -38,50 +38,44 @@
   color: var(--qc-text-strong);
 }
 
-/* Each button wears its status pill's colors (QCNavBar). A hover outlines it
-   in that color; the series' saved status keeps a solid colored border. */
-#qc-review-panel .qc-review-button:disabled {
-  @apply cursor-not-allowed opacity-45;
-}
-
+/* Each button wears its status pill's colors (QCNavBar), with three edges:
+   resting, a mid-tone outline; hover, the full color; the series' saved
+   status, a 2px full-color edge (an inset ring, so nothing shifts) and a
+   deeper fill. */
 #qc-review-panel .qc-review-green {
-  background: var(--qc-green-bg);
-  border-color: var(--qc-green-bg);
-  color: var(--qc-green-text);
+  --tone-bg: var(--qc-green-bg);
+  --tone-border: var(--qc-green-border);
+  --tone-text: var(--qc-green-text);
 }
 
 #qc-review-panel .qc-review-red {
-  background: var(--qc-red-bg);
-  border-color: var(--qc-red-bg);
-  color: var(--qc-red-text);
+  --tone-bg: var(--qc-red-bg);
+  --tone-border: var(--qc-red-border);
+  --tone-text: var(--qc-red-text);
 }
 
 #qc-review-panel .qc-review-amber {
-  background: var(--qc-amber-bg);
-  border-color: var(--qc-amber-bg);
-  color: var(--qc-amber-text);
+  --tone-bg: var(--qc-amber-bg);
+  --tone-border: var(--qc-amber-border);
+  --tone-text: var(--qc-amber-text);
 }
 
-#qc-review-panel .qc-review-green:hover:not(:disabled),
-#qc-review-panel .qc-review-green.active {
-  border-color: var(--qc-green-border);
+#qc-review-panel .qc-review-button {
+  background: var(--tone-bg);
+  border-color: color-mix(in oklch, var(--tone-border) 45%, var(--tone-bg));
+  color: var(--tone-text);
 }
 
-#qc-review-panel .qc-review-red:hover:not(:disabled),
-#qc-review-panel .qc-review-red.active {
-  border-color: var(--qc-red-border);
+#qc-review-panel .qc-review-button:hover:not(:disabled) {
+  border-color: var(--tone-border);
 }
 
-#qc-review-panel .qc-review-amber:hover:not(:disabled),
-#qc-review-panel .qc-review-amber.active {
-  border-color: var(--qc-amber-border);
+#qc-review-panel .qc-review-button.qc-active {
+  background: color-mix(in oklch, var(--tone-border) 18%, var(--tone-bg));
+  border-color: var(--tone-border);
+  box-shadow: inset 0 0 0 1px var(--tone-border);
 }
 
-#qc-review-panel .qc-review-button.active {
-  border-width: 1.5px;
-}
-
-#qc-review-panel .qc-review-hint {
-  @apply text-[11.5px];
-  color: var(--qc-text-muted);
+#qc-review-panel .qc-review-button:disabled {
+  @apply cursor-not-allowed opacity-45;
 }

@@ -19,8 +19,15 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
+/* The right-hand corners sit clear of the slice scrollbar (lib/sliceScrollbar).
+   Each top corner keeps to its half, so long text wraps rather than running
+   into the other corner. */
+#qc-viewport .qc-overlay-top-left {
+  @apply absolute top-2.5 left-3 max-w-[45%];
+}
+
 #qc-viewport .qc-overlay-top-right {
-  @apply absolute top-2.5 right-3 text-right;
+  @apply absolute top-2.5 right-6 text-right max-w-[45%];
 }
 
 #qc-viewport .qc-overlay-bottom-left {
@@ -28,5 +35,5 @@
 }
 
 #qc-viewport .qc-overlay-bottom-right {
-  @apply absolute bottom-2.5 right-3 text-right;
+  @apply absolute bottom-2.5 right-6 text-right;
 }

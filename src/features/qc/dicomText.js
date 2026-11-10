@@ -44,6 +44,17 @@ export function formatDicomDate(value) {
   return `${month} ${parseInt(value.slice(6, 8), 10)}, ${value.slice(0, 4)}`;
 }
 
+/** TM "143205.123" → "14:32" */
+export function formatDicomTime(value) {
+  if (!value || !/^\d{4}/.test(value)) return PLACEHOLDER;
+  return `${value.slice(0, 2)}:${value.slice(2, 4)}`;
+}
+
+/** Whether a formatted field holds a value, not the placeholder. */
+export function hasValue(value) {
+  return Boolean(value) && value !== PLACEHOLDER;
+}
+
 /**
  * Patient/study/series display fields for the QC header and viewport
  * overlays, extracted from the currently displayed frame's dataSet.
@@ -55,11 +66,15 @@ export function buildStudyInfo(dataSet) {
     patientId: dataSet.string("x00100020") || PLACEHOLDER,
     patientSex: dataSet.string("x00100040") || PLACEHOLDER,
     patientAge: formatPatientAge(dataSet.string("x00101010")),
+    patientBirthDate: formatDicomDate(dataSet.string("x00100030")),
+    institution: dataSet.string("x00080080") || PLACEHOLDER,
     studyDescription: dataSet.string("x00081030") || PLACEHOLDER,
     accession: dataSet.string("x00080050") || PLACEHOLDER,
     seriesDescription: dataSet.string("x0008103e") || PLACEHOLDER,
     modality: dataSet.string("x00080060") || "",
     studyDate: formatDicomDate(dataSet.string("x00080020")),
+    studyTime: formatDicomTime(dataSet.string("x00080030")),
+    seriesNumber: dataSet.string("x00200011") || PLACEHOLDER,
     instanceNumber: dataSet.string("x00200013") || PLACEHOLDER,
   };
 }

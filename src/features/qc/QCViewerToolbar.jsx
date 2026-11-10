@@ -14,6 +14,8 @@ export default function QCViewerToolbar({
   onZoomIn,
   onZoomOut,
   onResetView,
+  showLabels,
+  onToggleLabels,
 }) {
   const zoomLabel = zoom != null ? `${Math.round(zoom * 100)}%` : "—";
 
@@ -21,13 +23,13 @@ export default function QCViewerToolbar({
     <div id="qc-viewer-toolbar">
       <div className="qc-tool-toggle">
         <button
-          className={activeTool === "wl" ? "active" : ""}
+          className={activeTool === "wl" ? "qc-active" : ""}
           onClick={() => onToolChange("wl")}
         >
           Window / Level
         </button>
         <button
-          className={activeTool === "pan" ? "active" : ""}
+          className={activeTool === "pan" ? "qc-active" : ""}
           onClick={() => onToolChange("pan")}
         >
           Pan
@@ -36,17 +38,15 @@ export default function QCViewerToolbar({
 
       <div className="qc-toolbar-divider" />
 
-      <button
-        className="qc-btn qc-zoom-btn"
-        title="Zoom out"
-        onClick={onZoomOut}
-      >
-        −
-      </button>
-      <div className="qc-zoom-label">{zoomLabel}</div>
-      <button className="qc-btn qc-zoom-btn" title="Zoom in" onClick={onZoomIn}>
-        +
-      </button>
+      <div className="qc-zoom-group">
+        <button title="Zoom out" onClick={onZoomOut}>
+          −
+        </button>
+        <div className="qc-zoom-label">{zoomLabel}</div>
+        <button title="Zoom in" onClick={onZoomIn}>
+          +
+        </button>
+      </div>
       <button className="qc-btn" onClick={onResetView}>
         Reset view
       </button>
@@ -57,6 +57,15 @@ export default function QCViewerToolbar({
         Drag to adjust {activeTool === "wl" ? "window/level" : "pan"} · scroll
         to change frame
       </div>
+
+      <button
+        className={`qc-btn qc-labels-toggle${showLabels ? " qc-active" : ""}`}
+        aria-pressed={showLabels}
+        title={showLabels ? "Hide image labels" : "Show image labels"}
+        onClick={onToggleLabels}
+      >
+        Labels
+      </button>
     </div>
   );
 }

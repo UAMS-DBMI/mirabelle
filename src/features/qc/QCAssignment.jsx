@@ -11,6 +11,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import * as cornerstoneTools from "@cornerstonejs/tools";
 
 import { setTitle, setLoading, setOption } from "@/features/optionSlice";
+import { MARGIN_ZOOM } from "@/components/StackViewport";
 import { notify } from "@/lib/notify";
 import { messages } from "@/lib/messages";
 import {
@@ -52,6 +53,26 @@ const QC_ACTIONS = {
   rejected: { noteRequired: true },
   flagged: { noteRequired: true },
 };
+
+// Whether the viewer's corner labels show, remembered in this browser. Storage
+// can be unavailable (private windows, blocked site data): labels then show.
+const SHOW_LABELS_KEY = "mirabelle.qc.showLabels";
+
+function readShowLabels() {
+  try {
+    return window.localStorage.getItem(SHOW_LABELS_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+function saveShowLabels(shown) {
+  try {
+    window.localStorage.setItem(SHOW_LABELS_KEY, String(shown));
+  } catch {
+    // Not remembered; the toggle still works for this visit.
+  }
+}
 
 const ZOOM_STEP = 1.2;
 const MIN_ZOOM = 0.4;
@@ -95,6 +116,7 @@ export default function QCAssignment({
   const [isErrored, setIsErrored] = useState(false);
   const [note, setNote] = useState("");
   const [activeTool, setActiveTool] = useState("wl");
+  const [showLabels, setShowLabels] = useState(readShowLabels);
   const noteInputRef = useRef(null);
   const loadRequestRef = useRef(0);
 
@@ -212,10 +234,19 @@ export default function QCAssignment({
     viewport.render();
   }
 
+  function toggleLabels() {
+    setShowLabels((shown) => {
+      saveShowLabels(!shown);
+      return !shown;
+    });
+  }
+
   function resetView() {
     const viewport = getQCViewport();
     if (!viewport) return;
     viewport.resetCamera();
+    // Back to the fitted view with the stack viewport's margin (100%).
+    viewport.setZoom(MARGIN_ZOOM);
     viewport.resetProperties();
     viewport.render();
   }
@@ -320,6 +351,8 @@ export default function QCAssignment({
         onZoomIn={() => zoomBy(ZOOM_STEP)}
         onZoomOut={() => zoomBy(1 / ZOOM_STEP)}
         onResetView={resetView}
+        showLabels={showLabels}
+        onToggleLabels={toggleLabels}
       />
       <QCViewport
         frames={imageIds}
@@ -329,6 +362,7 @@ export default function QCAssignment({
         frameIndex={frameIndex}
         frameCount={frameCount}
         noPixelData={noPixelData}
+        showLabels={showLabels}
       />
       <CineControls
         key={seriesUid}

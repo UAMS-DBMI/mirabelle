@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 
 import * as cornerstone from "@cornerstonejs/core";
 
+import { MARGIN_ZOOM } from "@/components/StackViewport";
+
 import { getQCViewport } from "./viewport";
 
 const EMPTY = { zoom: null, windowCenter: null, windowWidth: null };
@@ -25,7 +27,9 @@ export default function useViewportInfo(currentImageId) {
     const update = () => {
       const voiRange = viewport.getProperties()?.voiRange;
       setInfo({
-        zoom: viewport.getZoom(),
+        // Relative to the fitted image, which the stack viewport shows with a
+        // margin (MARGIN_ZOOM): fitted reads 100%.
+        zoom: viewport.getZoom() / MARGIN_ZOOM,
         windowCenter: voiRange
           ? Math.round((voiRange.lower + voiRange.upper) / 2)
           : null,
