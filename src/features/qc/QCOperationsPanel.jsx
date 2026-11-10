@@ -8,13 +8,13 @@ import "./QCOperationsPanel.css";
  * QC action buttons (Approve / Reject / Flag) plus the shared note field.
  * Reject and Flag require a note and stay disabled until one is typed;
  * Approve treats it as optional. The button matching the series' saved
- * status is highlighted. In read-only mode (assignment belongs to someone
- * else) all actions are disabled but the rest of the route stays usable.
+ * status is highlighted. In read-only mode (no user logged in) all actions
+ * are disabled but the rest of the route stays usable.
  */
 export default function QCOperationsPanel({
   series,
   readOnly,
-  assignedTo,
+  assignedTo, // eslint-disable-line no-unused-vars -- kept for future use
   note,
   onNoteChange,
   noteInputRef,
@@ -30,9 +30,7 @@ export default function QCOperationsPanel({
     <div id="qc-review-panel">
       <div className="qc-section-heading">Stack Review</div>
 
-      {readOnly && assignedTo != null && (
-        <p className="qc-readonly-notice">{messages.qc.readOnly(assignedTo)}</p>
-      )}
+      {readOnly && <p className="qc-readonly-notice">{messages.qc.readOnly}</p>}
 
       <textarea
         id="qc-note"
