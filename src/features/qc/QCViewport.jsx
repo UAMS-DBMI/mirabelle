@@ -7,6 +7,7 @@ import { RenderingEngine } from "@cornerstonejs/core";
 import useRendererResize from "@/hooks/useRendererResize";
 import { setOption } from "@/features/optionSlice";
 import StackViewport from "@/components/StackViewport";
+import { messages } from "@/lib/messages";
 
 import { RENDERING_ENGINE_ID, VIEWPORT_ID } from "./viewport";
 
@@ -24,6 +25,7 @@ export default function QCViewport({
   viewportInfo,
   frameIndex,
   frameCount,
+  noPixelData,
 }) {
   const dispatch = useDispatch();
   const [renderingEngine, setRenderingEngine] = useState();
@@ -60,17 +62,24 @@ export default function QCViewport({
         viewportId={VIEWPORT_ID}
       />
 
+      {/* Covers the last image drawn, which the viewport still holds. */}
+      {noPixelData && (
+        <div className="qc-no-pixel-data">{messages.viewport.noPixelData}</div>
+      )}
+
       <div className="qc-viewport-overlay">
         <div className="qc-overlay-top-right">
           {studyInfo?.modality || "—"} · {studyInfo?.studyDate || "—"}
           <br />
           {studyInfo?.seriesDescription || "—"}
         </div>
-        <div className="qc-overlay-bottom-left">
-          WL {windowCenter ?? "—"}&nbsp;&nbsp;WW {windowWidth ?? "—"}
-          <br />
-          Zoom {zoom != null ? `${Math.round(zoom * 100)}%` : "—"}
-        </div>
+        {!noPixelData && (
+          <div className="qc-overlay-bottom-left">
+            WL {windowCenter ?? "—"}&nbsp;&nbsp;WW {windowWidth ?? "—"}
+            <br />
+            Zoom {zoom != null ? `${Math.round(zoom * 100)}%` : "—"}
+          </div>
+        )}
         <div className="qc-overlay-bottom-right">
           Instance {studyInfo?.instanceNumber || "—"}
           <br />

@@ -10,7 +10,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 
 import * as cornerstoneTools from "@cornerstonejs/tools";
 
-import { setTitle, setLoading } from "@/features/optionSlice";
+import { setTitle, setLoading, setOption } from "@/features/optionSlice";
 import { notify } from "@/lib/notify";
 import { messages } from "@/lib/messages";
 import {
@@ -31,6 +31,7 @@ import useCurrentDataSet from "./useCurrentDataSet";
 import useViewportInfo from "./useViewportInfo";
 import { buildStudyInfo } from "./dicomText";
 import { getQCViewport } from "./viewport";
+import { hasNoPixelData, watchNoPixelData } from "./noPixelData";
 
 import "./QCAssignment.css";
 
@@ -103,6 +104,18 @@ export default function QCAssignment({
   const { dataSet } = useCurrentDataSet();
   const studyInfo = useMemo(() => buildStudyInfo(dataSet), [dataSet]);
   const viewportInfo = useViewportInfo(currentImageId);
+
+  const noPixelData = hasNoPixelData(currentImageId);
+
+  // A frame with no pixel data (an SR) never shows as an image, so make it
+  // the current frame here: the dump and header then follow it as usual.
+  useEffect(
+    () =>
+      watchNoPixelData(getQCViewport, (imageId) =>
+        dispatch(setOption({ key: "currentImageId", value: imageId })),
+      ),
+    [dispatch],
+  );
 
   const frameCount = imageIds?.length ?? 0;
   const frameIndex =
@@ -315,6 +328,7 @@ export default function QCAssignment({
         viewportInfo={viewportInfo}
         frameIndex={frameIndex}
         frameCount={frameCount}
+        noPixelData={noPixelData}
       />
       <CineControls
         key={seriesUid}

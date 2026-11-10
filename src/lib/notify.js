@@ -348,6 +348,17 @@ export const notify = {
       Boolean(error) && typeof error === "object" && shownErrors.has(error)
     );
   },
+
+  /**
+   * Treat `error` (the same object) as already shown, without a toast: for an
+   * error a page handled on screen in its own way, so the global handler
+   * doesn't toast it when it also escapes as an unhandled rejection.
+   *
+   * @param {unknown} error
+   */
+  markHandled(error) {
+    if (error && typeof error === "object") shownErrors.add(error);
+  },
 };
 
 export default notify;

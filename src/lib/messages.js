@@ -85,6 +85,7 @@ export const messages = {
   // Neutral viewport empty states (never styled as errors).
   viewport: {
     noImage: "No image to display",
+    noPixelData: "No pixel data",
     noMaskedImages: "No masked images to review for this exam yet.",
   },
 
