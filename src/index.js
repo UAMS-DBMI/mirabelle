@@ -185,17 +185,17 @@ const router = createBrowserRouter(
         {
           path: "qc/assignments/:assignmentId",
           element: <RouteQCAssignment />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "qc/assignments/:assignmentId/:seriesUid",
           element: <RouteQCAssignment />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         {
           path: "qc/assignments/:assignmentId/:seriesUid/:qcStatus/:modality",
           element: <RouteQCAssignment />,
-          HydrateFallback: LoadingSpinner,
+          HydrateFallback: LoadingPage,
         },
         // Other Routes
         // ----------------------------------
