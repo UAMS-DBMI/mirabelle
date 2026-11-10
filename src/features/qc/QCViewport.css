@@ -7,6 +7,12 @@
   @apply absolute inset-0;
 }
 
+#qc-viewport .qc-no-pixel-data {
+  @apply absolute inset-0 flex items-center justify-center text-sm;
+  background: #000;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 #qc-viewport .qc-viewport-overlay {
   @apply absolute inset-0 pointer-events-none font-mono text-[11.5px] leading-normal;
   color: rgba(255, 255, 255, 0.88);
