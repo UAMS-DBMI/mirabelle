@@ -62,8 +62,7 @@ export const messages = {
     statusSet: (label) => `Series marked ${label}`,
     noteRequired: (label) =>
       `A note is required to mark a series ${label.toLowerCase()}.`,
-    readOnly: (userId) =>
-      `This assignment belongs to user ${userId}; QC actions are disabled.`,
+    readOnly: "Log in to approve, reject or flag series.",
     noSeries: "No series were found for the selected filters.",
     endReached:
       "End of the series list. Go back or change the filters to continue.",
@@ -114,7 +113,7 @@ export const messages = {
       `More than one segmentation image was found for IEC ${iec}.`,
     segLoadError: `This segmentation file could not be loaded. 
                    It may be corrupted or use an unsupported format.
-                   The volume will display, but no SEG will be overlayed!`, 
+                   The volume will display, but no SEG will be overlayed!`,
   },
 };
 

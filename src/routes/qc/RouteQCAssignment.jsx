@@ -60,12 +60,12 @@ export default function RouteQCAssignment() {
     refreshAssignment();
   }, [refreshAssignment]);
 
-  // The route is read-only unless the current user owns the assignment.
+  // The route is read-only unless a user is logged in.
   useEffect(() => {
     getCurrentUser()
       .then(setCurrentUser)
       .catch((error) => {
-        // Ownership can't be verified, so QC actions stay disabled.
+        // No user could be confirmed, so QC actions stay disabled.
         console.error("Failed to fetch current user:", error);
       });
   }, []);
@@ -173,12 +173,11 @@ export default function RouteQCAssignment() {
     ].sort(),
   ];
 
+  // Not used for access: any logged-in user can make QC decisions, and a
+  // disabled account counts as logged out.
+  // eslint-disable-next-line no-unused-vars -- kept for future use
   const assignedTo = assignmentData?.assignment?.assigned_to;
-  const readOnly = !(
-    currentUser &&
-    assignedTo != null &&
-    currentUser.user_id === assignedTo
-  );
+  const readOnly = !currentUser || currentUser.disabled;
 
   const resolvedSeriesUid =
     seriesUid && seriesUid !== "*" && !atEnd ? seriesUid : null;

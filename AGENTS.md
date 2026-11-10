@@ -101,7 +101,7 @@ add/move files. High level (`src/`):
   mask QA, and DICOM/NIfTI visual review), each driven by a `TASK_CONFIGS` entry.
 - **QC** — Quality Control: approving, rejecting or flagging each series of a QC
   assignment. A standalone stack-review page (`features/qc/`) that doesn't use
-  `TASK_CONFIGS`. Read-only unless the current user owns the assignment.
+  `TASK_CONFIGS`. Read-only unless a user is logged in (a disabled account counts as logged out).
 - Routes encode workflow + view in the path, e.g. `mask/vr/:vr/:iec/:maskingStatus`,
   `review/dicom/iec/:iec`, `review/nifti/vr/:vr/:file`,
   `qc/assignments/:assignmentId[/:seriesUid[/:qcStatus/:modality]]`.

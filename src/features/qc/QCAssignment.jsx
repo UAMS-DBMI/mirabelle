@@ -223,9 +223,7 @@ export default function QCAssignment({
       return;
     }
     if (readOnly) {
-      if (assignedTo != null) {
-        notify.info(messages.qc.readOnly(assignedTo));
-      }
+      notify.info(messages.qc.readOnly);
       return;
     }
 
