@@ -76,20 +76,21 @@ add/move files. High level (`src/`):
 - `index.js` — true entrypoint: builds the Redux `Provider`, `EnableCornerstone`,
   `LoadingOverlay`, and the `createBrowserRouter` route table (all routes live here).
 - `routes/` — thin route components + React Router `loader` functions. Grouped by domain:
-  `mask/`, `mask-review/`, `dicom/`, `nifti/`. Each route dispatches a Redux config action
+  `mask/`, `mask-review/`, `dicom/`, `nifti/`, `qc/`. Each route dispatches a Redux config action
   then renders the matching `features/` component.
 - `features/` — the real feature UI and the Redux **slices** (`counterSlice`,
   `presentationSlice`, `maskingSlice`, `optionSlice`). Subfolders: `mask/`, `mask-review/`,
   `dicom-review/`, `nifti-review/`, `seg/`, `tools/`, `stack-view/`, `volume-view/`,
-  `details/`. Most expose an `index.js` barrel.
+  `details/`, `qc/`. Most expose an `index.js` barrel.
 - `components/` — shared UI (viewports, panels, layout, Cornerstone bootstrap). Each
   component is a `.jsx` + sibling `.css` pair.
 - `config/config.js` — declarative per-task UI configuration (`TASK_CONFIGS`): which panels
   and tools are visible for each layout (Masker, MaskerReview, VisualReview) × viewport
   layout (stack/volume).
 - `store.js` — Redux store wiring the four slices.
-- `masking.js`, `visualreview.js`, `utilities.js` — API calls and coordinate/volume math.
-  `masking.test.js` covers `convertCoordinates`.
+- `masking.js`, `visualreview.js`, `qc.js`, `utilities.js` — API calls and
+  coordinate/volume math. `masking.test.js` covers `convertCoordinates`; `qc.test.js`
+  covers the QC request building.
 - `hooks/`, `lib/` — custom hooks and Cornerstone image-id/metadata helpers.
 
 ### Domain vocabulary
@@ -98,16 +99,21 @@ add/move files. High level (`src/`):
 - **VR** — Volume Rendering (3D).
 - **Masker / Masker Review / Visual Review** — the three workflow layouts (mask creation,
   mask QA, and DICOM/NIfTI visual review), each driven by a `TASK_CONFIGS` entry.
+- **QC** — Quality Control: approving, rejecting or flagging each series of a QC
+  assignment. A standalone stack-review page (`features/qc/`) that doesn't use
+  `TASK_CONFIGS`. Read-only unless the current user owns the assignment.
 - Routes encode workflow + view in the path, e.g. `mask/vr/:vr/:iec/:maskingStatus`,
-  `review/dicom/iec/:iec`, `review/nifti/vr/:vr/:file`.
+  `review/dicom/iec/:iec`, `review/nifti/vr/:vr/:file`,
+  `qc/assignments/:assignmentId[/:seriesUid[/:qcStatus/:modality]]`.
 
 ## Backend
 
 The app calls an external API proxied by the webpack dev server:
 
 - **`/papi/...`** — the application API (POSDA). Endpoints used live in `masking.js`,
-  `visualreview.js`, and `utilities.js` (e.g. `/papi/v1/iecs/:iec/info`,
-  `/papi/v1/masking/:iec`, `/papi/v1/nifti/:file_id`, `/papi/v1/wadors` for DICOMweb).
+  `visualreview.js`, `qc.js`, and `utilities.js` (e.g. `/papi/v1/iecs/:iec/info`,
+  `/papi/v1/masking/:iec`, `/papi/v1/nifti/:file_id`, `/papi/v1/distribution/qc/...`,
+  `/papi/v1/wadors` for DICOMweb).
 - **`/files/...`** — static image files served by nginx; referenced as
   `wadouri:/files/<path>` image ids.
 

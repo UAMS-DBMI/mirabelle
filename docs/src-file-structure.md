@@ -14,6 +14,8 @@ src/
 ├── index.js                 # Application entry point
 ├── masking.js               # Masking functionality
 ├── masking.test.js          # Masking tests
+├── qc.js                    # QC route API calls (/papi/v1/distribution/qc)
+├── qc.test.js               # QC API tests
 ├── store.js                 # Redux store configuration
 ├── utilities.js             # Utility functions
 └── visualreview.js          # Visual review functionality
@@ -146,6 +148,30 @@ features/
 │   ├── niftiTruncation.js           # NIfTI files that only partly decoded
 │   └── niftiViewWindow.js           # The window a NIfTI shows in each view mode
 │
+├── qc/
+│   ├── CineControls.css
+│   ├── CineControls.jsx             # Cine play/pause, frame step and fps
+│   ├── QCAssignment.css
+│   ├── QCAssignment.jsx             # QC page: reviews one assignment's series
+│   ├── QCDicomDump.css
+│   ├── QCDicomDump.jsx              # DICOM dump of the current frame
+│   ├── QCDicomDump.test.jsx         # Dump tests
+│   ├── QCNavBar.css
+│   ├── QCNavBar.jsx                 # Series navigation and status filters
+│   ├── QCOperationsPanel.css
+│   ├── QCOperationsPanel.jsx        # Approve / Reject / Flag with a note
+│   ├── QCStudyHeader.css
+│   ├── QCStudyHeader.jsx            # Patient and study details header
+│   ├── QCViewerToolbar.css
+│   ├── QCViewerToolbar.jsx          # Mouse tool, zoom and reset
+│   ├── QCViewport.css
+│   ├── QCViewport.jsx               # The QC stack viewport and overlays
+│   ├── dicomText.js                 # Formats raw DICOM values for display
+│   ├── index.js                     # Module exports
+│   ├── useCurrentDataSet.js         # The displayed frame's DICOM dataSet
+│   ├── useViewportInfo.js           # Live zoom and window level/width
+│   └── viewport.js                  # Looks up the QC stack viewport
+│
 ├── seg/
 │   ├── SegPanel.css
 │   ├── SegPanel.jsx                 # Segmentation panel
@@ -224,11 +250,14 @@ routes/
 │   ├── RouteMaskReviewVR.css
 │   └── RouteMaskReviewVR.jsx        # Mask review VR route
 │
-└── nifti/
-    ├── RouteNiftiReviewFile.css
-    ├── RouteNiftiReviewFile.jsx     # NIfTI file review route
-    ├── RouteNiftiReviewVR.css
-    └── RouteNiftiReviewVR.jsx       # NIfTI VR review route
+├── nifti/
+│   ├── RouteNiftiReviewFile.css
+│   ├── RouteNiftiReviewFile.jsx     # NIfTI file review route
+│   ├── RouteNiftiReviewVR.css
+│   └── RouteNiftiReviewVR.jsx       # NIfTI VR review route
+│
+└── qc/
+    └── RouteQCAssignment.jsx        # QC assignment review route
 ```
 
 ## test/
@@ -250,10 +279,10 @@ The src folder contains:
 - **52 component files** (26 pairs of .jsx + .css): Reusable UI components
 - **1 config file**: Application configuration (`config.js`)
 - **4 Redux slice files**: State management for counter, masking, options, and presentation
-- **7 feature modules**: Organized by functionality (details, dicom-review, mask, mask-review, nifti-review, seg, stack-view, tools, volume-view)
+- **7 feature modules**: Organized by functionality (details, dicom-review, mask, mask-review, nifti-review, qc, seg, stack-view, tools, volume-view)
 - **2 custom hooks**: React hooks for configuration and resizing
 - **1 library utility**: Image handling utilities
-- **4 route modules**: Different viewing modes (home, dicom, mask, mask-review, nifti)
+- **4 route modules**: Different viewing modes (home, dicom, mask, mask-review, nifti, qc)
 - **1 test setup file**: Testing configuration
 
 ### Abbreviations Used
@@ -261,6 +290,7 @@ The src folder contains:
 - **VR**: Volume Rendering
 - **DICOM**: Digital Imaging and Communications in Medicine
 - **NIfTI**: Neuroimaging Informatics Technology Initiative
+- **QC**: Quality Control
 
 ### Total File Count
 Approximately **146 files** in the src directory (excluding .DS_Store files).
