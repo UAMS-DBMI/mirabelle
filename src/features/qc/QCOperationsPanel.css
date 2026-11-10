@@ -38,27 +38,47 @@
   color: var(--qc-text-strong);
 }
 
+/* Each button wears its status pill's colors (QCNavBar). A hover outlines it
+   in that color; the series' saved status keeps a solid colored border. */
 #qc-review-panel .qc-review-button:disabled {
-  @apply cursor-not-allowed opacity-60;
-  color: var(--qc-text-disabled);
+  @apply cursor-not-allowed opacity-45;
 }
 
-#qc-review-panel .qc-review-green.active {
+#qc-review-panel .qc-review-green {
   background: var(--qc-green-bg);
-  border: 1.5px solid var(--qc-green-border);
+  border-color: var(--qc-green-bg);
   color: var(--qc-green-text);
 }
 
-#qc-review-panel .qc-review-red.active {
+#qc-review-panel .qc-review-red {
   background: var(--qc-red-bg);
-  border: 1.5px solid var(--qc-red-border);
+  border-color: var(--qc-red-bg);
   color: var(--qc-red-text);
 }
 
-#qc-review-panel .qc-review-amber.active {
+#qc-review-panel .qc-review-amber {
   background: var(--qc-amber-bg);
-  border: 1.5px solid var(--qc-amber-border);
+  border-color: var(--qc-amber-bg);
   color: var(--qc-amber-text);
+}
+
+#qc-review-panel .qc-review-green:hover:not(:disabled),
+#qc-review-panel .qc-review-green.active {
+  border-color: var(--qc-green-border);
+}
+
+#qc-review-panel .qc-review-red:hover:not(:disabled),
+#qc-review-panel .qc-review-red.active {
+  border-color: var(--qc-red-border);
+}
+
+#qc-review-panel .qc-review-amber:hover:not(:disabled),
+#qc-review-panel .qc-review-amber.active {
+  border-color: var(--qc-amber-border);
+}
+
+#qc-review-panel .qc-review-button.active {
+  border-width: 1.5px;
 }
 
 #qc-review-panel .qc-review-hint {
