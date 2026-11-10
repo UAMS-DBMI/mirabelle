@@ -15,8 +15,17 @@
   color: var(--qc-text-faint);
 }
 
+/* Both dump buttons read as text links: clear the app-wide button box
+   (index.css), which is dark unless the OS is in light mode. */
+#qc-dicom-dump .qc-dump-toggle-all,
+#qc-dicom-dump .qc-dump-disclosure {
+  @apply p-0 m-0 border-0 rounded-none;
+  background: transparent;
+  line-height: inherit;
+}
+
 #qc-dicom-dump .qc-dump-toggle-all {
-  @apply text-[11px] cursor-pointer;
+  @apply inline text-[11px] cursor-pointer;
   color: var(--qc-accent);
 }
 
