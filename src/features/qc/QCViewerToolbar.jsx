@@ -1,5 +1,7 @@
 import React from "react";
 
+import { messages } from "@/lib/messages";
+
 import "./QCViewerToolbar.css";
 
 /**
@@ -16,6 +18,7 @@ export default function QCViewerToolbar({
   onResetView,
   showLabels,
   onToggleLabels,
+  downloadUrl,
 }) {
   const zoomLabel = zoom != null ? `${Math.round(zoom * 100)}%` : "—";
 
@@ -66,6 +69,20 @@ export default function QCViewerToolbar({
       >
         Labels
       </button>
+
+      {downloadUrl ? (
+        <a className="qc-btn qc-download" href={downloadUrl} download>
+          Download
+        </a>
+      ) : (
+        <button
+          className="qc-btn"
+          disabled
+          title={messages.qc.downloadReadOnly}
+        >
+          Download
+        </button>
+      )}
     </div>
   );
 }

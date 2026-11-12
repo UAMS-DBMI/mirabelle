@@ -19,6 +19,7 @@ import {
   setQCSeriesStatus,
   buildSeriesImageIds,
   buildFileByUrlMap,
+  qcSeriesDownloadUrl,
 } from "@/qc";
 
 import QCStudyHeader from "./QCStudyHeader";
@@ -353,6 +354,9 @@ export default function QCAssignment({
         onResetView={resetView}
         showLabels={showLabels}
         onToggleLabels={toggleLabels}
+        downloadUrl={
+          readOnly ? null : qcSeriesDownloadUrl(assignmentId, seriesUid)
+        }
       />
       <QCViewport
         frames={imageIds}

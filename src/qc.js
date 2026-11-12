@@ -99,6 +99,14 @@ export async function getQCSeriesHistory(assignmentId, seriesUid) {
 }
 
 /**
+ * URL of a zip of one series' files, exactly as QC shows them. The browser
+ * fetches it directly (login cookie included) and streams it to disk.
+ */
+export function qcSeriesDownloadUrl(assignmentId, seriesUid) {
+  return `${QC_BASE}/assignments/${assignmentId}/series/${seriesUid}/download`;
+}
+
+/**
  * Build Cornerstone stack imageIds from a QC series-files response.
  * Multi-frame files expand to one imageId per frame. All frames are kept:
  * the stack viewport loads images lazily, and QC needs to see every frame.
