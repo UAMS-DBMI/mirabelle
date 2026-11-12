@@ -24,7 +24,7 @@
     ];
  */
 import React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MaterialIcon from "./MaterialIcon";
 
 import "./MaterialButtonSet.css";
@@ -35,6 +35,14 @@ function MaterialButtonSet({
   noRemember = false,
 }) {
   const [activeButton, setActiveButton] = useState(initialActiveButton);
+
+  // The review routes show the Tools panel while the exam loads, and only set
+  // its starting tool (e.g. Window Level) once the exam's details arrive.
+  // Follow the parent's value when it changes, or the button set keeps the
+  // value it had at mount and no button shows as active.
+  useEffect(() => {
+    setActiveButton(initialActiveButton);
+  }, [initialActiveButton]);
 
   function buttonClick(item) {
     if (item.disabled) {
