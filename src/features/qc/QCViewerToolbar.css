@@ -64,6 +64,20 @@
   color: var(--qc-text-strong);
 }
 
+/* A link styled as a button: the browser streams the zip straight to disk. */
+#qc-viewer-toolbar .qc-btn.qc-download {
+  @apply no-underline;
+  background: var(--qc-accent);
+  border-color: var(--qc-accent);
+  color: #fff;
+}
+
+/* Same fill as the nav bar's Next button. */
+#qc-viewer-toolbar .qc-btn.qc-download:hover:not(:disabled) {
+  background: oklch(0.44 0.15 250);
+  border-color: oklch(0.44 0.15 250);
+}
+
 #qc-viewer-toolbar .qc-toolbar-hint {
   @apply text-xs whitespace-nowrap min-w-0 overflow-hidden text-ellipsis;
   color: var(--qc-text-faint);

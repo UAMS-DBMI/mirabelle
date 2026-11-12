@@ -63,6 +63,7 @@ export const messages = {
     noteRequired: (label) =>
       `A note is required to mark a series ${label.toLowerCase()}.`,
     readOnly: "Log in to approve, reject or flag series.",
+    downloadReadOnly: "Log in to download this series.",
     noSeries: "No series were found for the selected filters.",
     endReached:
       "End of the series list. Go back or change the filters to continue.",
