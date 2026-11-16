@@ -939,6 +939,58 @@ export async function streamStackImages(imageIds) {
   return [firstResult, ...otherResults];
 }
 
+// Slices downloaded on each side of the one on screen when a stack is
+// browsed lazily, so the next few are in before the curator scrolls to them.
+export const STACK_SLICE_WINDOW_RADIUS = 5;
+
+/**
+ * Download only the slices near the first one, for a stack browsed lazily:
+ * a series with hundreds of slices would otherwise download all of them
+ * while the curator may look at a few. Scrolling fetches the rest as they
+ * come near (loadStackSlicesNear). Same progress and result as
+ * streamStackImages, for the slices it asks for.
+ *
+ * @param {string[]} imageIds
+ * @returns {Promise<PromiseSettledResult[]>}
+ */
+export function streamFirstStackSlices(imageIds) {
+  return streamStackImages(
+    (imageIds ?? []).slice(0, STACK_SLICE_WINDOW_RADIUS + 1),
+  );
+}
+
+/**
+ * Start downloading the slices within STACK_SLICE_WINDOW_RADIUS of `index`
+ * that aren't loaded or loading yet, nearest first. Failures are logged, not
+ * thrown: the viewport retries a slice when the curator reaches it.
+ *
+ * @param {string[]} imageIds
+ * @param {number} index the slice on screen
+ */
+export function loadStackSlicesNear(imageIds, index) {
+  slicesNearestFirst(imageIds.length, index, STACK_SLICE_WINDOW_RADIUS)
+    .map((sliceIndex) => imageIds[sliceIndex])
+    .filter((imageId) => !cornerstone.cache.getImageLoadObject(imageId))
+    .forEach((imageId) =>
+      loadStreamedStackImage(imageId).catch((error) =>
+        console.warn("[loadStackSlicesNear] slice failed", imageId, error),
+      ),
+    );
+}
+
+// Indices within `radius` of `index` (inside 0..count-1), nearest first.
+function slicesNearestFirst(count, index, radius) {
+  const indices = [];
+  for (let distance = 0; distance <= radius; distance++) {
+    [index + distance, index - distance].forEach((candidate) => {
+      if (candidate >= 0 && candidate < count && !indices.includes(candidate)) {
+        indices.push(candidate);
+      }
+    });
+  }
+  return indices;
+}
+
 // Load a stack frame, its file streamed so the frame can be drawn as it
 // arrives.
 function loadStreamedStackImage(imageId) {

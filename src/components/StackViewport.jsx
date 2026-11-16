@@ -14,6 +14,7 @@ import { attachFramePreview } from "@/lib/stackFramePreview";
 import { attachSliceScrollbar, attachSliceCounter } from "@/lib/sliceScrollbar";
 import { setOption } from "@/features/optionSlice";
 import ViewportLabel from "@/components/ViewportLabel";
+import { loadStackSlicesNear } from "@/utilities";
 
 import "./StackViewport.css";
 
@@ -23,6 +24,10 @@ export const MARGIN_ZOOM = 0.92;
 
 // Slices PageUp / PageDown step through at a time.
 const PAGE_STEP = 10;
+
+// How long a slice stays on screen before the slices around it are fetched.
+// Shorter than a frame of the default 5 fps cine, so cine still prefetches.
+const SLICE_SETTLE_MS = 150;
 
 // The slice keys also scroll whichever panel has focus unless prevented.
 const SLICE_KEY_OPTIONS = { preventDefault: true };
@@ -61,6 +66,7 @@ function StackViewport({
   const previewDetachRef = useRef(null);
   const scrollbarDetachRef = useRef(null);
   const counterDetachRef = useRef(null);
+  const sliceWindowDetachRef = useRef(null);
   const segReadyListenerRef = useRef(null);
   // The viewport once its stack is set, for the slice keys.
   const viewportRef = useRef(null);
@@ -251,6 +257,14 @@ function StackViewport({
         viewport,
         elementRef.current,
       );
+      // Fetch the slices near the one on screen as the curator moves through
+      // the stack, rather than the whole stack up front (replacing the
+      // previous stack's listener).
+      sliceWindowDetachRef.current?.();
+      sliceWindowDetachRef.current = attachSliceWindowLoader(
+        elementRef.current,
+        frames,
+      );
 
       viewportRef.current = viewport;
       onViewportReady?.(viewport);
@@ -286,6 +300,8 @@ function StackViewport({
       scrollbarDetachRef.current = null;
       counterDetachRef.current?.();
       counterDetachRef.current = null;
+      sliceWindowDetachRef.current?.();
+      sliceWindowDetachRef.current = null;
       viewportRef.current = null;
       cornerstone.eventTarget.removeEventListener(
         "StackSegmentationReady",
@@ -316,6 +332,28 @@ function StackViewport({
       </div>
     </>
   );
+}
+
+// Load the slices near the slice shown in `element`'s stack once it has
+// stayed on screen for SLICE_SETTLE_MS. Downloads go out oldest first, so
+// fetching around every slice a fast scroll passes would make the slice the
+// curator stops on wait behind them. Returns a function that stops it.
+function attachSliceWindowLoader(element, imageIds) {
+  let timer = null;
+  const onNewImage = (event) => {
+    clearTimeout(timer);
+    const index = event.detail.imageIdIndex;
+    timer = setTimeout(
+      () => loadStackSlicesNear(imageIds, index),
+      SLICE_SETTLE_MS,
+    );
+  };
+  const { STACK_NEW_IMAGE } = cornerstone.Enums.Events;
+  element.addEventListener(STACK_NEW_IMAGE, onNewImage);
+  return () => {
+    clearTimeout(timer);
+    element.removeEventListener(STACK_NEW_IMAGE, onNewImage);
+  };
 }
 
 export default StackViewport;
