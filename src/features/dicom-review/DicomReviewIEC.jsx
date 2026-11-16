@@ -36,7 +36,7 @@ import {
   getImageIdsFromIEC,
   loadStackSegmentation,
   makeRoomForStackExam,
-  streamStackImages,
+  streamFirstStackSlices,
   loadVolume,
   loadVolumeAsync,
   loadVolumeSegmentation,
@@ -413,12 +413,12 @@ export default function DicomReviewIEC({
           }
         } else {
           // Register the frames (pinned wadouri images) so the exam-LRU
-          // eviction can free them, then stream them all in the background:
-          // the first frame shows as soon as it lands, scrolling doesn't wait
-          // on each frame, and the indicator counts them in. It comes down
-          // once every frame is in.
+          // eviction can free them, then stream only the first few: a
+          // multi-slice series can hold hundreds. The stack viewport fetches
+          // the rest as the curator scrolls near them. The indicator counts
+          // the first few in and comes down once they are.
           makeRoomForStackExam(imageIds);
-          streamStackImages(imageIds).then(() => {
+          streamFirstStackSlices(imageIds).then(() => {
             if (isCancelled || requestId !== loadRequestRef.current) return;
             dispatch(setLoading(false));
           });
