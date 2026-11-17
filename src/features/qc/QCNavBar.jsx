@@ -2,7 +2,7 @@ import React from "react";
 
 import "./QCNavBar.css";
 
-const QC_STATUS_OPTIONS = ["All", "pending", "approved", "rejected", "flagged"];
+const QC_STATUS_OPTIONS = ["All", "Pending", "Approved", "Rejected", "Flagged"];
 
 // [qc_status, pill label suffix, pill color class]
 const COUNT_PILLS = [

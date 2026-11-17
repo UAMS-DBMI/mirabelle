@@ -68,6 +68,16 @@ describe("getQCAssignmentSeries", () => {
       undefined,
     );
   });
+
+  it("sends the route's title-case status lowercase", async () => {
+    const fetchMock = mockFetchJSON({ data: [] });
+
+    await getQCAssignmentSeries(1, { qcStatus: "Pending", modality: "All" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/papi/v1/distribution/qc/assignments/1/series?qc_status=pending",
+      undefined,
+    );
+  });
 });
 
 describe("setQCSeriesStatus", () => {
