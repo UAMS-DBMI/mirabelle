@@ -20,6 +20,14 @@ function seriesPath(assignmentId, seriesUid, qcStatus, modality) {
   ].join("/");
 }
 
+// :qcStatus is title case in the URL and the Status dropdown ("Pending",
+// "All"); it's read without regard to case, so older lowercase links work.
+// The API takes it lowercase (qc.js).
+function titleCaseStatus(raw) {
+  const status = (raw || "All").toLowerCase();
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 // Sentinel :seriesUid for the end-of-list screen, reached by deciding the
 // last series. Can't collide with a real series UID (those are digits/dots).
 const END_SENTINEL = "end";
@@ -38,7 +46,7 @@ export default function RouteQCAssignment() {
     qcStatus: rawQcStatus,
     modality: rawModality,
   } = useParams();
-  const qcStatus = rawQcStatus || "All";
+  const qcStatus = titleCaseStatus(rawQcStatus);
   const modality = rawModality || "All";
 
   const [assignmentData, setAssignmentData] = useState(null);

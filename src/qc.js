@@ -32,13 +32,16 @@ export async function getQCAssignment(assignmentId) {
 /**
  * Get the (optionally filtered) series list for an assignment.
  * `qcStatus` / `modality` accept "All" (or empty) to mean no filter.
+ * `qcStatus` may be in any case (the route uses "Pending"); the API's
+ * qc_status values are lowercase.
  */
 export async function getQCAssignmentSeries(
   assignmentId,
   { qcStatus, modality, page, limit } = {},
 ) {
   const params = new URLSearchParams();
-  if (qcStatus && qcStatus !== "All") params.set("qc_status", qcStatus);
+  const status = qcStatus ? qcStatus.toLowerCase() : "all";
+  if (status !== "all") params.set("qc_status", status);
   if (modality && modality !== "All") params.set("modality", modality);
   if (page != null) params.set("page", page);
   if (limit != null) params.set("limit", limit);
