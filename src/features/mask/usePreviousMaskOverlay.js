@@ -27,6 +27,7 @@ import {
   PREVIOUS_FILL_COLOR,
 } from "@/lib/maskBox";
 import { maskingParametersToBounds } from "@/lib/maskingParameters";
+import { stackMaskSpacing } from "@/lib/stackMaskSpacing";
 import {
   addPreviousMaskBox2D,
   removePreviousMaskBox2D,
@@ -178,20 +179,21 @@ function loadedStackGeometry(imageIds, justLoadedImage) {
     cornerstone.cache.getImage(firstImageId) ??
     (justLoadedImage?.imageId === firstImageId ? justLoadedImage : null);
   if (!image) return null;
-  const spacing = [
+  const pixelSpacing = [
     image.columnPixelSpacing ?? 1,
     image.rowPixelSpacing ?? 1,
     1,
   ];
   const dimensions = [image.columns, image.rows, imageIds.length];
   return {
-    spacing,
+    // The stored box is in the masker's scale, which isn't always the image's.
+    spacing: stackMaskSpacing(image),
     dimensions,
     // A 2D image gets masked in-plane whatever the stored box's through-plane
     // extent says, so the patient-box readings must not let that axis veto the
     // overlay (see maskingParametersToBounds).
     singleSlice: imageIds.length === 1,
-    ...stackWorldGeometry(imageIds, spacing, dimensions),
+    ...stackWorldGeometry(imageIds, pixelSpacing, dimensions),
   };
 }
 

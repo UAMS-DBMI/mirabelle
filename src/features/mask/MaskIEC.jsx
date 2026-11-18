@@ -51,6 +51,7 @@ import {
   SELECTION_FILL_COLOR,
 } from "@/lib/maskBox";
 import { describeMaskingParameters } from "@/lib/maskingParameters";
+import { stackMaskSpacing } from "@/lib/stackMaskSpacing";
 import { addMaskBox2D, removeMaskBox2D } from "@/lib/viewportFrame";
 import {
   usePreviousMaskOverlay,
@@ -1442,7 +1443,7 @@ export default function MaskIEC({
       finalCoords = getCoordsForStackSeg(imageIds);
       setCoords(finalCoords);
       const image = cornerstone.cache.getImage(imageIds[0]);
-      spacing = [image.columnPixelSpacing ?? 1, image.rowPixelSpacing ?? 1, 1];
+      spacing = stackMaskSpacing(image);
     }
 
     console.log(finalCoords, spacing, iec);
