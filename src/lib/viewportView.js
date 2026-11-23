@@ -3,6 +3,8 @@
  * volume's own voxel grid, so tilted / oblique acquisitions render square-on.
  */
 
+import { Enums } from "@cornerstonejs/core";
+
 // The anatomical (world-space) camera for each 2D pane — Cornerstone's
 // MPR_CAMERA_VALUES in patient LPS coordinates: e.g. the AXIAL camera looks
 // up from the feet with the patient's anterior at the top of the screen.
@@ -139,20 +141,44 @@ export function acquisitionPaneOrientation(volume, pane) {
  *
  * Returns the wrapper's expanded state after the toggle, so a caller tracking
  * button state stays in sync with the DOM it just mutated.
+ *
+ * The pane state is kept in data attributes, not classes: React rewrites a
+ * pane's whole `class` whenever its className changes (view mode, active
+ * pane), which used to wipe a hand-added "minimized" class mid-expand — the
+ * next toggle then shrank the 2D panes to 1px instead of restoring them.
  */
 export function toggleViewportExpanded(wrapper, renderingEngine) {
   if (!wrapper || !renderingEngine) {
     return false;
   }
+  const expanded = !wrapper.hasAttribute("data-expanded");
   Array.from(wrapper.parentNode.children)
     .filter((child) => child !== wrapper)
-    .forEach((child) => child.classList.toggle("minimized"));
-  const expanded = wrapper.classList.toggle("expanded");
-  wrapper.parentElement.classList.toggle("expanded");
+    .forEach((child) => child.toggleAttribute("data-minimized", expanded));
+  wrapper.toggleAttribute("data-expanded", expanded);
+  wrapper.parentElement.classList.toggle("expanded", expanded);
 
   /* A hack to force-render the resized viewports */
+  const zoomedPanes = zoomsOf2dPanes(renderingEngine);
   renderingEngine.resize(true, true);
+  zoomedPanes.forEach(({ viewport, zoom }) => viewport.setZoom(zoom));
   renderingEngine.render();
 
   return expanded;
+}
+
+// Each 2D pane's zoom relative to "image fits the pane". resize() carries the
+// camera's absolute scale across instead, which is wrong for a pane coming
+// back from ~1px: a view-mode switch made while it was minimized sized the
+// image for that 1px square, so it returned smaller than the other panes.
+// Panes with no image yet are skipped — they have no fit to be relative to.
+function zoomsOf2dPanes(renderingEngine) {
+  return renderingEngine
+    .getViewports()
+    .filter(
+      (viewport) =>
+        viewport.type === Enums.ViewportType.ORTHOGRAPHIC &&
+        viewport.getActors().length > 0,
+    )
+    .map((viewport) => ({ viewport, zoom: viewport.getZoom() }));
 }
