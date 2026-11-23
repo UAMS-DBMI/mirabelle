@@ -27,6 +27,18 @@ function toTitleCase(some_string) {
   });
 }
 
+// The projection buttons are named in full, so title-casing their option
+// value ("projection" -> "Projection") matches no button and none would show
+// as active. Every other view's name is its title-cased value.
+const PROJECTION_BUTTON_NAMES = {
+  projection: "Maximum Intensity Projection",
+  min_projection: "Minimum Intensity Projection",
+};
+
+function viewButtonName(view) {
+  return PROJECTION_BUTTON_NAMES[view] ?? toTitleCase(view);
+}
+
 export default function ToolsPanel({
   toolGroup,
   toolGroup3d,
@@ -248,7 +260,7 @@ export default function ToolsPanel({
             <p>View:</p>
             <MaterialButtonSet
               buttonConfig={toolsConfigs.viewGroupButtonConfig}
-              initialActiveButton={toTitleCase(globalStateValues.view)}
+              initialActiveButton={viewButtonName(globalStateValues.view)}
             />
           </div>
         )}
