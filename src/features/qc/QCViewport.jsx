@@ -111,6 +111,7 @@ export default function QCViewport({
         renderingEngine={renderingEngine}
         viewportId={VIEWPORT_ID}
         label={null}
+        sliceControls={false}
       />
 
       {/* Covers the last image drawn, which the viewport still holds. */}

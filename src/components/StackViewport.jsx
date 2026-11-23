@@ -29,8 +29,10 @@ const PAGE_STEP = 10;
 // Shorter than a frame of the default 5 fps cine, so cine still prefetches.
 const SLICE_SETTLE_MS = 150;
 
-// The slice keys also scroll whichever panel has focus unless prevented.
-const SLICE_KEY_OPTIONS = { preventDefault: true };
+// The slice keys also scroll whichever panel has focus unless prevented. A
+// key that is off must not prevent that either: react-hotkeys-hook cancels the
+// default before it checks `enabled`.
+const sliceKeyOptions = (enabled) => ({ enabled, preventDefault: enabled });
 
 const {
   PanTool,
@@ -59,6 +61,9 @@ function StackViewport({
   // Corner badge naming the view; null hides it (a page with one viewport).
   label = "Stack",
   onViewportReady,
+  // The slice keys and the "N / total" counter; false on a page that has its
+  // own frame keys and position text (QC).
+  sliceControls = true,
 }) {
   console.log("[StackViewport] rendering");
   const elementRef = useRef(null);
@@ -84,12 +89,13 @@ function StackViewport({
     const viewport = viewportRef.current;
     viewport?.scroll(direction * viewport.getImageIds().length);
   };
-  useHotkeys("up", () => stepSlices(-1), SLICE_KEY_OPTIONS);
-  useHotkeys("down", () => stepSlices(1), SLICE_KEY_OPTIONS);
-  useHotkeys("pageup", () => stepSlices(-PAGE_STEP), SLICE_KEY_OPTIONS);
-  useHotkeys("pagedown", () => stepSlices(PAGE_STEP), SLICE_KEY_OPTIONS);
-  useHotkeys("home", () => stepToEnd(-1), SLICE_KEY_OPTIONS);
-  useHotkeys("end", () => stepToEnd(1), SLICE_KEY_OPTIONS);
+  const keyOptions = sliceKeyOptions(sliceControls);
+  useHotkeys("up", () => stepSlices(-1), keyOptions);
+  useHotkeys("down", () => stepSlices(1), keyOptions);
+  useHotkeys("pageup", () => stepSlices(-PAGE_STEP), keyOptions);
+  useHotkeys("pagedown", () => stepSlices(PAGE_STEP), keyOptions);
+  useHotkeys("home", () => stepToEnd(-1), keyOptions);
+  useHotkeys("end", () => stepToEnd(1), keyOptions);
 
   useEffect(() => {
     // Navigation can supersede this setup while it awaits setStack. Past that
@@ -253,10 +259,9 @@ function StackViewport({
       );
       // "N / total" in the corner; the scrollbar only shows it on hover.
       counterDetachRef.current?.();
-      counterDetachRef.current = attachSliceCounter(
-        viewport,
-        elementRef.current,
-      );
+      counterDetachRef.current = sliceControls
+        ? attachSliceCounter(viewport, elementRef.current)
+        : null;
       // Fetch the slices near the one on screen as the curator moves through
       // the stack, rather than the whole stack up front (replacing the
       // previous stack's listener).
