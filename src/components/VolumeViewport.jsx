@@ -121,15 +121,15 @@ function VolumeViewport({
     let cancelled = false;
 
     const setup = async () => {
-      // Remove any leftover minimized/expanded classes on volume change
+      // Remove any leftover minimized/expanded state on volume change
       const wrapper = elementRef.current;
       if (wrapper && wrapper.parentNode) {
         Array.from(wrapper.parentNode.children).forEach((child) => {
-          child.classList.remove("minimized", "expanded");
+          child.removeAttribute("data-minimized");
+          child.removeAttribute("data-expanded");
         });
-        wrapper.classList.remove("minimized", "expanded");
         wrapper.parentElement.classList.remove("expanded");
-        // Classes just cleared — keep the expand button's icon in sync.
+        // State just cleared — keep the expand button's icon in sync.
         setExpanded(false);
 
         /* A hack to force-render a viewport */
